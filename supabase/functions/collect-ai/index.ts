@@ -495,11 +495,14 @@ Return ONLY valid JSON:
       // Reuse search logic
       const type = schedule.search_type || "keyword";
       let content = "";
+      let dataSource = "firecrawl";
       if (type === "keyword") {
-        const results = await searchByKeyword(schedule.keyword);
+        const { results, source } = await searchByKeyword(schedule.keyword);
+        dataSource = source;
         content = results.map((r: any) => `Title: ${r.title || ""}\nURL: ${r.url || ""}\nDescription: ${r.description || ""}\n---`).join("\n");
       } else {
         content = await scrapeListingUrl(schedule.keyword);
+        dataSource = content.startsWith("Unable to scrape") ? "ai_fallback" : "firecrawl";
       }
 
       // Get category name
@@ -520,7 +523,7 @@ Return ONLY valid JSON:
           results_count: tools.length,
           status: "completed",
           created_by: schedule.created_by,
-          metadata: { scheduled: true, schedule_id: schedule.id },
+          metadata: { scheduled: true, schedule_id: schedule.id, data_source: dataSource },
         })
         .select("id")
         .single();
@@ -534,7 +537,7 @@ Return ONLY valid JSON:
           pricing_type: t.pricing_type || "contact",
           category_name: t.category_name || catName || null,
           source_url: t.source_url || null,
-          collected_data: t,
+          collected_data: { ...t, data_source: dataSource },
           status: "pending",
         }));
         await supabase.from("collect_items").insert(items);
@@ -547,7 +550,7 @@ Return ONLY valid JSON:
         results_total: (schedule.results_total || 0) + tools.length,
       }).eq("id", schedule.id);
 
-      return new Response(JSON.stringify({ success: true, tools_count: tools.length, session_id: session?.id }), {
+      return new Response(JSON.stringify({ success: true, tools_count: tools.length, data_source: dataSource, session_id: session?.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
