@@ -35,6 +35,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
+import AdminSearchAnalytics from "./pages/admin/AdminSearchAnalytics";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
             <Route path="/admin/collect" element={<AdminCollectAI />} />
             <Route path="/admin/workflows" element={<AdminWorkflows />} />
+            <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />

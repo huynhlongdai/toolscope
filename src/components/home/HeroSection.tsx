@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { Search, Sparkles, Loader2, Bot } from "lucide-react";
+import { Search, Sparkles, Loader2, Bot, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { useAISearch } from "@/hooks/useAISearch";
+import { usePopularKeywords } from "@/hooks/usePopularKeywords";
 import { Badge } from "@/components/ui/badge";
 
 export function HeroSection() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { results, summary, loading, search, clear } = useAISearch();
+  const { data: popularKeywords } = usePopularKeywords();
+  const fallbackTags = ["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,8 +126,12 @@ export function HeroSection() {
 
         {!results && (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
             <span>Phổ biến:</span>
-            {["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"].map((tag) => (
+            {(popularKeywords && popularKeywords.length > 0
+              ? popularKeywords.map(k => k.keyword)
+              : fallbackTags
+            ).map((tag) => (
               <button
                 key={tag}
                 onClick={() => { setQuery(tag); search(tag); }}
