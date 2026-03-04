@@ -20,6 +20,7 @@ import {
   Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
 } from "lucide-react";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -276,7 +277,9 @@ export default function ToolDetail() {
                             <span className="text-xs text-muted-foreground ml-auto">{new Date(review.created_at).toLocaleDateString("vi-VN")}</span>
                           </div>
                           <h4 className="font-medium mb-1">{review.title}</h4>
-                          <p className="text-sm text-muted-foreground">{review.content}</p>
+                          <div className="text-sm text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none">
+                            <ReactMarkdown>{review.content}</ReactMarkdown>
+                          </div>
                           <div className="mt-2">
                             <VoteButtons targetId={review.id} targetType="review" upvotes={review.upvotes} downvotes={review.downvotes} userId={user?.id} />
                           </div>
