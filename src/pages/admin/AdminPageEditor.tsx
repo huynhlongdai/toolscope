@@ -62,6 +62,11 @@ const defaultBlockData: Record<string, any> = {
   },
   button: { text: "Click me", url: "#", variant: "primary", align: "center" },
   countdown: { title: "Ưu đãi kết thúc sau", targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), bgColor: "#6366f1" },
+  gallery: {
+    title: "Gallery",
+    columns: "3",
+    items: [{ src: "", alt: "", caption: "" }],
+  },
 };
 
 export default function AdminPageEditor() {
