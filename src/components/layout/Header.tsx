@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers } from "lucide-react";
+import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ export function Header() {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isAdminOrEditor } = useAdminAuth();
   const navigate = useNavigate();
 
   const toggleTheme = () => {
@@ -83,6 +85,12 @@ export function Header() {
                 <DropdownMenuItem onClick={() => navigate("/collections")}>
                   <Layers className="mr-2 h-4 w-4" /> Collections
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {isAdminOrEditor && (
+                  <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    <Shield className="mr-2 h-4 w-4" /> Admin Dashboard
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
