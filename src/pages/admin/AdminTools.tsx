@@ -1135,3 +1135,29 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
     </Dialog>
   );
 }
+
+function TranslateButton({ toolId, toolName }: { toolId: string; toolName: string }) {
+  const [translating, setTranslating] = useState(false);
+
+  const handleTranslate = async () => {
+    setTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("translate-tool", {
+        body: { tool_id: toolId, locale: "en" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Đã dịch "${toolName}" sang tiếng Anh (${data.saved} trường)`);
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi dịch tự động");
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  return (
+    <Button variant="ghost" size="icon" onClick={handleTranslate} disabled={translating} title="Dịch sang tiếng Anh">
+      {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+    </Button>
+  );
+}
