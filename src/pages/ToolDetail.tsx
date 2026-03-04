@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { ToolCard } from "@/components/tools/ToolCard";
+
 import { StructuredReviewForm } from "@/components/tool-detail/StructuredReviewForm";
 import { ReviewBreakdown } from "@/components/tool-detail/ReviewBreakdown";
 import { ScreenshotGallery } from "@/components/tool-detail/ScreenshotGallery";
