@@ -253,8 +253,25 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Tạo workflow + SEO content bằng AI</span>
+              <span className="text-sm font-medium">
+                {isNew ? "Tạo workflow + SEO content bằng AI" : "Tạo lại / Bổ sung nội dung bằng AI"}
+              </span>
             </div>
+
+            {!isNew && (
+              <div className="flex gap-2 mb-2">
+                <Select value={regenMode} onValueChange={(v: any) => setRegenMode(v)}>
+                  <SelectTrigger className="w-[220px] h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Tạo lại toàn bộ</SelectItem>
+                    <SelectItem value="seo_only">Chỉ bổ sung SEO content</SelectItem>
+                    <SelectItem value="steps_only">Chỉ tạo lại Steps</SelectItem>
+                    <SelectItem value="enrich">Bổ sung phần còn thiếu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="flex gap-2 mb-2">
               <Select value={aiMode} onValueChange={(v: any) => setAiMode(v)}>
                 <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
@@ -265,7 +282,7 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
               </Select>
               {aiMode === "keyword" && (
                 <Input
-                  placeholder="VD: Tạo video marketing bằng AI..."
+                  placeholder={isNew ? "VD: Tạo video marketing bằng AI..." : "Keyword bổ sung hoặc để trống dùng title hiện tại..."}
                   value={aiKeyword}
                   onChange={(e) => setAiKeyword(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !aiGenerating && handleAiGenerate()}
@@ -275,11 +292,17 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
               )}
               <Button onClick={handleAiGenerate} disabled={aiGenerating} className="shrink-0 h-9">
                 {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                {aiGenerating ? "Đang tạo..." : "Tạo"}
+                {aiGenerating ? "Đang tạo..." : isNew ? "Tạo" : "Tạo lại"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              AI tạo workflow hoàn chỉnh kèm: vấn đề & giải pháp, bước thực hiện, lỗi thường gặp, tips, SEO metadata
+              {isNew
+                ? "AI tạo workflow hoàn chỉnh kèm: vấn đề & giải pháp, bước thực hiện, lỗi thường gặp, tips, SEO metadata"
+                : regenMode === "full" ? "Tạo lại toàn bộ nội dung workflow (ghi đè tất cả)"
+                : regenMode === "seo_only" ? "Chỉ tạo lại nội dung SEO (vấn đề, giải pháp, lỗi, tips) — giữ nguyên steps & thông tin cơ bản"
+                : regenMode === "steps_only" ? "Chỉ tạo lại các bước thực hiện — giữ nguyên SEO content & thông tin cơ bản"
+                : "Chỉ bổ sung các trường còn trống — không ghi đè nội dung đã có"
+              }
               {form.tool_ids.length > 0 && " • Ưu tiên tools đã chọn"}
             </p>
           </CardContent>
