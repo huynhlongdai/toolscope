@@ -452,7 +452,30 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 
           {/* Tab: Basic */}
           <TabsContent value="basic" className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
+            {/* Auto-fill Card */}
+            <Card className="border-dashed border-primary/30 bg-primary/5">
+              <CardContent className="pt-4 pb-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Thu thập tự động bằng AI</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nhập tên tool (VD: Figma) hoặc URL (VD: https://figma.com)"
+                    value={autoFillQuery}
+                    onChange={(e) => setAutoFillQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !autoFilling && handleAutoFill()}
+                    disabled={autoFilling}
+                  />
+                  <Button onClick={handleAutoFill} disabled={autoFilling} className="shrink-0">
+                    {autoFilling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                    {autoFilling ? "Đang thu thập..." : "Thu thập"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">AI sẽ tự động điền tên, mô tả, giá, nền tảng, logo và nội dung chi tiết</p>
+              </CardContent>
+            </Card>
+
               <div className="space-y-2">
                 <Label>Tên *</Label>
                 <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); if (!tool) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
