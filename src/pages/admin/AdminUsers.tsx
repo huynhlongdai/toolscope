@@ -232,7 +232,7 @@ export default function AdminUsers() {
                       {user.is_banned ? (
                         <Badge variant="destructive" className="text-xs">Banned</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-green-600">Active</Badge>
+                        <Badge variant="outline" className="text-xs">Active</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{new Date(user.created_at).toLocaleDateString("vi-VN")}</TableCell>

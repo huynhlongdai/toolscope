@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Star, Bookmark, BookmarkCheck, Share2,
+  Star, Bookmark, BookmarkCheck,
   MessageCircle, ArrowLeft, GitCompareArrows,
   Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
 } from "lucide-react";
