@@ -407,7 +407,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
           );
         }
 
-        return <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} />;
+        return <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} toolId={toolId} />;
       })}
 
       {/* Back to top */}
