@@ -7,6 +7,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
 import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
