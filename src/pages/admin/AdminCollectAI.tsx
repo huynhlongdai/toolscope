@@ -415,7 +415,7 @@ export default function AdminCollectAI() {
                           </Button>
                           {item.status === "pending" && (
                             <>
-                              <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={() => updateStatusMutation.mutate({ ids: [item.id], status: "approved" })}>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => updateStatusMutation.mutate({ ids: [item.id], status: "approved" })}>
                                 <CheckCircle className="h-3.5 w-3.5" />
                               </Button>
                               <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => updateStatusMutation.mutate({ ids: [item.id], status: "rejected" })}>
