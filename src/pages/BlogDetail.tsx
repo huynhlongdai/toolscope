@@ -33,6 +33,17 @@ export default function BlogDetail() {
     enabled: !!slug,
   });
 
+  const relatedToolIds = (post?.related_tool_ids as string[]) ?? [];
+  const { data: relatedTools = [] } = useQuery({
+    queryKey: ["blog-related-tools", relatedToolIds],
+    queryFn: async () => {
+      if (!relatedToolIds.length) return [];
+      const { data } = await supabase.from("tools").select("*, categories(name)").in("id", relatedToolIds);
+      return data ?? [];
+    },
+    enabled: relatedToolIds.length > 0,
+  });
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
