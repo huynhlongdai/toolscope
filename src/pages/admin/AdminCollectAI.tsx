@@ -156,7 +156,8 @@ export default function AdminCollectAI() {
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`Tìm thấy ${data.tools_count} công cụ`);
+      const sourceLabel = data.data_source === "firecrawl" ? "Firecrawl" : "AI Fallback";
+      toast.success(`Tìm thấy ${data.tools_count} công cụ (nguồn: ${sourceLabel})`);
       queryClient.invalidateQueries({ queryKey: ["collect-items"] });
       queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
       setActiveTab("staging");
