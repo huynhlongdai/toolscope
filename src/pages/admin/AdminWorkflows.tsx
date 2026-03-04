@@ -194,7 +194,6 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
           </div>
 
           <CoverImageUpload value={form.cover_image_url} onChange={(v) => update("cover_image_url", v)} />
-          </div>
 
           {/* Tools */}
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
