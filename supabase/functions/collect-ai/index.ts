@@ -83,20 +83,30 @@ Only include real, existing tools. No fictional products.`;
   }
 }
 
-// Scrape a listing URL to extract tools
+// Scrape a listing URL to extract tools, with graceful fallback
 async function scrapeListingUrl(url: string): Promise<string> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!apiKey) throw new Error("FIRECRAWL_API_KEY not configured");
+  
+  if (apiKey) {
+    try {
+      const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: formatUrl(url), formats: ["markdown"], onlyMainContent: true, waitFor: 3000 }),
+      });
 
-  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ url: formatUrl(url), formats: ["markdown"], onlyMainContent: true, waitFor: 3000 }),
-  });
+      if (response.ok) {
+        const data = await response.json();
+        return data.data?.markdown || data.markdown || "";
+      }
+      console.warn(`Firecrawl scrape returned ${response.status}, returning empty`);
+    } catch (e) {
+      console.warn("Firecrawl scrape error:", e);
+    }
+  }
 
-  if (!response.ok) throw new Error(`Firecrawl scrape failed: ${response.status}`);
-  const data = await response.json();
-  return data.data?.markdown || data.markdown || "";
+  // Fallback: return URL info for AI to work with
+  return `Unable to scrape. URL: ${url}. Please use your knowledge about this website to extract tool information.`;
 }
 
 // Use AI to parse search results or scraped content into tool items
