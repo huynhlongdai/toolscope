@@ -674,69 +674,31 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 function ContentTabWithPreview({ form, updateField, toolName }: { form: any; updateField: (k: string, v: any) => void; toolName: string }) {
   const [previewMode, setPreviewMode] = useState<"edit" | "preview">("edit");
 
-  // Detect markdown and offer conversion
-  const isMarkdown = (text: string) => {
-    if (!text) return false;
-    return /^#{1,4}\s/m.test(text) || /\*\*[^*]+\*\*/m.test(text) || /^-\s/m.test(text);
-  };
-
-  const descIsMarkdown = isMarkdown(form.description);
-  const detailedIsMarkdown = isMarkdown(form.detailed_content);
-  const hasMarkdown = descIsMarkdown || detailedIsMarkdown;
-
-  const convertToHtml = () => {
-    if (descIsMarkdown) {
-      updateField("description", marked.parse(form.description, { async: false }) as string);
-    }
-    if (detailedIsMarkdown) {
-      updateField("detailed_content", marked.parse(form.detailed_content, { async: false }) as string);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Nội dung</Label>
-        <div className="flex items-center gap-2">
-          {hasMarkdown && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1 text-amber-600 border-amber-300 hover:bg-amber-50"
-              onClick={convertToHtml}
-            >
-              <RefreshCw className="h-3 w-3" /> Chuyển Markdown → HTML
-            </Button>
-          )}
-          <div className="flex gap-1 rounded-lg border p-0.5">
-            <Button
-              type="button"
-              variant={previewMode === "edit" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPreviewMode("edit")}
-            >
-              Chỉnh sửa
-            </Button>
-            <Button
-              type="button"
-              variant={previewMode === "preview" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPreviewMode("preview")}
-            >
-              <Eye className="h-3 w-3 mr-1" /> Xem trước
-            </Button>
-          </div>
+        <div className="flex gap-1 rounded-lg border p-0.5">
+          <Button
+            type="button"
+            variant={previewMode === "edit" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setPreviewMode("edit")}
+          >
+            Chỉnh sửa
+          </Button>
+          <Button
+            type="button"
+            variant={previewMode === "preview" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setPreviewMode("preview")}
+          >
+            <Eye className="h-3 w-3 mr-1" /> Xem trước
+          </Button>
         </div>
       </div>
-
-      {hasMarkdown && (
-        <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-          ⚠️ Nội dung đang ở dạng Markdown. Bấm "Chuyển Markdown → HTML" để editor hiển thị đúng định dạng.
-        </div>
-      )}
 
       {previewMode === "edit" ? (
         <>
