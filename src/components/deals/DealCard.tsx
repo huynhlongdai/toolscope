@@ -138,8 +138,8 @@ export function DealCard({ deal, toolName }: { deal: Deal; toolName?: string }) 
                 onClick={copyCode}
                 className={cn(
                   "w-full flex items-center justify-between rounded-lg border-2 border-dashed px-3 py-2 text-sm font-mono transition-colors",
-                  copied
-                    ? "border-green-500 bg-green-500/10 text-green-600"
+                copied
+                    ? "border-primary bg-primary/10 text-primary"
                     : "border-primary/30 bg-primary/5 text-foreground hover:border-primary/60"
                 )}
               >
