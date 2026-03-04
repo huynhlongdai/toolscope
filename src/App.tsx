@@ -20,6 +20,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import BookmarksPage from "./pages/BookmarksPage";
 import WorkflowsPage from "./pages/WorkflowsPage";
+import WorkflowDetail from "./pages/WorkflowDetail";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTools from "./pages/admin/AdminTools";
@@ -62,7 +63,7 @@ const App = () => (
             <Route path="/profile/:id" element={<ProfilePage />} />
             <Route path="/bookmarks" element={<BookmarksPage />} />
             <Route path="/workflows" element={<WorkflowsPage />} />
-            <Route path="/workflow/:slug" element={<WorkflowsPage />} />
+            <Route path="/workflow/:slug" element={<WorkflowDetail />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
