@@ -244,8 +244,11 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
   "category_suggestion": "suggested category name in Vietnamese",
   "website_url": "${resolvedUrl || ""}",
   "logo_url": "best logo URL found, or null",
-  "tags": ["tag1", "tag2", ...]
-}`;
+  "tags": ["tag1", "tag2", ...],
+  "faq": [{"question": "Câu hỏi thường gặp về tool bằng tiếng Việt?", "answer": "Câu trả lời chi tiết 2-4 câu."}]
+}
+
+IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?".`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
