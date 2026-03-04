@@ -69,7 +69,8 @@ Guidelines:
 - Steps should have detailed descriptions (3-5 sentences each)
 - Categories: Design, Marketing, Development, Content, Productivity, Business, AI, Data
 - The slug should be lowercase, hyphen-separated Vietnamese (no diacritics)
-- Prioritize tools from the platform when applicable${toolsContext}${popularToolsContext}`;
+- Prioritize tools from the platform when applicable
+12. **YouTube Video Suggestions**: Suggest 3-5 real YouTube search queries (in Vietnamese and English) that would find relevant tutorial/guide videos for this workflow topic. Also suggest specific video titles that likely exist on YouTube.${toolsContext}${popularToolsContext}`;
 
     const userPrompt = keyword
       ? `Create a comprehensive, SEO-optimized workflow about: "${keyword}". ${tool_ids?.length ? "Incorporate the provided tools where relevant." : "Suggest appropriate tools from the platform."}`
