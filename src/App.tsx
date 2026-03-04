@@ -20,6 +20,7 @@ import TrendingPage from "./pages/TrendingPage";
 import ProfilePage from "./pages/ProfilePage";
 import BookmarksPage from "./pages/BookmarksPage";
 import WorkflowsPage from "./pages/WorkflowsPage";
+import WorkflowDetail from "./pages/WorkflowDetail";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTools from "./pages/admin/AdminTools";
