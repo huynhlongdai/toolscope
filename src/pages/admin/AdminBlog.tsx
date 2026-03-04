@@ -281,6 +281,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       cover_image_url: form.cover_image_url || null,
       tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
       content: form.content, status: form.status as any,
+      related_tool_ids: form.related_tool_ids.length > 0 ? form.related_tool_ids : null,
       seo_title: form.seo_title || null,
       seo_description: form.seo_description || null,
       seo_keywords: form.seo_keywords ? form.seo_keywords.split(",").map((k: string) => k.trim()).filter(Boolean) : null,
