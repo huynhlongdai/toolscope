@@ -335,6 +335,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         pricing_type: data.pricing_type || prev.pricing_type,
         platforms: data.platforms?.length ? data.platforms : prev.platforms,
         pricing_details: Array.isArray(data.pricing_details) && data.pricing_details.length > 0 ? data.pricing_details : prev.pricing_details,
+        faq: Array.isArray(data.faq) && data.faq.length > 0 ? data.faq : prev.faq,
       }));
 
       // Try to match category
