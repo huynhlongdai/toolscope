@@ -219,7 +219,7 @@ function SectionCard({ section, defaultOpen = true, toolId }: { section: Section
       >
         <div className="overflow-hidden">
           <CardContent className="pt-5 pb-6">
-            <ContentRenderer content={section.content} isHtml={section.isHtml} />
+             <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
           </CardContent>
         </div>
       </div>
