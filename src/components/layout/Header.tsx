@@ -48,6 +48,9 @@ export function Header() {
             <Link to="/trending" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Trending
             </Link>
+            <Link to="/blog" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Blog
+            </Link>
           </nav>
         </div>
 
@@ -99,6 +102,7 @@ export function Header() {
             <Link to="/categories" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Danh mục</Link>
             <Link to="/compare" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>So sánh</Link>
             <Link to="/trending" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Trending</Link>
+            <Link to="/blog" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
           </nav>
         </div>
       )}
