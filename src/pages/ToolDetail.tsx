@@ -27,6 +27,7 @@ import {
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getToolLogoUrl } from "@/lib/favicon";
+import { ShareButtons } from "@/components/share/ShareButtons";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
