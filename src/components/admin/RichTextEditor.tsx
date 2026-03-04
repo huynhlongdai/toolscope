@@ -9,12 +9,14 @@ import Youtube from "@tiptap/extension-youtube";
 import Color from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   Heading1, Heading2, Heading3, Heading4,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   ImageIcon, LinkIcon, Youtube as YoutubeIcon, Quote, Code,
-  Undo, Redo,
+  Undo, Redo, Upload, Loader2,
 } from "lucide-react";
 
 interface RichTextEditorProps {
@@ -24,6 +26,9 @@ interface RichTextEditorProps {
 }
 
 export function RichTextEditor({ content, onChange, placeholder = "Nhập nội dung..." }: RichTextEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3, 4] } }),
@@ -47,6 +52,41 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     if (url) editor.chain().focus().setImage({ src: url }).run();
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Chỉ hỗ trợ ảnh JPG, PNG, GIF, WEBP");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const filePath = `uploads/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("editor-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("editor-images")
+        .getPublicUrl(filePath);
+
+      editor.chain().focus().setImage({ src: publicUrl }).run();
+    } catch (err: any) {
+      alert("Upload thất bại: " + err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const addLink = () => {
     const url = prompt("Link URL:");
     if (url) editor.chain().focus().setLink({ href: url }).run();
@@ -57,7 +97,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
   };
 
-  const ToolbarButton = ({ onClick, active, children, title }: any) => (
+  const ToolbarButton = ({ onClick, active, children, title, disabled }: any) => (
     <Button
       type="button"
       variant={active ? "secondary" : "ghost"}
@@ -65,6 +105,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       className="h-7 w-7"
       onClick={onClick}
       title={title}
+      disabled={disabled}
     >
       {children}
     </Button>
@@ -72,6 +113,13 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
   return (
     <div className="border rounded-md">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
       <div className="flex flex-wrap gap-0.5 border-b p-1 bg-muted/30">
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
           <Bold className="h-3.5 w-3.5" />
@@ -116,7 +164,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
           <AlignRight className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px bg-border mx-0.5" />
-        <ToolbarButton onClick={addImage} title="Image">
+        <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Upload ảnh" disabled={uploading}>
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+        </ToolbarButton>
+        <ToolbarButton onClick={addImage} title="Image URL">
           <ImageIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton onClick={addLink} active={editor.isActive("link")} title="Link">

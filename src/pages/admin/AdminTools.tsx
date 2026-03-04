@@ -465,14 +465,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 
           {/* Tab: Content */}
           <TabsContent value="content" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Mô tả (Description)</Label>
-              <RichTextEditor content={form.description} onChange={(v) => updateField("description", v)} placeholder="Mô tả tool..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Nội dung chi tiết (Detailed Content)</Label>
-              <RichTextEditor content={form.detailed_content} onChange={(v) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." />
-            </div>
+            <ContentTabWithPreview form={form} updateField={updateField} toolName={form.name} />
           </TabsContent>
 
           {/* Tab: Fake Stats */}
@@ -663,5 +656,71 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ── Content Tab with Preview ────────────────────────────── */
+function ContentTabWithPreview({ form, updateField, toolName }: { form: any; updateField: (k: string, v: any) => void; toolName: string }) {
+  const [previewMode, setPreviewMode] = useState<"edit" | "preview">("edit");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Label className="text-base font-semibold">Nội dung</Label>
+        <div className="flex gap-1 rounded-lg border p-0.5">
+          <Button
+            type="button"
+            variant={previewMode === "edit" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setPreviewMode("edit")}
+          >
+            Chỉnh sửa
+          </Button>
+          <Button
+            type="button"
+            variant={previewMode === "preview" ? "default" : "ghost"}
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setPreviewMode("preview")}
+          >
+            <Eye className="h-3 w-3 mr-1" /> Xem trước
+          </Button>
+        </div>
+      </div>
+
+      {previewMode === "edit" ? (
+        <>
+          <div className="space-y-2">
+            <Label>Mô tả (Description)</Label>
+            <RichTextEditor content={form.description} onChange={(v: string) => updateField("description", v)} placeholder="Mô tả tool..." />
+          </div>
+          <div className="space-y-2">
+            <Label>Nội dung chi tiết (Detailed Content)</Label>
+            <RichTextEditor content={form.detailed_content} onChange={(v: string) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6 rounded-lg border p-6 bg-background">
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Mô tả</h3>
+            {form.description ? (
+              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: form.description }} />
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Chưa có mô tả</p>
+            )}
+          </div>
+          <hr className="border-border" />
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-2">Nội dung chi tiết</h3>
+            {form.detailed_content ? (
+              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: form.detailed_content }} />
+            ) : (
+              <p className="text-sm text-muted-foreground italic">Chưa có nội dung chi tiết</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
