@@ -1,12 +1,11 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
 import Youtube from "@tiptap/extension-youtube";
 import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +15,7 @@ import {
   Heading1, Heading2, Heading3, Heading4,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   ImageIcon, LinkIcon, Youtube as YoutubeIcon, Quote, Code,
-  Undo, Redo, Upload, Loader2, Palette, RemoveFormatting,
+  Undo, Redo, Upload, Loader2, Palette, RemoveFormatting, Highlighter,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 interface RichTextEditorProps {
@@ -31,14 +30,16 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3, 4] },
+        link: { openOnClick: false },
+      }),
       Image,
-      Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
       Youtube.configure({ width: 640, height: 360 }),
       Color,
+      Highlight.configure({ multicolor: true }),
       TextStyle,
     ],
     content,
@@ -172,6 +173,45 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
               onClick={() => editor.chain().focus().unsetColor().run()}
             >
               <RemoveFormatting className="h-3 w-3 mr-1" /> Xóa màu
+            </Button>
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant={editor.isActive("highlight") ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+              title="Highlight"
+            >
+              <Highlighter className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="grid grid-cols-6 gap-1">
+              {[
+                "#fef08a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa",
+                "#fde047", "#86efac", "#93c5fd", "#fca5a5", "#d8b4fe", "#fdba74",
+              ].map((color) => (
+                <button
+                  key={color}
+                  className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
+                />
+              ))}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-1 h-7 text-xs"
+              onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+            >
+              <RemoveFormatting className="h-3 w-3 mr-1" /> Xóa highlight
             </Button>
           </PopoverContent>
         </Popover>
