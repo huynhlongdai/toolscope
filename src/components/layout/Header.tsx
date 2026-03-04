@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
