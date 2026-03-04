@@ -32,6 +32,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
+        link: { openOnClick: false },
       }),
       Image,
       Placeholder.configure({ placeholder }),
