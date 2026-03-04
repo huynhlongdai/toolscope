@@ -180,7 +180,7 @@ Guidelines:
                     description: "3-5 YouTube video search suggestions related to this workflow",
                   },
                 },
-                required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content"],
+                required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content", "suggested_videos"],
                 additionalProperties: false,
               },
             },
