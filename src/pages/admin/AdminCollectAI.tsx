@@ -80,6 +80,24 @@ export default function AdminCollectAI() {
     cron_expression: "0 8 * * 1",
   });
 
+  // Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ["collect-stats"],
+    queryFn: async () => {
+      const [allItems, sessionsData] = await Promise.all([
+        supabase.from("collect_items").select("status", { count: "exact", head: false }),
+        supabase.from("collect_sessions").select("id", { count: "exact", head: true }),
+      ]);
+      const items = allItems.data || [];
+      const total = items.length;
+      const pending = items.filter((i: any) => i.status === "pending").length;
+      const approved = items.filter((i: any) => i.status === "approved").length;
+      const imported = items.filter((i: any) => i.status === "imported").length;
+      const rejected = items.filter((i: any) => i.status === "rejected").length;
+      return { total, pending, approved, imported, rejected, sessions: sessionsData.count || 0 };
+    },
+  });
+
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
