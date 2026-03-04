@@ -1,17 +1,20 @@
 import { useState } from "react";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, Loader2, Bot } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useAISearch } from "@/hooks/useAISearch";
+import { Badge } from "@/components/ui/badge";
 
 export function HeroSection() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { results, summary, loading, search, clear } = useAISearch();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      navigate(`/tools?q=${encodeURIComponent(query.trim())}`);
+      search(query.trim());
     }
   };
 
@@ -55,18 +58,72 @@ export function HeroSection() {
           </Button>
         </form>
 
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
-          <span>Phổ biến:</span>
-          {["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"].map((tag) => (
-            <button
-              key={tag}
-              onClick={() => navigate(`/tools?q=${encodeURIComponent(tag)}`)}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-            >
-              {tag}
+        {/* AI Search Results */}
+        {loading && (
+          <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>AI đang tìm kiếm...</span>
+          </div>
+        )}
+
+        {results && results.length > 0 && (
+          <div className="mx-auto mt-6 max-w-2xl text-left">
+            {summary && (
+              <div className="mb-4 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <Bot className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <p className="text-sm text-foreground">{summary}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              {results.map((r: any) => (
+                <Link
+                  key={r.id}
+                  to={`/tool/${r.slug}`}
+                  onClick={clear}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30 hover:bg-primary/5"
+                >
+                  {r.tool?.logo_url && (
+                    <img src={r.tool.logo_url} alt={r.name} className="h-10 w-10 rounded-lg object-contain" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{r.name}</span>
+                      {r.tool?.ai_scores?.is_recommended && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">AI Pick</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{r.reason}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <button onClick={clear} className="mt-3 text-xs text-muted-foreground hover:text-foreground">
+              Đóng kết quả
             </button>
-          ))}
-        </div>
+          </div>
+        )}
+
+        {results && results.length === 0 && !loading && (
+          <div className="mx-auto mt-6 max-w-xl text-center">
+            <p className="text-sm text-muted-foreground">Không tìm thấy công cụ phù hợp. Thử mô tả chi tiết hơn!</p>
+            <button onClick={clear} className="mt-2 text-xs text-muted-foreground hover:text-foreground">Đóng</button>
+          </div>
+        )}
+
+        {!results && (
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span>Phổ biến:</span>
+            {["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"].map((tag) => (
+              <button
+                key={tag}
+                onClick={() => { setQuery(tag); search(tag); }}
+                className="rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

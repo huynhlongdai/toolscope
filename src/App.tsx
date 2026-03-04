@@ -10,6 +10,7 @@ import ToolsPage from "./pages/ToolsPage";
 import ToolDetail from "./pages/ToolDetail";
 import CategoryPage from "./pages/CategoryPage";
 import NotFound from "./pages/NotFound";
+import { AIChatWidget } from "./components/chat/AIChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/category/:slug" element={<CategoryPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <AIChatWidget />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
