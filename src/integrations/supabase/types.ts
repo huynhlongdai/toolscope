@@ -70,6 +70,57 @@ export type Database = {
           },
         ]
       }
+      answers: {
+        Row: {
+          content: string
+          created_at: string
+          downvotes: number
+          id: string
+          is_accepted: boolean
+          question_id: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          is_accepted?: boolean
+          question_id: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          is_accepted?: boolean
+          question_id?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookmarks: {
         Row: {
           created_at: string
@@ -240,6 +291,63 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      questions: {
+        Row: {
+          answer_count: number
+          content: string | null
+          created_at: string
+          downvotes: number
+          id: string
+          is_resolved: boolean
+          title: string
+          tool_id: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          answer_count?: number
+          content?: string | null
+          created_at?: string
+          downvotes?: number
+          id?: string
+          is_resolved?: boolean
+          title: string
+          tool_id: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          answer_count?: number
+          content?: string | null
+          created_at?: string
+          downvotes?: number
+          id?: string
+          is_resolved?: boolean
+          title?: string
+          tool_id?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ratings: {
         Row: {

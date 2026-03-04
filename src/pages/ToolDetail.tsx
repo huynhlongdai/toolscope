@@ -5,15 +5,18 @@ import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ToolCard } from "@/components/tools/ToolCard";
+import { ReviewForm } from "@/components/tool-detail/ReviewForm";
+import { VoteButtons } from "@/components/tool-detail/VoteButtons";
+import { CommentSection } from "@/components/tool-detail/CommentSection";
+import { QASection } from "@/components/tool-detail/QASection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Star, ExternalLink, Bookmark, BookmarkCheck, Share2,
-  ThumbsUp, ThumbsDown, MessageCircle, ArrowLeft,
+  Star, Bookmark, BookmarkCheck, Share2,
+  MessageCircle, ArrowLeft,
   Globe, DollarSign, Zap, Shield, BarChart3
 } from "lucide-react";
 import { useState } from "react";
@@ -27,7 +30,6 @@ export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [commentText, setCommentText] = useState("");
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
@@ -56,22 +58,6 @@ export default function ToolDetail() {
         .eq("status", "published")
         .order("created_at", { ascending: false })
         .limit(10);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!tool?.id,
-  });
-
-  const { data: comments } = useQuery({
-    queryKey: ["tool-comments", tool?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("comments")
-        .select("*, profiles:user_id(display_name, avatar_url)")
-        .eq("tool_id", tool!.id)
-        .is("parent_id", null)
-        .order("created_at", { ascending: false })
-        .limit(20);
       if (error) throw error;
       return data;
     },
@@ -117,17 +103,6 @@ export default function ToolDetail() {
       await supabase.from("bookmarks").insert({ tool_id: tool!.id, user_id: user.id });
     }
     refetchBookmark();
-  };
-
-  const submitComment = async () => {
-    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
-    if (!commentText.trim()) return;
-    const { error } = await supabase.from("comments").insert({
-      tool_id: tool!.id, user_id: user.id, content: commentText.trim(),
-    });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    setCommentText("");
-    toast({ title: "Đã gửi bình luận!" });
   };
 
   const submitRating = async (score: number) => {
@@ -279,9 +254,12 @@ export default function ToolDetail() {
               {/* Reviews */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
+                    </CardTitle>
+                    <ReviewForm toolId={tool.id} userId={user?.id} />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {reviews && reviews.length > 0 ? (
@@ -298,13 +276,8 @@ export default function ToolDetail() {
                           </div>
                           <h4 className="font-medium mb-1">{review.title}</h4>
                           <p className="text-sm text-muted-foreground">{review.content}</p>
-                          <div className="mt-2 flex gap-3">
-                            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                              <ThumbsUp className="h-3.5 w-3.5" /> {review.upvotes}
-                            </button>
-                            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                              <ThumbsDown className="h-3.5 w-3.5" /> {review.downvotes}
-                            </button>
+                          <div className="mt-2">
+                            <VoteButtons targetId={review.id} targetType="review" upvotes={review.upvotes} downvotes={review.downvotes} userId={user?.id} />
                           </div>
                         </div>
                       ))}
@@ -316,41 +289,10 @@ export default function ToolDetail() {
               </Card>
 
               {/* Comments */}
-              <Card>
-                <CardHeader><CardTitle>Bình luận ({comments?.length || 0})</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder={user ? "Viết bình luận..." : "Đăng nhập để bình luận"}
-                      className="min-h-[80px]"
-                      disabled={!user}
-                    />
-                  </div>
-                  {commentText.trim() && (
-                    <Button size="sm" onClick={submitComment}>Gửi bình luận</Button>
-                  )}
-                  {comments && comments.length > 0 && (
-                    <div className="space-y-4 pt-4 border-t border-border">
-                      {comments.map((c) => (
-                        <div key={c.id} className="flex gap-3">
-                          <div className="h-7 w-7 shrink-0 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                            {(c.profiles as any)?.display_name?.charAt(0) || "?"}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{(c.profiles as any)?.display_name || "Ẩn danh"}</span>
-                              <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString("vi-VN")}</span>
-                            </div>
-                            <p className="mt-0.5 text-sm text-muted-foreground">{c.content}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <CommentSection toolId={tool.id} userId={user?.id} />
+
+              {/* Q&A */}
+              <QASection toolId={tool.id} userId={user?.id} />
             </div>
 
             {/* Sidebar */}
