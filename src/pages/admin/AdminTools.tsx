@@ -195,6 +195,8 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
   const [saving, setSaving] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
   const [autoFillQuery, setAutoFillQuery] = useState("");
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
 
   const autoConvert = (text: string) => {
     if (!text) return text;
@@ -345,6 +347,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         if (match) updateField("category_id", match.id);
       }
 
+      // Capture AI-suggested tags
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        setSuggestedTags(data.tags);
+      }
+
       toast.success("Đã thu thập thông tin thành công!");
     } catch (e: any) {
       toast.error(e.message || "Không thể thu thập dữ liệu");
@@ -375,18 +382,47 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       faq: form.faq.length > 0 ? form.faq : null,
     };
 
+    let savedToolId = tool?.id;
+
     if (tool) {
       const { error } = await supabase.from("tools").update(payload).eq("id", tool.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã cập nhật tool");
     } else {
-      const { error } = await supabase.from("tools").insert({ ...payload, status: "published" as any });
+      const { data: newTool, error } = await supabase.from("tools").insert({ ...payload, status: "published" as any }).select("id").single();
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã thêm tool");
+      savedToolId = newTool?.id;
     }
+
+    // Auto-create and assign suggested tags
+    if (savedToolId && suggestedTags.length > 0) {
+      await autoCreateAndAssignTags(savedToolId, suggestedTags);
+    }
+
+    toast.success(tool ? "Đã cập nhật tool" : "Đã thêm tool");
     queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
     setSaving(false);
     onClose();
+  };
+
+  const autoCreateAndAssignTags = async (toolId: string, tagNames: string[]) => {
+    for (const tagName of tagNames) {
+      const slug = tagName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      if (!slug) continue;
+
+      // Find or create tag
+      let { data: existing } = await supabase.from("tags").select("id").eq("slug", slug).maybeSingle();
+      let tagId = existing?.id;
+
+      if (!tagId) {
+        const { data: created } = await supabase.from("tags").insert({ name: tagName, slug }).select("id").single();
+        tagId = created?.id;
+      }
+
+      if (tagId) {
+        // Link tag to tool (ignore duplicate errors)
+        await supabase.from("tool_tags").upsert({ tool_id: toolId, tag_id: tagId }, { onConflict: "tool_id,tag_id" });
+      }
+    }
   };
 
   const createFakeReview = async () => {
@@ -547,9 +583,10 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <div className="flex items-center gap-2"><Switch checked={form.is_featured} onCheckedChange={(v) => updateField("is_featured", v)} /><Label>Featured</Label></div>
               <div className="flex items-center gap-2"><Switch checked={form.is_trending} onCheckedChange={(v) => updateField("is_trending", v)} /><Label>Trending</Label></div>
             </div>
-            {tool?.id && (
+            {/* Existing tags (for existing tools) */}
+            {tool?.id && tags.length > 0 && (
               <div className="space-y-2">
-                <Label>Tags</Label>
+                <Label>Tags có sẵn</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((t: any) => (
                     <Button key={t.id} type="button" variant={toolTags.includes(t.id) ? "default" : "outline"} size="sm" onClick={() => toggleTag(t.id)}>{t.name}</Button>
@@ -557,6 +594,46 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 </div>
               </div>
             )}
+
+            {/* AI Suggested Tags */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Tags AI gợi ý
+              </Label>
+              {suggestedTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedTags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="gap-1 pr-1">
+                      {tag}
+                      <button onClick={() => setSuggestedTags(prev => prev.filter((_, i) => i !== idx))} className="ml-1 hover:text-destructive text-xs">×</button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Thu thập bằng AI hoặc thêm thủ công bên dưới</p>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Thêm tag mới..."
+                  value={newTagInput}
+                  onChange={(e) => setNewTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTagInput.trim()) {
+                      e.preventDefault();
+                      setSuggestedTags(prev => [...prev, newTagInput.trim()]);
+                      setNewTagInput("");
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  if (newTagInput.trim()) {
+                    setSuggestedTags(prev => [...prev, newTagInput.trim()]);
+                    setNewTagInput("");
+                  }
+                }}>Thêm</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Tags sẽ được tạo tự động khi lưu tool. Nhấn Enter hoặc nút Thêm để thêm tag.</p>
+            </div>
           </TabsContent>
 
           {/* Tab: Content */}
