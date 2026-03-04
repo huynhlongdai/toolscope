@@ -465,14 +465,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 
           {/* Tab: Content */}
           <TabsContent value="content" className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label>Mô tả (Description)</Label>
-              <RichTextEditor content={form.description} onChange={(v) => updateField("description", v)} placeholder="Mô tả tool..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Nội dung chi tiết (Detailed Content)</Label>
-              <RichTextEditor content={form.detailed_content} onChange={(v) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." />
-            </div>
+            <ContentTabWithPreview form={form} updateField={updateField} toolName={form.name} />
           </TabsContent>
 
           {/* Tab: Fake Stats */}

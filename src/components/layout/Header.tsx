@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +15,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+interface MenuItem {
+  label: string;
+  url: string;
+  open_new_tab?: boolean;
+  children?: MenuItem[];
+}
+
+const defaultNavItems: MenuItem[] = [
+  { label: "Khám phá", url: "/tools" },
+  { label: "Danh mục", url: "/categories" },
+  { label: "So sánh", url: "/compare" },
+  { label: "Collections", url: "/collections" },
+  { label: "Blog", url: "/blog" },
+];
+
 export function Header() {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,9 +37,55 @@ export function Header() {
   const { isAdminOrEditor } = useAdminAuth();
   const navigate = useNavigate();
 
+  const { data: dbMenuItems } = useQuery({
+    queryKey: ["menu-header"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("menus")
+        .select("items")
+        .eq("location", "header")
+        .maybeSingle();
+      if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
+        return data.items as MenuItem[];
+      }
+      return null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const navItems = dbMenuItems ?? defaultNavItems;
+
   const toggleTheme = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark");
+  };
+
+  const renderLink = (item: MenuItem, onClick?: () => void) => {
+    const isExternal = item.url.startsWith("http");
+    if (isExternal || item.open_new_tab) {
+      return (
+        <a
+          key={item.label}
+          href={item.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={onClick}
+        >
+          {item.label}
+        </a>
+      );
+    }
+    return (
+      <Link
+        key={item.label}
+        to={item.url}
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        onClick={onClick}
+      >
+        {item.label}
+      </Link>
+    );
   };
 
   return (
@@ -39,21 +102,7 @@ export function Header() {
           </Link>
 
           <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/tools" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Khám phá
-            </Link>
-            <Link to="/categories" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Danh mục
-            </Link>
-            <Link to="/compare" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              So sánh
-            </Link>
-            <Link to="/collections" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Collections
-            </Link>
-            <Link to="/blog" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Blog
-            </Link>
+            {navItems.map((item) => renderLink(item))}
           </nav>
         </div>
 
@@ -112,11 +161,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background p-4 md:hidden">
           <nav className="flex flex-col gap-3">
-            <Link to="/tools" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Khám phá</Link>
-            <Link to="/categories" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Danh mục</Link>
-            <Link to="/compare" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>So sánh</Link>
-            <Link to="/collections" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Collections</Link>
-            <Link to="/blog" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
+            {navItems.map((item) => renderLink(item, () => setMobileMenuOpen(false)))}
           </nav>
         </div>
       )}
