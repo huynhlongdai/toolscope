@@ -208,6 +208,48 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{isNew ? "Tạo Workflow mới" : "Chỉnh sửa Workflow"}</DialogTitle></DialogHeader>
+        {/* AI Generate Card */}
+          <Card className="border-dashed border-primary/30 bg-primary/5">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Tạo workflow bằng AI</span>
+              </div>
+              <div className="flex gap-2 mb-2">
+                <Select value={aiMode} onValueChange={(v: any) => setAiMode(v)}>
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="keyword">Theo keyword</SelectItem>
+                    <SelectItem value="suggest">Gợi ý từ tools phổ biến</SelectItem>
+                  </SelectContent>
+                </Select>
+                {aiMode === "keyword" && (
+                  <Input
+                    placeholder="VD: Tạo video marketing bằng AI, Thiết kế logo..."
+                    value={aiKeyword}
+                    onChange={(e) => setAiKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !aiGenerating && handleAiGenerate()}
+                    disabled={aiGenerating}
+                    className="h-9"
+                  />
+                )}
+                <Button onClick={handleAiGenerate} disabled={aiGenerating} className="shrink-0 h-9">
+                  {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {aiGenerating ? "Đang tạo..." : "Tạo"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {aiMode === "keyword"
+                  ? "Nhập chủ đề, AI sẽ tạo workflow hoàn chỉnh với các bước và tools phù hợp"
+                  : "AI sẽ gợi ý workflow dựa trên các tools phổ biến nhất trên hệ thống"
+                }
+                {form.tool_ids.length > 0 && " • Sẽ ưu tiên sử dụng tools đã chọn bên dưới"}
+              </p>
+            </CardContent>
+          </Card>
+
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
