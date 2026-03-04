@@ -275,6 +275,29 @@ export default function ToolDetail() {
                 isAdmin={!!user}
               />
 
+              {/* FAQ Section */}
+              {faqItems.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" /> Câu hỏi thường gặp ({faqItems.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      {faqItems.map((item, idx) => (
+                        <AccordionItem key={idx} value={`faq-${idx}`}>
+                          <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-muted-foreground">{item.answer}</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Your Rating */}
               <Card>
                 <CardHeader><CardTitle>Đánh giá của bạn</CardTitle></CardHeader>
