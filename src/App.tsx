@@ -70,6 +70,7 @@ const App = () => (
             <Route path="/workflows" element={<WorkflowsPage />} />
             <Route path="/workflow/:slug" element={<WorkflowDetail />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/deals" element={<DealsPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
