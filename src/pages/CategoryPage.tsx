@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
+import { G2GridChart } from "@/components/category/G2GridChart";
 import { cn } from "@/lib/utils";
 
 export default function CategoryPage() {
