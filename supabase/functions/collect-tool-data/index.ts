@@ -312,6 +312,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
       if (toolData.features) updateData.features = toolData.features;
       if (toolData.platforms) updateData.platforms = toolData.platforms;
       if (toolData.pricing_details) updateData.pricing_details = toolData.pricing_details;
+      if (toolData.faq) updateData.faq = toolData.faq;
 
       const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
       if (updateErr) console.error("Failed to update tool:", updateErr);
