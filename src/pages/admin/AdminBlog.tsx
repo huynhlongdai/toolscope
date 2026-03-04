@@ -217,7 +217,18 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
     seo_title: post?.seo_title ?? "",
     seo_description: post?.seo_description ?? "",
     seo_keywords: Array.isArray(post?.seo_keywords) ? post.seo_keywords.join(", ") : (post?.seo_keywords ?? ""),
+    related_tool_ids: (post?.related_tool_ids as string[]) ?? [],
   });
+
+  const { data: allTools = [] } = useQuery({
+    queryKey: ["all-tools-for-blog"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tools").select("id, name, slug, logo_url, website_url, pricing_type").eq("status", "published").order("name");
+      return data ?? [];
+    },
+  });
+
+  const [toolSearch, setToolSearch] = useState("");
 
   const updateField = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
