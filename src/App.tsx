@@ -23,6 +23,10 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminModeration from "./pages/admin/AdminModeration";
 import AdminBlog from "./pages/admin/AdminBlog";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminMenus from "./pages/admin/AdminMenus";
+import AdminPages from "./pages/admin/AdminPages";
+import AdminPageEditor from "./pages/admin/AdminPageEditor";
+import DynamicPage from "./pages/DynamicPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +48,7 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/collection/:id" element={<CollectionDetail />} />
+            <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
             <Route path="/admin/users" element={<AdminUsers />} />
@@ -51,6 +56,9 @@ const App = () => (
             <Route path="/admin/moderation" element={<AdminModeration />} />
             <Route path="/admin/blog" element={<AdminBlog />} />
             <Route path="/admin/categories" element={<AdminCategories />} />
+            <Route path="/admin/menus" element={<AdminMenus />} />
+            <Route path="/admin/pages" element={<AdminPages />} />
+            <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />

@@ -235,7 +235,11 @@ export default function ToolDetail() {
                 <Card>
                   <CardHeader><CardTitle>Giới thiệu</CardTitle></CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                    {tool.description.startsWith("<") ? (
+                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: tool.description }} />
+                    ) : (
+                      <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                    )}
                   </CardContent>
                 </Card>
               )}

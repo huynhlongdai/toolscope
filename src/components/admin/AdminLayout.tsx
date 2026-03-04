@@ -12,6 +12,8 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import { Menu, FileStack } from "lucide-react";
+
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
   { title: "Quản lý Tools", url: "/admin/tools", icon: Wrench },
@@ -20,6 +22,8 @@ const navItems = [
   { title: "Moderation", url: "/admin/moderation", icon: Shield },
   { title: "Blog Posts", url: "/admin/blog", icon: FileText },
   { title: "Categories & Tags", url: "/admin/categories", icon: Tags },
+  { title: "Menu Manager", url: "/admin/menus", icon: Menu },
+  { title: "Page Builder", url: "/admin/pages", icon: FileStack },
 ];
 
 function AdminSidebar() {
