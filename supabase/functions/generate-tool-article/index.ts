@@ -39,7 +39,7 @@ serve(async (req) => {
 
     const aiScore = tool.ai_scores as any;
 
-    const prompt = `Viết một bài giới thiệu chi tiết và chuyên sâu bằng tiếng Việt cho công cụ "${tool.name}". Bài viết dạng editorial, format Markdown.
+    const prompt = `Viết một bài giới thiệu chi tiết và chuyên sâu bằng tiếng Việt cho công cụ "${tool.name}". Bài viết dạng editorial, format Markdown CHUẨN.
 
 Thông tin có sẵn:
 - Tên: ${tool.name}
@@ -56,30 +56,38 @@ Thông tin có sẵn:
 Viết bài theo cấu trúc sau (dùng markdown headers ##):
 
 ## ${tool.name} là gì?
-Giới thiệu tổng quan công cụ, lịch sử phát triển, đội ngũ đứng sau.
+Giới thiệu tổng quan công cụ, lịch sử phát triển, đội ngũ đứng sau. Viết 2-3 đoạn văn, mỗi đoạn cách nhau 1 dòng trống.
 
 ## Tính năng chính
-Liệt kê và mô tả chi tiết 5-8 tính năng nổi bật nhất. Mỗi tính năng 2-3 câu.
+Liệt kê và mô tả chi tiết 5-8 tính năng nổi bật nhất. Dùng danh sách markdown:
+- **Tên tính năng:** Mô tả 2-3 câu.
 
 ## Đặc điểm nổi bật
-Điều gì khiến tool này khác biệt so với đối thủ? USP (Unique Selling Points).
+Điều gì khiến tool này khác biệt? USP. Dùng bullet list với bold cho mỗi điểm.
 
 ## Bảng giá & Gói dịch vụ
-Mô tả các gói giá (Free, Pro, Enterprise...). Nếu không biết chính xác, ghi rõ "Vui lòng truy cập website để xem bảng giá mới nhất".
+Mô tả các gói giá. Dùng numbered list (1. 2. 3.). Thêm blockquote ghi chú ở cuối.
 
 ## Ai nên sử dụng ${tool.name}?
-Đối tượng phù hợp: freelancer, startup, doanh nghiệp lớn, sinh viên, v.v.
+Đối tượng phù hợp. Dùng bullet list với **bold** cho từng nhóm đối tượng, theo sau là mô tả.
 
 ## Hướng dẫn bắt đầu
-Các bước cơ bản để bắt đầu sử dụng tool.
+Các bước cơ bản. Dùng numbered list (1. 2. 3. 4. 5.) với **bold** cho tên mỗi bước.
 
 ## Ưu điểm & Nhược điểm
-Bảng tóm tắt ưu/nhược rõ ràng.
+Dùng bảng markdown 2 cột: | Ưu điểm | Nhược điểm |
 
 ## Kết luận
-Đánh giá tổng thể và khuyến nghị.
+Đánh giá tổng thể 2-3 đoạn. Viết rõ ràng, mạch lạc.
 
-Yêu cầu: viết chuyên nghiệp, khách quan, giàu thông tin. Dùng bold, lists, blockquotes khi cần. KHÔNG viết heading cấp 1 (#).`;
+YÊU CẦU QUAN TRỌNG VỀ FORMAT:
+- LUÔN dùng dấu gạch đầu dòng (- hoặc *) cho danh sách, KHÔNG viết liền text
+- Giữa mỗi đoạn văn PHẢI có 1 dòng trống
+- Dùng **bold** cho tên/keyword quan trọng
+- Dùng > blockquote cho ghi chú, lưu ý
+- Dùng \`code\` cho tên phím tắt, lệnh
+- KHÔNG viết heading cấp 1 (#), chỉ dùng ## cho section headers
+- Mỗi list item phải trên 1 dòng riêng, có dấu - hoặc * ở đầu`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
