@@ -481,6 +481,39 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                 </div>
               )}
             </div>
+
+            {/* AI Suggested Videos */}
+            {suggestedVideos.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  Video YouTube gợi ý bởi AI
+                </Label>
+                <div className="space-y-2">
+                  {suggestedVideos.map((video, i) => (
+                    <div key={i} className="flex items-start gap-3 rounded-lg border p-3 bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{video.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{video.reason}</p>
+                      </div>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(video.search_query)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                          <ExternalLink className="h-3 w-3" /> Tìm
+                        </Button>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Nhấn "Tìm" để tìm video trên YouTube, sau đó copy URL và dán vào ô Video URL phía trên.
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
