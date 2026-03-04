@@ -109,6 +109,9 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
   const queryClient = useQueryClient();
   const isNew = !wf?.id;
   const [saving, setSaving] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiKeyword, setAiKeyword] = useState("");
+  const [aiMode, setAiMode] = useState<"keyword" | "suggest">("keyword");
   const [form, setForm] = useState({
     title: wf?.title ?? "",
     slug: wf?.slug ?? "",
