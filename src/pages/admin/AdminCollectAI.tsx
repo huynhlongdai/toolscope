@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap } from "lucide-react";
+import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap, Database, PackageCheck, Hourglass, BarChart3 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -78,6 +78,24 @@ export default function AdminCollectAI() {
     search_type: "keyword",
     category_id: "",
     cron_expression: "0 8 * * 1",
+  });
+
+  // Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ["collect-stats"],
+    queryFn: async () => {
+      const [allItems, sessionsData] = await Promise.all([
+        supabase.from("collect_items").select("status", { count: "exact", head: false }),
+        supabase.from("collect_sessions").select("id", { count: "exact", head: true }),
+      ]);
+      const items = allItems.data || [];
+      const total = items.length;
+      const pending = items.filter((i: any) => i.status === "pending").length;
+      const approved = items.filter((i: any) => i.status === "approved").length;
+      const imported = items.filter((i: any) => i.status === "imported").length;
+      const rejected = items.filter((i: any) => i.status === "rejected").length;
+      return { total, pending, approved, imported, rejected, sessions: sessionsData.count || 0 };
+    },
   });
 
   // Fetch categories
@@ -305,6 +323,65 @@ export default function AdminCollectAI() {
 
           {/* === SEARCH TAB === */}
           <TabsContent value="search" className="space-y-4">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Database className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.total ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Tổng collected</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                    <Hourglass className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.pending ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Chờ duyệt</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.approved ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Đã duyệt</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <PackageCheck className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.imported ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Đã import</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.sessions ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Phiên thu thập</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
