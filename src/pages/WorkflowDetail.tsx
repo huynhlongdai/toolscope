@@ -9,6 +9,7 @@ import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Eye, ThumbsUp, Workflow, CheckCircle2 } from "lucide-react";
+import { UpvoteButton } from "@/components/UpvoteButton";
 
 export default function WorkflowDetail() {
   const { slug } = useParams<{ slug: string }>();
