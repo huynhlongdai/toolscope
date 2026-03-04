@@ -26,7 +26,42 @@ function formatUrl(url: string): string {
   return formatted;
 }
 
-// Try Firecrawl first for deep scraping
+async function searchByName(name: string): Promise<string | null> {
+  const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!apiKey) return null;
+
+  try {
+    console.log("Searching for tool by name:", name);
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `${name} official website tool software`,
+        limit: 3,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("Firecrawl search returned:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const results = data.data || [];
+    if (results.length > 0 && results[0].url) {
+      console.log("Found URL via search:", results[0].url);
+      return results[0].url;
+    }
+    return null;
+  } catch (err) {
+    console.warn("Firecrawl search error:", err);
+    return null;
+  }
+}
+
 async function scrapeWithFirecrawl(url: string): Promise<{ content: string; branding: any } | null> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
   if (!apiKey) return null;
@@ -78,7 +113,6 @@ ${markdown.slice(0, 5000)}`;
   }
 }
 
-// Fallback: basic fetch + HTML parse
 async function scrapeWithFetch(url: string): Promise<{ content: string; branding: any }> {
   let pageContent = "";
   let ogImage = "";
@@ -140,9 +174,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { url, tool_id, save_to_db } = await req.json();
-    if (!url) {
-      return new Response(JSON.stringify({ error: "url is required" }), {
+    const { url, name, tool_id, save_to_db } = await req.json();
+    if (!url && !name) {
+      return new Response(JSON.stringify({ error: "url or name is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -155,22 +189,42 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const formattedUrl = formatUrl(url);
-    const domain = extractDomain(formattedUrl);
-    const faviconUrl = getFaviconUrl(domain);
+    // Resolve URL: if only name provided, search for it
+    let resolvedUrl = url ? formatUrl(url) : null;
+    let searchedByName = false;
 
-    // Try Firecrawl first, fallback to basic fetch
-    const firecrawlResult = await scrapeWithFirecrawl(formattedUrl);
-    const scrapeResult = firecrawlResult || await scrapeWithFetch(formattedUrl);
-    const scrapeMethod = firecrawlResult ? "firecrawl" : "fetch";
+    if (!resolvedUrl && name) {
+      resolvedUrl = await searchByName(name);
+      searchedByName = true;
+    }
 
-    console.log(`Scraped with: ${scrapeMethod}`);
+    let scrapeResult: { content: string; branding: any };
+    let scrapeMethod = "ai_only";
+    let domain = "";
+    let faviconUrl = "";
 
-    // Use AI to extract structured tool data
-    const prompt = `Analyze this website and extract information for a tool/software directory. Return a JSON object.
+    if (resolvedUrl) {
+      const formattedUrl = formatUrl(resolvedUrl);
+      domain = extractDomain(formattedUrl);
+      faviconUrl = getFaviconUrl(domain);
+      resolvedUrl = formattedUrl;
 
-URL: ${formattedUrl}
-Domain: ${domain}
+      const firecrawlResult = await scrapeWithFirecrawl(formattedUrl);
+      scrapeResult = firecrawlResult || await scrapeWithFetch(formattedUrl);
+      scrapeMethod = firecrawlResult ? "firecrawl" : "fetch";
+    } else {
+      // No URL found, AI will generate from knowledge
+      scrapeResult = {
+        content: `Tool name: ${name}. No website found. Please generate information based on your knowledge about this tool/software.`,
+        branding: { logo: null, title: name },
+      };
+    }
+
+    console.log(`Scraped with: ${scrapeMethod}, searched by name: ${searchedByName}`);
+
+    const prompt = `Analyze this website/tool and extract information for a tool/software directory. Return a JSON object.
+
+${resolvedUrl ? `URL: ${resolvedUrl}\nDomain: ${domain}` : `Tool name: ${name}`}
 Scrape method: ${scrapeMethod}
 
 Page content:
@@ -182,12 +236,13 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
   "slug": "url-friendly-slug (string, lowercase, hyphens)",
   "short_description": "Brief description in Vietnamese, max 100 chars",
   "description": "Detailed description in Vietnamese, 2-3 paragraphs",
+  "detailed_content": "A comprehensive HTML article in Vietnamese about this tool. Include sections: <h2>Tổng quan</h2>, <h2>Tính năng chính</h2> (with <ul><li> list), <h2>Bảng giá</h2>, <h2>Đối tượng sử dụng</h2>, <h2>Ưu điểm và nhược điểm</h2> (split into two <h3> subsections with lists), <h2>Kết luận</h2>. Use proper HTML tags: h2, h3, p, ul, li, strong, em. No markdown. Make it informative and at least 500 words.",
   "pricing_type": "one of: free, freemium, paid, open_source, contact",
-  "pricing_details": {"plans": [{"name": "...", "price": "...", "features": ["..."]}]},
-  "features": ["feature1", "feature2", ...],
-  "platforms": ["web", "ios", "android", "windows", "mac", "linux"],
+  "pricing_details": [{"name": "Plan name", "price": 0, "currency": "USD", "features": ["feature1", "feature2"]}],
+  "features": ["feature1 in Vietnamese", "feature2", ...],
+  "platforms": ["Web", "iOS", "Android", "Windows", "macOS", "Linux"],
   "category_suggestion": "suggested category name in Vietnamese",
-  "website_url": "${formattedUrl}",
+  "website_url": "${resolvedUrl || ""}",
   "logo_url": "best logo URL found, or null",
   "tags": ["tag1", "tag2", ...]
 }`;
@@ -201,7 +256,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a tool/software analyst. Extract accurate information from websites. Always respond with valid JSON only. Write descriptions in Vietnamese." },
+          { role: "system", content: "You are a tool/software analyst. Extract accurate information from websites. Always respond with valid JSON only. Write descriptions and detailed_content in Vietnamese. For detailed_content, write proper HTML (not markdown)." },
           { role: "user", content: prompt },
         ],
       }),
@@ -223,12 +278,12 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
     } catch {
       console.error("Failed to parse AI response:", rawContent);
       toolData = {
-        name: scrapeResult.branding?.title || domain,
-        slug: domain.replace(/\./g, "-").replace(/^www-/, ""),
-        short_description: `Công cụ từ ${domain}`,
+        name: scrapeResult.branding?.title || name || domain,
+        slug: (name || domain || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        short_description: `Công cụ từ ${domain || name}`,
         description: null,
         pricing_type: "contact",
-        website_url: formattedUrl,
+        website_url: resolvedUrl || "",
       };
     }
 
@@ -236,18 +291,24 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
     if (!toolData.logo_url && scrapeResult.branding?.logo) {
       toolData.logo_url = scrapeResult.branding.logo;
     }
-    if (!toolData.logo_url) {
+    if (!toolData.logo_url && faviconUrl) {
       toolData.logo_url = faviconUrl;
+    }
+
+    // Ensure website_url
+    if (!toolData.website_url && resolvedUrl) {
+      toolData.website_url = resolvedUrl;
     }
 
     // Save to DB if requested
     if (save_to_db && tool_id) {
       const updateData: any = {
-        website_url: toolData.website_url || formattedUrl,
+        website_url: toolData.website_url || resolvedUrl,
         logo_url: toolData.logo_url,
       };
       if (toolData.short_description) updateData.short_description = toolData.short_description;
       if (toolData.description) updateData.description = toolData.description;
+      if (toolData.detailed_content) updateData.detailed_content = toolData.detailed_content;
       if (toolData.features) updateData.features = toolData.features;
       if (toolData.platforms) updateData.platforms = toolData.platforms;
       if (toolData.pricing_details) updateData.pricing_details = toolData.pricing_details;
@@ -263,7 +324,8 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
           slug: toolData.slug,
           short_description: toolData.short_description,
           description: toolData.description,
-          website_url: toolData.website_url || formattedUrl,
+          detailed_content: toolData.detailed_content,
+          website_url: toolData.website_url || resolvedUrl,
           logo_url: toolData.logo_url,
           pricing_type: toolData.pricing_type || "contact",
           features: toolData.features,
@@ -286,6 +348,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
 
     toolData.favicon_url = faviconUrl;
     toolData.scrape_method = scrapeMethod;
+    toolData.searched_by_name = searchedByName;
 
     return new Response(JSON.stringify(toolData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
