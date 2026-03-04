@@ -164,15 +164,16 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
   };
 
   const handleAiGenerate = async () => {
-    if (aiMode === "keyword" && !aiKeyword.trim()) {
+    if (aiMode === "keyword" && !aiKeyword.trim() && isNew) {
       toast.error("Nhập keyword để tạo workflow");
       return;
     }
     setAiGenerating(true);
     try {
+      const effectiveKeyword = aiKeyword.trim() || (!isNew ? form.title : null);
       const { data, error } = await supabase.functions.invoke("generate-workflow", {
         body: {
-          keyword: aiKeyword.trim() || null,
+          keyword: effectiveKeyword,
           tool_ids: form.tool_ids.length > 0 ? form.tool_ids : null,
           mode: aiMode,
         },
@@ -180,22 +181,72 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      setForm(prev => ({
-        ...prev,
-        title: data.title || prev.title,
-        slug: data.slug || prev.slug,
-        description: data.description || prev.description,
-        category: data.category || prev.category,
-        seo_title: data.seo_title || prev.seo_title,
-        seo_description: data.seo_description || prev.seo_description,
-        steps: data.steps?.length > 0 ? data.steps : prev.steps,
-        tool_ids: data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids,
-        seo_content: data.seo_content ? { ...prev.seo_content, ...data.seo_content } : prev.seo_content,
-      }));
+      const applyMode = isNew ? "full" : regenMode;
+
+      setForm(prev => {
+        const next = { ...prev };
+
+        if (applyMode === "full") {
+          // Overwrite everything
+          next.title = data.title || prev.title;
+          next.slug = data.slug || prev.slug;
+          next.description = data.description || prev.description;
+          next.category = data.category || prev.category;
+          next.seo_title = data.seo_title || prev.seo_title;
+          next.seo_description = data.seo_description || prev.seo_description;
+          next.steps = data.steps?.length > 0 ? data.steps : prev.steps;
+          next.tool_ids = data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids;
+          next.seo_content = data.seo_content ? { ...prev.seo_content, ...data.seo_content } : prev.seo_content;
+        } else if (applyMode === "seo_only") {
+          // Only update SEO fields
+          next.seo_title = data.seo_title || prev.seo_title;
+          next.seo_description = data.seo_description || prev.seo_description;
+          next.seo_content = data.seo_content ? { ...prev.seo_content, ...data.seo_content } : prev.seo_content;
+        } else if (applyMode === "steps_only") {
+          // Only update steps
+          next.steps = data.steps?.length > 0 ? data.steps : prev.steps;
+          next.tool_ids = data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids;
+        } else if (applyMode === "enrich") {
+          // Only fill empty fields
+          if (!prev.title) next.title = data.title || "";
+          if (!prev.slug) next.slug = data.slug || "";
+          if (!prev.description) next.description = data.description || "";
+          if (!prev.category) next.category = data.category || "";
+          if (!prev.seo_title) next.seo_title = data.seo_title || "";
+          if (!prev.seo_description) next.seo_description = data.seo_description || "";
+          if (!prev.steps || prev.steps.length === 0 || (prev.steps.length === 1 && !prev.steps[0].title)) {
+            next.steps = data.steps?.length > 0 ? data.steps : prev.steps;
+          }
+          next.tool_ids = data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids;
+          if (data.seo_content) {
+            const sc = { ...prev.seo_content };
+            if (!sc.problem) sc.problem = data.seo_content.problem || "";
+            if (!sc.solution) sc.solution = data.seo_content.solution || "";
+            if (!sc.common_mistakes?.length) sc.common_mistakes = data.seo_content.common_mistakes || [];
+            if (!sc.tips?.length) sc.tips = data.seo_content.tips || [];
+            if (!sc.prerequisites?.length) sc.prerequisites = data.seo_content.prerequisites || [];
+            if (!sc.target_audience) sc.target_audience = data.seo_content.target_audience || "";
+            if (!sc.use_cases?.length) sc.use_cases = data.seo_content.use_cases || [];
+            if (!sc.estimated_time) sc.estimated_time = data.seo_content.estimated_time || "";
+            if (!sc.difficulty_level || sc.difficulty_level === "beginner") sc.difficulty_level = data.seo_content.difficulty_level || "beginner";
+            next.seo_content = sc;
+          }
+        }
+
+        return next;
+      });
+
       if (data.suggested_videos?.length) {
         setSuggestedVideos(data.suggested_videos);
       }
-      toast.success("AI đã tạo workflow + SEO content thành công!");
+
+      const modeLabels: Record<string, string> = {
+        full: "tạo workflow hoàn chỉnh",
+        seo_only: "bổ sung SEO content",
+        steps_only: "tạo lại steps",
+        enrich: "bổ sung phần còn thiếu",
+      };
+      toast.success(`AI đã ${modeLabels[applyMode]} thành công!`);
     } catch (e: any) {
       toast.error(e.message || "Lỗi tạo workflow bằng AI");
     } finally {
