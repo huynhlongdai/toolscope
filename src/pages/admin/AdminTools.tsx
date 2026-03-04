@@ -224,6 +224,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     rating_count: tool?.rating_count ?? 0,
     view_count: tool?.view_count ?? 0,
     pricing_details: tool?.pricing_details ?? [],
+    faq: (tool as any)?.faq ?? [],
   });
 
   const { data: categories = [] } = useQuery({
