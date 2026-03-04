@@ -328,7 +328,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
         </div>
         <Card>
           <CardContent className="py-6">
-            <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} />
+            <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} toolId={toolId} />
           </CardContent>
         </Card>
         <BackToTop />
