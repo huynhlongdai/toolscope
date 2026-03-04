@@ -347,6 +347,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         if (match) updateField("category_id", match.id);
       }
 
+      // Capture AI-suggested tags
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        setSuggestedTags(data.tags);
+      }
+
       toast.success("Đã thu thập thông tin thành công!");
     } catch (e: any) {
       toast.error(e.message || "Không thể thu thập dữ liệu");
