@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import ToolsPage from "./pages/ToolsPage";
 import ToolDetail from "./pages/ToolDetail";
 import CategoryPage from "./pages/CategoryPage";
+import CategoriesPage from "./pages/CategoriesPage";
 import NotFound from "./pages/NotFound";
 import BlogPage from "./pages/BlogPage";
 import BlogDetail from "./pages/BlogDetail";
