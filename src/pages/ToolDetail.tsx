@@ -9,6 +9,7 @@ import { ReviewForm } from "@/components/tool-detail/ReviewForm";
 import { VoteButtons } from "@/components/tool-detail/VoteButtons";
 import { CommentSection } from "@/components/tool-detail/CommentSection";
 import { QASection } from "@/components/tool-detail/QASection";
+import { DetailedArticle } from "@/components/tool-detail/DetailedArticle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default function ToolDetail() {
         .select("*, categories(name, slug), ai_scores(*)")
         .eq("slug", slug!)
         .eq("status", "published")
-        .maybeSingle();
+        .maybeSingle() as any; // detailed_content not in types yet
       if (error) throw error;
       return data;
     },
@@ -227,6 +228,14 @@ export default function ToolDetail() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Detailed Article */}
+              <DetailedArticle
+                toolId={tool.id}
+                toolName={tool.name}
+                detailedContent={(tool as any).detailed_content}
+                isAdmin={!!user}
+              />
 
               {/* Your Rating */}
               <Card>

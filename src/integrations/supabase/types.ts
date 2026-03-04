@@ -561,6 +561,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          detailed_content: string | null
           features: Json | null
           id: string
           is_featured: boolean
@@ -584,6 +585,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          detailed_content?: string | null
           features?: Json | null
           id?: string
           is_featured?: boolean
@@ -607,6 +609,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          detailed_content?: string | null
           features?: Json | null
           id?: string
           is_featured?: boolean
