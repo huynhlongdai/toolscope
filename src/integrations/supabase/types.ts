@@ -338,6 +338,66 @@ export type Database = {
           },
         ]
       }
+      collect_schedules: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string
+          cron_expression: string
+          id: string
+          is_active: boolean
+          keyword: string
+          last_run_at: string | null
+          last_session_id: string | null
+          results_total: number
+          search_type: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          cron_expression?: string
+          id?: string
+          is_active?: boolean
+          keyword: string
+          last_run_at?: string | null
+          last_session_id?: string | null
+          results_total?: number
+          search_type?: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          cron_expression?: string
+          id?: string
+          is_active?: boolean
+          keyword?: string
+          last_run_at?: string | null
+          last_session_id?: string | null
+          results_total?: number
+          search_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collect_schedules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collect_schedules_last_session_id_fkey"
+            columns: ["last_session_id"]
+            isOneToOne: false
+            referencedRelation: "collect_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collect_sessions: {
         Row: {
           category_id: string | null
