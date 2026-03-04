@@ -195,6 +195,8 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
   const [saving, setSaving] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
   const [autoFillQuery, setAutoFillQuery] = useState("");
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [newTagInput, setNewTagInput] = useState("");
 
   const autoConvert = (text: string) => {
     if (!text) return text;
