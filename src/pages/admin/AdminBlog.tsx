@@ -217,7 +217,18 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
     seo_title: post?.seo_title ?? "",
     seo_description: post?.seo_description ?? "",
     seo_keywords: Array.isArray(post?.seo_keywords) ? post.seo_keywords.join(", ") : (post?.seo_keywords ?? ""),
+    related_tool_ids: (post?.related_tool_ids as string[]) ?? [],
   });
+
+  const { data: allTools = [] } = useQuery({
+    queryKey: ["all-tools-for-blog"],
+    queryFn: async () => {
+      const { data } = await supabase.from("tools").select("id, name, slug, logo_url, website_url, pricing_type").eq("status", "published").order("name");
+      return data ?? [];
+    },
+  });
+
+  const [toolSearch, setToolSearch] = useState("");
 
   const updateField = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
@@ -270,6 +281,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       cover_image_url: form.cover_image_url || null,
       tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
       content: form.content, status: form.status as any,
+      related_tool_ids: form.related_tool_ids.length > 0 ? form.related_tool_ids : null,
       seo_title: form.seo_title || null,
       seo_description: form.seo_description || null,
       seo_keywords: form.seo_keywords ? form.seo_keywords.split(",").map((k: string) => k.trim()).filter(Boolean) : null,
@@ -332,6 +344,34 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
           <div className="space-y-2">
             <Label>Nội dung</Label>
             <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." />
+          </div>
+
+          {/* Related Tools */}
+          <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+            <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+            <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
+            {toolSearch && (
+              <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
+                {allTools.filter((t: any) => t.name.toLowerCase().includes(toolSearch.toLowerCase()) && !form.related_tool_ids.includes(t.id)).slice(0, 10).map((t: any) => (
+                  <button key={t.id} type="button" className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm" onClick={() => { updateField("related_tool_ids", [...form.related_tool_ids, t.id]); setToolSearch(""); }}>
+                    <span className="font-medium">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {form.related_tool_ids.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.related_tool_ids.map((id: string) => {
+                  const tool = allTools.find((t: any) => t.id === id);
+                  return (
+                    <Badge key={id} variant="secondary" className="gap-1 pr-1">
+                      {tool?.name || id.slice(0, 8)}
+                      <button type="button" className="ml-1 hover:text-destructive" onClick={() => updateField("related_tool_ids", form.related_tool_ids.filter((x: string) => x !== id))}>×</button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SEO Section */}

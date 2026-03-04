@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Eye, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { ShareButtons } from "@/components/share/ShareButtons";
+import { ToolCard } from "@/components/tools/ToolCard";
 
 export default function BlogDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -30,6 +31,17 @@ export default function BlogDetail() {
       return data;
     },
     enabled: !!slug,
+  });
+
+  const relatedToolIds = (post?.related_tool_ids as string[]) ?? [];
+  const { data: relatedTools = [] } = useQuery({
+    queryKey: ["blog-related-tools", relatedToolIds],
+    queryFn: async () => {
+      if (!relatedToolIds.length) return [];
+      const { data } = await supabase.from("tools").select("*, categories(name)").in("id", relatedToolIds);
+      return data ?? [];
+    },
+    enabled: relatedToolIds.length > 0,
   });
 
   if (isLoading) {
@@ -115,6 +127,29 @@ export default function BlogDetail() {
               <ReactMarkdown>{post.content}</ReactMarkdown>
             )}
           </div>
+
+          {relatedTools.length > 0 && (
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-xl font-bold mb-4">🔗 Công cụ liên quan</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {relatedTools.map((t: any) => (
+                  <ToolCard
+                    key={t.id}
+                    id={t.id}
+                    name={t.name}
+                    slug={t.slug}
+                    shortDescription={t.short_description}
+                    logoUrl={t.logo_url}
+                    websiteUrl={t.website_url}
+                    pricingType={t.pricing_type}
+                    avgRating={t.avg_rating ?? 0}
+                    ratingCount={t.rating_count ?? 0}
+                    categoryName={t.categories?.name}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </article>
       </main>
       <Footer />
