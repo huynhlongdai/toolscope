@@ -40,6 +40,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       Underline,
       Youtube.configure({ width: 640, height: 360 }),
       Color,
+      Highlight.configure({ multicolor: true }),
       TextStyle,
     ],
     content,
