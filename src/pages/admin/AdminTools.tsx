@@ -177,6 +177,13 @@ export default function AdminTools() {
             onClose={() => { setEditTool(null); setShowAdd(false); }}
           />
         )}
+
+        {showBatchImport && (
+          <BatchImportDialog
+            open={showBatchImport}
+            onClose={() => { setShowBatchImport(false); queryClient.invalidateQueries({ queryKey: ["admin-tools"] }); }}
+          />
+        )}
       </div>
     </AdminLayout>
   );
