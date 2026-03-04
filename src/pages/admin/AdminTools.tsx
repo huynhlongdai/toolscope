@@ -453,9 +453,10 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
           <DialogTitle>{tool ? "Chỉnh sửa Tool" : "Thêm Tool mới"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basic">Cơ bản</TabsTrigger>
             <TabsTrigger value="content">Nội dung</TabsTrigger>
+            <TabsTrigger value="faq">FAQ</TabsTrigger>
             <TabsTrigger value="stats">Fake Stats</TabsTrigger>
             <TabsTrigger value="reviews">Reviews & Q&A</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
