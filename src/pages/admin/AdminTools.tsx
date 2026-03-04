@@ -181,12 +181,22 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const autoConvert = (text: string) => {
+    if (!text) return text;
+    const looksLikeMarkdown = /^#{1,4}\s/m.test(text) || /\*\*[^*]+\*\*/m.test(text) || /^-\s/m.test(text) || /^\d+\.\s/m.test(text);
+    const looksLikeHtml = /<[a-z][\s\S]*>/i.test(text);
+    if (looksLikeMarkdown && !looksLikeHtml) {
+      return marked.parse(text, { async: false }) as string;
+    }
+    return text;
+  };
+
   const [form, setForm] = useState({
     name: tool?.name ?? "",
     slug: tool?.slug ?? "",
-    description: tool?.description ?? "",
+    description: autoConvert(tool?.description ?? ""),
     short_description: tool?.short_description ?? "",
-    detailed_content: tool?.detailed_content ?? "",
+    detailed_content: autoConvert(tool?.detailed_content ?? ""),
     website_url: tool?.website_url ?? "",
     logo_url: tool?.logo_url ?? "",
     affiliate_url: tool?.affiliate_url ?? "",
