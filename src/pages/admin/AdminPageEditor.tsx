@@ -390,6 +390,34 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         </div>
       );
 
+    case "gallery":
+      return (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
+            <Select value={d.columns || "3"} onValueChange={(v) => update("columns", v)}>
+              <SelectTrigger><SelectValue placeholder="Số cột" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 cột</SelectItem>
+                <SelectItem value="3">3 cột</SelectItem>
+                <SelectItem value="4">4 cột</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(d.items ?? []).map((item: any, i: number) => (
+            <div key={i} className="flex gap-2 items-center">
+              <Input placeholder="Image URL" value={item.src} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], src: e.target.value }; update("items", items); }} />
+              <Input className="w-32" placeholder="Alt" value={item.alt} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], alt: e.target.value }; update("items", items); }} />
+              <Input className="w-32" placeholder="Caption" value={item.caption || ""} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], caption: e.target.value }; update("items", items); }} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => update("items", [...(d.items ?? []), { src: "", alt: "", caption: "" }])}>
+            <Plus className="mr-1 h-3 w-3" /> Thêm ảnh
+          </Button>
+        </div>
+      );
+
     default:
       return <p className="text-sm text-muted-foreground">Unknown block type: {block.type}</p>;
   }

@@ -313,6 +313,34 @@ function BlockRenderer({ block }: { block: Block }) {
         </section>
       );
 
+    case "gallery":
+      return (
+        <section className="py-16">
+          <div className="container">
+            {d.title && <h2 className="text-3xl font-bold text-center mb-10">{d.title}</h2>}
+            <div className={cn(
+              "grid gap-4",
+              d.columns === "2" ? "md:grid-cols-2" : d.columns === "4" ? "md:grid-cols-4" : "md:grid-cols-3"
+            )}>
+              {(d.items ?? []).filter((item: any) => item.src).map((item: any, i: number) => (
+                <div key={i} className="group relative overflow-hidden rounded-xl">
+                  <img
+                    src={item.src}
+                    alt={item.alt || ""}
+                    className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {item.caption && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                      <p className="text-white text-sm">{item.caption}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+
     default:
       return null;
   }
