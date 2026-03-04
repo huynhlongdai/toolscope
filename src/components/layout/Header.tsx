@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut } from "lucide-react";
+import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,8 +46,8 @@ export function Header() {
             <Link to="/compare" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               So sánh
             </Link>
-            <Link to="/trending" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Trending
+            <Link to="/collections" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+              Collections
             </Link>
             <Link to="/blog" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Blog
@@ -58,6 +59,8 @@ export function Header() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex">
             <Search className="h-4 w-4" />
           </Button>
+
+          {user && <NotificationDropdown />}
 
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -76,6 +79,9 @@ export function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/bookmarks")}>
                   <Bookmark className="mr-2 h-4 w-4" /> Đã lưu
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/collections")}>
+                  <Layers className="mr-2 h-4 w-4" /> Collections
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
@@ -101,7 +107,7 @@ export function Header() {
             <Link to="/tools" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Khám phá</Link>
             <Link to="/categories" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Danh mục</Link>
             <Link to="/compare" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>So sánh</Link>
-            <Link to="/trending" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Trending</Link>
+            <Link to="/collections" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Collections</Link>
             <Link to="/blog" className="text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
           </nav>
         </div>
