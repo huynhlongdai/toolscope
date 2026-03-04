@@ -85,7 +85,7 @@ export function DealCard({ deal, toolName }: { deal: Deal; toolName?: string }) 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5">
           {discountLabel && (
-            <Badge className="bg-red-500/90 text-white hover:bg-red-500">
+            <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               <Tag className="h-3 w-3 mr-1" /> {discountLabel}
             </Badge>
           )}
