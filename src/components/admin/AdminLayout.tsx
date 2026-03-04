@@ -12,7 +12,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { Menu, FileStack, BrainCircuit, Workflow } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck } from "lucide-react";
 
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
