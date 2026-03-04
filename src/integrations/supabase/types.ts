@@ -266,6 +266,122 @@ export type Database = {
           },
         ]
       }
+      collect_items: {
+        Row: {
+          category_name: string | null
+          collected_data: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          imported_tool_id: string | null
+          logo_url: string | null
+          name: string
+          pricing_type: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          session_id: string
+          source_url: string | null
+          status: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          category_name?: string | null
+          collected_data?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          imported_tool_id?: string | null
+          logo_url?: string | null
+          name: string
+          pricing_type?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          session_id: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          category_name?: string | null
+          collected_data?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          imported_tool_id?: string | null
+          logo_url?: string | null
+          name?: string
+          pricing_type?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          session_id?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collect_items_imported_tool_id_fkey"
+            columns: ["imported_tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collect_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collect_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collect_sessions: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          metadata: Json | null
+          query: string
+          results_count: number
+          search_type: string
+          status: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          metadata?: Json | null
+          query: string
+          results_count?: number
+          search_type?: string
+          status?: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          metadata?: Json | null
+          query?: string
+          results_count?: number
+          search_type?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collect_sessions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collection_items: {
         Row: {
           added_at: string
