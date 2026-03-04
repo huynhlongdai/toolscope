@@ -42,20 +42,31 @@ export function HeroSection() {
           Tổng hợp, review và so sánh hàng ngàn công cụ. Được hỗ trợ bởi AI để giúp bạn chọn đúng tool.
         </p>
 
-        <form onSubmit={handleSearch} className="mx-auto mt-8 flex max-w-xl items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Mô tả nhu cầu của bạn, VD: 'tool thiết kế miễn phí cho startup'..."
-              className="h-12 pl-10 text-base rounded-xl border-border/60 bg-card shadow-sm"
-            />
+        <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-xl">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Mô tả nhu cầu của bạn..."
+                className="h-12 pl-10 text-base rounded-xl border-border/60 bg-card shadow-sm"
+              />
+            </div>
+            <Button type="submit" size="lg" className="h-12 rounded-xl px-6">
+              <Search className="h-4 w-4 mr-2" />
+              Tìm kiếm
+            </Button>
           </div>
-          <Button type="submit" size="lg" className="h-12 rounded-xl px-6">
-            <Search className="h-4 w-4 mr-2" />
-            Tìm kiếm
-          </Button>
+          {/* Search examples */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span className="font-medium">Thử tìm:</span>
+            <span className="italic">"tool thiết kế miễn phí cho startup"</span>
+            <span>•</span>
+            <span className="italic">"AI viết content marketing"</span>
+            <span>•</span>
+            <span className="italic">"quản lý dự án cho team nhỏ"</span>
+          </div>
         </form>
 
         {/* AI Search Results */}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,9 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [activeSubCat, setActiveSubCat] = useState<string | null>(null);
 
   const { data: category } = useQuery({
     queryKey: ["category", slug],
@@ -33,20 +36,40 @@ export default function CategoryPage() {
     enabled: !!category?.parent_id,
   });
 
+  // Fetch sub-categories
+  const { data: subCategories = [] } = useQuery({
+    queryKey: ["sub-categories", category?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("id, name, slug")
+        .eq("parent_id", category!.id)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!category?.id,
+  });
+
+  // Build category IDs to query: current + optionally filter by sub-cat
+  const categoryIdsToQuery = activeSubCat
+    ? [activeSubCat]
+    : [category?.id, ...subCategories.map((s) => s.id)].filter(Boolean) as string[];
+
   const { data: tools, isLoading } = useQuery({
-    queryKey: ["category-tools", category?.id],
+    queryKey: ["category-tools", categoryIdsToQuery],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tools")
         .select("*, categories(name), ai_scores(overall_score, is_recommended)")
         .eq("status", "published")
-        .eq("category_id", category!.id)
+        .in("category_id", categoryIdsToQuery)
         .order("avg_rating", { ascending: false })
         .limit(50);
       if (error) throw error;
       return data;
     },
-    enabled: !!category?.id,
+    enabled: categoryIdsToQuery.length > 0,
   });
 
   // JSON-LD BreadcrumbList
@@ -109,7 +132,7 @@ export default function CategoryPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {category?.name || "Đang tải..."}
             </h1>
@@ -117,6 +140,37 @@ export default function CategoryPage() {
               <p className="mt-2 text-muted-foreground">{category.description}</p>
             )}
           </div>
+
+          {/* Sub-category filter tabs */}
+          {subCategories.length > 0 && (
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setActiveSubCat(null)}
+                className={cn(
+                  "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                  !activeSubCat
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                )}
+              >
+                Tất cả
+              </button>
+              {subCategories.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setActiveSubCat(sub.id === activeSubCat ? null : sub.id)}
+                  className={cn(
+                    "rounded-full border px-4 py-1.5 text-sm font-medium transition-colors",
+                    activeSubCat === sub.id
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                  )}
+                >
+                  {sub.name}
+                </button>
+              ))}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
