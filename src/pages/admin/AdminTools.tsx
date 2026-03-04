@@ -583,9 +583,10 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <div className="flex items-center gap-2"><Switch checked={form.is_featured} onCheckedChange={(v) => updateField("is_featured", v)} /><Label>Featured</Label></div>
               <div className="flex items-center gap-2"><Switch checked={form.is_trending} onCheckedChange={(v) => updateField("is_trending", v)} /><Label>Trending</Label></div>
             </div>
-            {tool?.id && (
+            {/* Existing tags (for existing tools) */}
+            {tool?.id && tags.length > 0 && (
               <div className="space-y-2">
-                <Label>Tags</Label>
+                <Label>Tags có sẵn</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((t: any) => (
                     <Button key={t.id} type="button" variant={toolTags.includes(t.id) ? "default" : "outline"} size="sm" onClick={() => toggleTag(t.id)}>{t.name}</Button>
@@ -593,6 +594,46 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 </div>
               </div>
             )}
+
+            {/* AI Suggested Tags */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Tags AI gợi ý
+              </Label>
+              {suggestedTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {suggestedTags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="gap-1 pr-1">
+                      {tag}
+                      <button onClick={() => setSuggestedTags(prev => prev.filter((_, i) => i !== idx))} className="ml-1 hover:text-destructive text-xs">×</button>
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Thu thập bằng AI hoặc thêm thủ công bên dưới</p>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Thêm tag mới..."
+                  value={newTagInput}
+                  onChange={(e) => setNewTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTagInput.trim()) {
+                      e.preventDefault();
+                      setSuggestedTags(prev => [...prev, newTagInput.trim()]);
+                      setNewTagInput("");
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  if (newTagInput.trim()) {
+                    setSuggestedTags(prev => [...prev, newTagInput.trim()]);
+                    setNewTagInput("");
+                  }
+                }}>Thêm</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Tags sẽ được tạo tự động khi lưu tool. Nhấn Enter hoặc nút Thêm để thêm tag.</p>
+            </div>
           </TabsContent>
 
           {/* Tab: Content */}
