@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
+import { DealsWidget } from "@/components/deals/DealsWidget";
 
 interface DetailedArticleProps {
   toolId: string;
@@ -151,8 +152,35 @@ const proseClasses = cn(
   "prose-hr:border-border/50 prose-hr:my-6",
 );
 
-/* ── Content renderer (HTML or Markdown) ────────────────── */
-function ContentRenderer({ content, isHtml }: { content: string; isHtml: boolean }) {
+/* ── Content renderer (HTML or Markdown) with shortcode support ── */
+function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml: boolean; toolId?: string }) {
+  // Check for [deals] or [deal:CODE] shortcodes
+  const shortcodeRegex = /\[deals?\]|\[deal:([^\]]+)\]/g;
+  const hasShortcodes = shortcodeRegex.test(content);
+
+  if (hasShortcodes && toolId) {
+    // Split content by shortcodes and render inline
+    const parts = content.split(/(\[deals?\]|\[deal:[^\]]+\])/g);
+    return (
+      <div>
+        {parts.map((part, i) => {
+          const dealMatch = part.match(/^\[deal:([^\]]+)\]$/);
+          if (part === "[deals]" || part === "[deal]") {
+            return <DealsWidget key={i} toolId={toolId} />;
+          }
+          if (dealMatch) {
+            return <DealsWidget key={i} toolId={toolId} couponCode={dealMatch[1]} />;
+          }
+          if (!part) return null;
+          if (isHtml) {
+            return <div key={i} className={proseClasses} dangerouslySetInnerHTML={{ __html: part }} />;
+          }
+          return <article key={i} className={proseClasses}><ReactMarkdown>{part}</ReactMarkdown></article>;
+        })}
+      </div>
+    );
+  }
+
   if (isHtml) {
     return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: content }} />;
   }
@@ -164,7 +192,7 @@ function ContentRenderer({ content, isHtml }: { content: string; isHtml: boolean
 }
 
 /* ── Collapsible Section Card ───────────────────────────── */
-function SectionCard({ section, defaultOpen = true }: { section: Section; defaultOpen?: boolean }) {
+function SectionCard({ section, defaultOpen = true, toolId }: { section: Section; defaultOpen?: boolean; toolId?: string }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -191,7 +219,7 @@ function SectionCard({ section, defaultOpen = true }: { section: Section; defaul
       >
         <div className="overflow-hidden">
           <CardContent className="pt-5 pb-6">
-            <ContentRenderer content={section.content} isHtml={section.isHtml} />
+             <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
           </CardContent>
         </div>
       </div>
@@ -300,7 +328,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
         </div>
         <Card>
           <CardContent className="py-6">
-            <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} />
+            <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} toolId={toolId} />
           </CardContent>
         </Card>
         <BackToTop />
@@ -373,13 +401,13 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
           return (
             <Card key={idx}>
               <CardContent className="py-6">
-                <ContentRenderer content={section.content} isHtml={section.isHtml} />
+                <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
               </CardContent>
             </Card>
           );
         }
 
-        return <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} />;
+        return <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} toolId={toolId} />;
       })}
 
       {/* Back to top */}

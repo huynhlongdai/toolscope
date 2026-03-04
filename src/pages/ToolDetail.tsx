@@ -13,6 +13,7 @@ import { CommentSection } from "@/components/tool-detail/CommentSection";
 import { QASection } from "@/components/tool-detail/QASection";
 import { DetailedArticle } from "@/components/tool-detail/DetailedArticle";
 import { PricingHistoryChart } from "@/components/tool-detail/PricingHistoryChart";
+import { DealsSection } from "@/components/deals/DealsSection";
 import { FollowButton } from "@/components/follow/FollowButton";
 import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { Button } from "@/components/ui/button";
@@ -432,6 +433,9 @@ export default function ToolDetail() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Deals */}
+              <DealsSection toolId={tool.id} toolName={tool.name} />
 
               {/* Alternatives */}
               {alternatives && alternatives.length > 0 && (

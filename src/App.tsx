@@ -36,8 +36,10 @@ import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminSearchAnalytics from "./pages/admin/AdminSearchAnalytics";
+import AdminDeals from "./pages/admin/AdminDeals";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import DealsPage from "./pages/DealsPage";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,7 @@ const App = () => (
             <Route path="/workflows" element={<WorkflowsPage />} />
             <Route path="/workflow/:slug" element={<WorkflowDetail />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/deals" element={<DealsPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
@@ -82,6 +85,7 @@ const App = () => (
             <Route path="/admin/collect" element={<AdminCollectAI />} />
             <Route path="/admin/workflows" element={<AdminWorkflows />} />
             <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
+            <Route path="/admin/deals" element={<AdminDeals />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
