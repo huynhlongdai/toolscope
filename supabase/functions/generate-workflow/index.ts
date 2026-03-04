@@ -14,7 +14,6 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const { keyword, tool_ids, mode } = await req.json();
-    // mode: "keyword" | "tools" | "both"
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -28,13 +27,13 @@ serve(async (req) => {
         .select("id, name, short_description, pricing_type, website_url")
         .in("id", tool_ids);
       if (tools && tools.length > 0) {
-        toolsContext = `\n\nAvailable tools on our platform:\n${tools.map((t: any) => `- ${t.name} (ID: ${t.id}): ${t.short_description || "No description"} [${t.pricing_type}]`).join("\n")}`;
+        toolsContext = `\n\nSelected tools on our platform:\n${tools.map((t: any) => `- ${t.name} (ID: ${t.id}): ${t.short_description || "No description"} [${t.pricing_type}]`).join("\n")}`;
       }
     }
 
-    // If mode is "tools" but no keyword, fetch some popular tools for suggestions
+    // Fetch popular tools for suggestions
     let popularToolsContext = "";
-    if (mode === "suggest") {
+    if (mode === "suggest" || !tool_ids?.length) {
       const { data: popular } = await supabase
         .from("tools")
         .select("id, name, short_description, pricing_type")
@@ -42,29 +41,39 @@ serve(async (req) => {
         .order("view_count", { ascending: false })
         .limit(30);
       if (popular && popular.length > 0) {
-        popularToolsContext = `\n\nPopular tools on our platform (use their exact IDs when referencing):\n${popular.map((t: any) => `- ${t.name} (ID: ${t.id}): ${t.short_description || ""} [${t.pricing_type}]`).join("\n")}`;
+        popularToolsContext = `\n\nPopular tools on our platform (use their exact IDs):\n${popular.map((t: any) => `- ${t.name} (ID: ${t.id}): ${t.short_description || ""} [${t.pricing_type}]`).join("\n")}`;
       }
     }
 
-    const systemPrompt = `You are an AI assistant that creates detailed workflow guides for an AI tools directory website.
-Your task is to generate a complete workflow with title, description, category, and step-by-step instructions.
+    const systemPrompt = `You are an expert content strategist and SEO specialist creating workflow guides for ToolScope - an AI tools directory.
 
-Each step should have:
-- title: concise action title
-- description: detailed explanation (2-3 sentences)  
-- tool_id: the ID of a tool from the platform (if applicable, null otherwise)
+Your task: Generate a COMPLETE, SEO-optimized workflow with rich content that drives organic traffic and user engagement.
+
+Content requirements:
+1. **Problem Statement**: Clear pain point this workflow solves (2-3 sentences, relatable)
+2. **Solution Overview**: How this workflow addresses the problem
+3. **Step-by-step guide**: 3-7 practical steps with tool recommendations
+4. **Common Mistakes**: 3-5 mistakes users typically make (helps with "People Also Ask" SEO)
+5. **Pro Tips**: 3-5 actionable tips for better results
+6. **Prerequisites**: What users need before starting
+7. **Target Audience**: Who benefits most
+8. **Use Cases**: 2-4 specific scenarios where this workflow shines
+9. **Estimated Time**: Realistic completion time
+10. **Difficulty Level**: beginner / intermediate / advanced
+11. **SEO metadata**: Optimized title (<60 chars) and description (<160 chars) with target keywords
 
 Guidelines:
-- Create practical, actionable workflows that combine multiple tools
-- Each workflow should have 3-7 steps
-- Use Vietnamese for all content (title, description, steps)
-- Categories should be one of: Design, Marketing, Development, Content, Productivity, Business, AI, Data
-- When tools from the platform are provided, prioritize using them in steps
-- The slug should be lowercase, hyphen-separated, no special characters${toolsContext}${popularToolsContext}`;
+- Write ALL content in Vietnamese
+- Be specific, actionable, and practical
+- Use natural language that targets long-tail keywords
+- Steps should have detailed descriptions (3-5 sentences each)
+- Categories: Design, Marketing, Development, Content, Productivity, Business, AI, Data
+- The slug should be lowercase, hyphen-separated Vietnamese (no diacritics)
+- Prioritize tools from the platform when applicable${toolsContext}${popularToolsContext}`;
 
     const userPrompt = keyword
-      ? `Create a detailed workflow about: "${keyword}". ${tool_ids?.length ? "Incorporate the provided tools where relevant." : "Suggest appropriate tools from the platform."}`
-      : `Based on the provided tools, create a practical workflow that combines them effectively.`;
+      ? `Create a comprehensive, SEO-optimized workflow about: "${keyword}". ${tool_ids?.length ? "Incorporate the provided tools where relevant." : "Suggest appropriate tools from the platform."}`
+      : `Based on the provided tools, create a practical, SEO-rich workflow that combines them effectively.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -83,21 +92,23 @@ Guidelines:
             type: "function",
             function: {
               name: "create_workflow",
-              description: "Create a complete workflow with steps",
+              description: "Create a complete SEO-optimized workflow",
               parameters: {
                 type: "object",
                 properties: {
                   title: { type: "string", description: "Workflow title in Vietnamese" },
-                  slug: { type: "string", description: "URL-friendly slug" },
-                  description: { type: "string", description: "Brief description in Vietnamese" },
+                  slug: { type: "string", description: "URL-friendly slug (no diacritics)" },
+                  description: { type: "string", description: "Brief description in Vietnamese (2-3 sentences)" },
                   category: { type: "string", enum: ["Design", "Marketing", "Development", "Content", "Productivity", "Business", "AI", "Data"] },
+                  seo_title: { type: "string", description: "SEO title under 60 chars with target keyword" },
+                  seo_description: { type: "string", description: "Meta description under 160 chars" },
                   steps: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
                         title: { type: "string" },
-                        description: { type: "string" },
+                        description: { type: "string", description: "Detailed step description (3-5 sentences)" },
                         tool_id: { type: "string", description: "Tool UUID from platform or null" },
                       },
                       required: ["title", "description"],
@@ -107,10 +118,54 @@ Guidelines:
                   tool_ids: {
                     type: "array",
                     items: { type: "string" },
-                    description: "List of tool IDs used in this workflow",
+                    description: "All tool IDs used in this workflow",
+                  },
+                  seo_content: {
+                    type: "object",
+                    properties: {
+                      problem: { type: "string", description: "Pain point description (2-3 sentences)" },
+                      solution: { type: "string", description: "How this workflow solves the problem" },
+                      common_mistakes: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string" },
+                            description: { type: "string" },
+                          },
+                          required: ["title", "description"],
+                          additionalProperties: false,
+                        },
+                      },
+                      tips: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string" },
+                            description: { type: "string" },
+                          },
+                          required: ["title", "description"],
+                          additionalProperties: false,
+                        },
+                      },
+                      prerequisites: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      target_audience: { type: "string" },
+                      use_cases: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      estimated_time: { type: "string", description: "e.g. 30 phút, 1-2 giờ" },
+                      difficulty_level: { type: "string", enum: ["beginner", "intermediate", "advanced"] },
+                    },
+                    required: ["problem", "solution", "common_mistakes", "tips", "prerequisites", "target_audience", "use_cases", "estimated_time", "difficulty_level"],
+                    additionalProperties: false,
                   },
                 },
-                required: ["title", "slug", "description", "category", "steps", "tool_ids"],
+                required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content"],
                 additionalProperties: false,
               },
             },

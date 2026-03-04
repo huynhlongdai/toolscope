@@ -1269,6 +1269,9 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          seo_content: Json | null
+          seo_description: string | null
+          seo_title: string | null
           slug: string
           status: Database["public"]["Enums"]["content_status"] | null
           steps: Json | null
@@ -1276,6 +1279,7 @@ export type Database = {
           tool_ids: string[] | null
           updated_at: string | null
           upvotes: number | null
+          video_url: string | null
           view_count: number | null
         }
         Insert: {
@@ -1285,6 +1289,9 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          seo_content?: Json | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"] | null
           steps?: Json | null
@@ -1292,6 +1299,7 @@ export type Database = {
           tool_ids?: string[] | null
           updated_at?: string | null
           upvotes?: number | null
+          video_url?: string | null
           view_count?: number | null
         }
         Update: {
@@ -1301,6 +1309,9 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          seo_content?: Json | null
+          seo_description?: string | null
+          seo_title?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"] | null
           steps?: Json | null
@@ -1308,6 +1319,7 @@ export type Database = {
           tool_ids?: string[] | null
           updated_at?: string | null
           upvotes?: number | null
+          video_url?: string | null
           view_count?: number | null
         }
         Relationships: [

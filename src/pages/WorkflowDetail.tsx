@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
@@ -8,8 +9,25 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, ThumbsUp, Workflow, CheckCircle2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ShareButtons } from "@/components/share/ShareButtons";
+import {
+  ArrowLeft, Eye, Workflow, CheckCircle2, AlertTriangle, Lightbulb,
+  Target, Clock, BarChart3, Users, Play, ListChecks, Zap
+} from "lucide-react";
 import { UpvoteButton } from "@/components/UpvoteButton";
+
+const difficultyLabel: Record<string, { label: string; color: string }> = {
+  beginner: { label: "Cơ bản", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  intermediate: { label: "Trung bình", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
+  advanced: { label: "Nâng cao", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
+};
+
+function extractYouTubeId(url: string): string {
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match?.[1] ?? "";
+}
 
 export default function WorkflowDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -25,7 +43,7 @@ export default function WorkflowDetail() {
         .maybeSingle();
       if (error) throw error;
       if (data) {
-        supabase.from("workflows").update({ view_count: (data.view_count ?? 0) + 1 }).eq("id", data.id).then();
+        supabase.from("workflows").update({ view_count: (data.view_count ?? 0) + 1 } as any).eq("id", data.id).then();
       }
       return data;
     },
@@ -44,12 +62,57 @@ export default function WorkflowDetail() {
   });
 
   const steps = (wf?.steps as any[]) ?? [];
+  const seo = (wf as any)?.seo_content || {};
+  const videoUrl = (wf as any)?.video_url;
+
+  // FAQ-style JSON-LD for common mistakes (helps "People Also Ask")
+  useEffect(() => {
+    const mistakes = seo.common_mistakes as { title: string; description: string }[] | undefined;
+    if (!mistakes?.length) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "workflow-faq-schema";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: mistakes.map((m) => ({
+        "@type": "Question",
+        name: m.title,
+        acceptedAnswer: { "@type": "Answer", text: m.description },
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById("workflow-faq-schema")?.remove(); };
+  }, [seo.common_mistakes]);
+
+  // HowTo JSON-LD for steps
+  useEffect(() => {
+    if (!steps.length || !wf) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "workflow-howto-schema";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: wf.title,
+      description: wf.description || "",
+      ...(seo.estimated_time ? { totalTime: seo.estimated_time } : {}),
+      step: steps.map((s: any, i: number) => ({
+        "@type": "HowToStep",
+        position: i + 1,
+        name: s.title,
+        text: s.description || "",
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById("workflow-howto-schema")?.remove(); };
+  }, [steps, wf]);
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 container max-w-3xl py-8">
+        <main className="flex-1 container max-w-4xl py-8">
           <Skeleton className="h-8 w-64 mb-4" />
           <Skeleton className="h-48 rounded-xl mb-4" />
           <Skeleton className="h-4 w-full mb-2" />
@@ -74,16 +137,21 @@ export default function WorkflowDetail() {
     );
   }
 
+  const seoTitle = (wf as any)?.seo_title || wf.title;
+  const seoDesc = (wf as any)?.seo_description || wf.description || `Workflow: ${wf.title}`;
+  const difficulty = difficultyLabel[seo.difficulty_level] || null;
+
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${wf.title} - ToolScope Workflow`} description={wf.description || `Workflow: ${wf.title}`} />
+      <SEOHead title={`${seoTitle} - ToolScope`} description={seoDesc} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
-        <article className="container max-w-3xl py-8">
+        <article className="container max-w-4xl py-8">
           <Link to="/workflows" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> Quay lại Workflows
           </Link>
 
+          {/* Hero Section: Cover + Problem/Solution */}
           {wf.cover_image_url && (
             <div className="mb-6 aspect-video overflow-hidden rounded-xl">
               <img src={wf.cover_image_url} alt={wf.title} className="h-full w-full object-cover" />
@@ -94,39 +162,115 @@ export default function WorkflowDetail() {
             {wf.title}
           </h1>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+          {/* Meta badges */}
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             {wf.category && <Badge variant="secondary">{wf.category}</Badge>}
-            <UpvoteButton targetId={wf.id} targetType="workflow" currentUpvotes={wf.upvotes ?? 0} tableName="workflows" />
-            <span className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> {wf.view_count ?? 0} lượt xem</span>
-            {(wf.profiles as any)?.display_name && (
-              <span>bởi {(wf.profiles as any).display_name}</span>
+            {difficulty && <Badge className={`${difficulty.color} text-xs`}>{difficulty.label}</Badge>}
+            {seo.estimated_time && (
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" /> {seo.estimated_time}
+              </span>
             )}
+            <UpvoteButton targetId={wf.id} targetType="workflow" currentUpvotes={wf.upvotes ?? 0} tableName="workflows" />
+            <span className="flex items-center gap-1.5 text-muted-foreground"><Eye className="h-4 w-4" /> {wf.view_count ?? 0}</span>
+            <ShareButtons title={wf.title} />
           </div>
 
           {wf.description && (
-            <p className="mt-4 text-muted-foreground leading-relaxed">{wf.description}</p>
+            <p className="mt-4 text-lg text-muted-foreground leading-relaxed">{wf.description}</p>
           )}
 
-          {/* Steps */}
+          {/* Problem & Solution Hero Cards */}
+          {(seo.problem || seo.solution) && (
+            <div className="grid gap-4 md:grid-cols-2 mt-6">
+              {seo.problem && (
+                <Card className="border-destructive/20 bg-destructive/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Target className="h-4 w-4 text-destructive" /> Vấn đề
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground leading-relaxed">{seo.problem}</p></CardContent>
+                </Card>
+              )}
+              {seo.solution && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" /> Giải pháp
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent><p className="text-sm text-muted-foreground leading-relaxed">{seo.solution}</p></CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Quick Info Bar */}
+          {(seo.target_audience || seo.prerequisites?.length > 0 || seo.use_cases?.length > 0) && (
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {seo.target_audience && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-1.5">
+                      <Users className="h-4 w-4 text-muted-foreground" /> Đối tượng
+                    </div>
+                    <p className="text-sm text-muted-foreground">{seo.target_audience}</p>
+                  </CardContent>
+                </Card>
+              )}
+              {seo.prerequisites?.length > 0 && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-1.5">
+                      <ListChecks className="h-4 w-4 text-muted-foreground" /> Cần chuẩn bị
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-0.5">
+                      {(seo.prerequisites as string[]).map((p, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">•</span> {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+              {seo.use_cases?.length > 0 && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-1.5">
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" /> Use Cases
+                    </div>
+                    <ul className="text-sm text-muted-foreground space-y-0.5">
+                      {(seo.use_cases as string[]).map((u, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-primary mt-0.5">•</span> {u}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Steps Timeline */}
           {steps.length > 0 && (
             <div className="mt-10">
               <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-primary" /> Các bước thực hiện
+                <CheckCircle2 className="h-5 w-5 text-primary" /> Các bước thực hiện ({steps.length} bước)
               </h2>
               <div className="relative space-y-0">
                 {steps.map((step: any, i: number) => {
                   const stepTool = step.tool_id ? tools.find((t: any) => t.id === step.tool_id) : null;
                   return (
                     <div key={i} className="relative flex gap-4 pb-8 last:pb-0">
-                      {/* Timeline line */}
                       {i < steps.length - 1 && (
                         <div className="absolute left-[19px] top-10 bottom-0 w-0.5 bg-border" />
                       )}
-                      {/* Step number */}
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm z-10">
                         {i + 1}
                       </div>
-                      {/* Content */}
                       <div className="flex-1 pt-1">
                         <h3 className="font-semibold text-foreground">{step.title}</h3>
                         {step.description && (
@@ -153,6 +297,92 @@ export default function WorkflowDetail() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Bottom Accordion: Mistakes, Tips, Video */}
+          {(seo.common_mistakes?.length > 0 || seo.tips?.length > 0 || videoUrl) && (
+            <div className="mt-10">
+              <Accordion type="multiple" defaultValue={["mistakes", "tips", "video"]} className="w-full">
+                {/* Common Mistakes */}
+                {seo.common_mistakes?.length > 0 && (
+                  <AccordionItem value="mistakes">
+                    <AccordionTrigger className="text-left">
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        ⚠️ Lỗi thường gặp ({(seo.common_mistakes as any[]).length})
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3">
+                        {(seo.common_mistakes as { title: string; description: string }[]).map((m, i) => (
+                          <div key={i} className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/30 dark:bg-amber-900/10">
+                            <span className="text-amber-500 font-bold shrink-0">#{i + 1}</span>
+                            <div>
+                              <p className="font-medium text-sm">{m.title}</p>
+                              {m.description && <p className="text-sm text-muted-foreground mt-0.5">{m.description}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {/* Pro Tips */}
+                {seo.tips?.length > 0 && (
+                  <AccordionItem value="tips">
+                    <AccordionTrigger className="text-left">
+                      <span className="flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-primary" />
+                        💡 Pro Tips ({(seo.tips as any[]).length})
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3">
+                        {(seo.tips as { title: string; description: string }[]).map((t, i) => (
+                          <div key={i} className="flex gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                            <span className="text-primary font-bold shrink-0">💡</span>
+                            <div>
+                              <p className="font-medium text-sm">{t.title}</p>
+                              {t.description && <p className="text-sm text-muted-foreground mt-0.5">{t.description}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {/* Video */}
+                {videoUrl && (
+                  <AccordionItem value="video">
+                    <AccordionTrigger className="text-left">
+                      <span className="flex items-center gap-2">
+                        <Play className="h-4 w-4 text-red-500" />
+                        🎬 Video hướng dẫn
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {videoUrl.includes("youtu") ? (
+                        <div className="aspect-video rounded-lg overflow-hidden border">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${extractYouTubeId(videoUrl)}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                            title="Video hướng dẫn"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                          Xem video tại đây →
+                        </a>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+              </Accordion>
             </div>
           )}
 
