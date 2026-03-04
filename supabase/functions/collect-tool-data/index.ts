@@ -335,6 +335,7 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
           features: toolData.features,
           platforms: toolData.platforms || [],
           pricing_details: toolData.pricing_details,
+          faq: toolData.faq || null,
           status: "pending_review",
         })
         .select("id")

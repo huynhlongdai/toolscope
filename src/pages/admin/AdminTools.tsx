@@ -561,6 +561,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
             <ContentTabWithPreview form={form} updateField={updateField} toolName={form.name} />
           </TabsContent>
 
+          {/* Tab: FAQ */}
+          <TabsContent value="faq" className="space-y-4 mt-4">
+            <FAQTab tool={tool} form={form} updateField={updateField} />
+          </TabsContent>
+
           {/* Tab: Fake Stats */}
           <TabsContent value="stats" className="space-y-4 mt-4">
             <Card>
