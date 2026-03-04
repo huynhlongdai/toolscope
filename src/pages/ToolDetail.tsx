@@ -10,6 +10,7 @@ import { VoteButtons } from "@/components/tool-detail/VoteButtons";
 import { CommentSection } from "@/components/tool-detail/CommentSection";
 import { QASection } from "@/components/tool-detail/QASection";
 import { DetailedArticle } from "@/components/tool-detail/DetailedArticle";
+import { PricingHistoryChart } from "@/components/tool-detail/PricingHistoryChart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
   Star, Bookmark, BookmarkCheck, Share2,
-  MessageCircle, ArrowLeft,
+  MessageCircle, ArrowLeft, GitCompareArrows,
   Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
 } from "lucide-react";
 import { useState } from "react";
@@ -402,6 +403,19 @@ export default function ToolDetail() {
                 <Sparkles className="h-4 w-4" />
                 Tìm tool tương tự bằng AI
               </Button>
+
+              {/* Compare */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => navigate(`/compare?tools=${tool.id}`)}
+              >
+                <GitCompareArrows className="h-4 w-4" />
+                So sánh với tool khác
+              </Button>
+
+              {/* Pricing History */}
+              <PricingHistoryChart toolId={tool.id} toolName={tool.name} />
             </div>
           </div>
         </div>

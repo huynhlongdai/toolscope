@@ -315,6 +315,50 @@ export type Database = {
           },
         ]
       }
+      pricing_history: {
+        Row: {
+          created_at: string
+          currency: string | null
+          details: Json | null
+          id: string
+          plan_name: string | null
+          price_amount: number | null
+          pricing_type: Database["public"]["Enums"]["pricing_type"]
+          recorded_at: string
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          details?: Json | null
+          id?: string
+          plan_name?: string | null
+          price_amount?: number | null
+          pricing_type: Database["public"]["Enums"]["pricing_type"]
+          recorded_at?: string
+          tool_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          details?: Json | null
+          id?: string
+          plan_name?: string | null
+          price_amount?: number | null
+          pricing_type?: Database["public"]["Enums"]["pricing_type"]
+          recorded_at?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_history_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
