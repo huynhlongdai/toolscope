@@ -35,6 +35,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
+import AdminSearchAnalytics from "./pages/admin/AdminSearchAnalytics";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 
