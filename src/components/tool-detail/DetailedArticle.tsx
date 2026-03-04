@@ -18,6 +18,12 @@ interface DetailedArticleProps {
   isAdmin?: boolean;
 }
 
+/* ── Detect if content is HTML ──────────────────────────── */
+function isHtmlContent(content: string): boolean {
+  return /^\s*</.test(content) || /<\/(p|div|h[1-6]|ul|ol|table|blockquote)>/i.test(content);
+}
+
+/* ── Icons for section headings ─────────────────────────── */
 const sectionIcons: Record<string, React.ReactNode> = {
   "là gì": <Info className="h-5 w-5 text-primary" />,
   "tính năng": <Layers className="h-5 w-5 text-primary" />,
@@ -51,9 +57,11 @@ interface Section {
   title: string;
   content: string;
   id: string;
+  isHtml: boolean;
 }
 
-function parseSections(markdown: string): Section[] {
+/* ── Parse Markdown into sections ───────────────────────── */
+function parseMarkdownSections(markdown: string): Section[] {
   const lines = markdown.split("\n");
   const sections: Section[] = [];
   let currentTitle = "";
@@ -63,7 +71,7 @@ function parseSections(markdown: string): Section[] {
     const headingMatch = line.match(/^##\s+(.+)/);
     if (headingMatch) {
       if (currentTitle || currentLines.length > 0) {
-        sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "intro") });
+        sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "intro"), isHtml: false });
       }
       currentTitle = headingMatch[1];
       currentLines = [];
@@ -72,7 +80,51 @@ function parseSections(markdown: string): Section[] {
     }
   }
   if (currentTitle || currentLines.length > 0) {
-    sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "outro") });
+    sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "outro"), isHtml: false });
+  }
+
+  return sections.filter((s) => s.title || s.content);
+}
+
+/* ── Parse HTML into sections (split by h2) ─────────────── */
+function parseHtmlSections(html: string): Section[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const container = doc.body.firstElementChild;
+  if (!container) return [{ title: "", content: html, id: "full", isHtml: true }];
+
+  const sections: Section[] = [];
+  let currentTitle = "";
+  let currentContent: string[] = [];
+
+  for (const node of Array.from(container.childNodes)) {
+    const el = node as HTMLElement;
+    if (el.tagName === "H2") {
+      if (currentTitle || currentContent.length > 0) {
+        sections.push({
+          title: currentTitle,
+          content: currentContent.join(""),
+          id: slugify(currentTitle || "intro"),
+          isHtml: true,
+        });
+      }
+      currentTitle = el.textContent || "";
+      currentContent = [];
+    } else {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        currentContent.push((node as HTMLElement).outerHTML);
+      } else if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+        currentContent.push(`<p>${node.textContent}</p>`);
+      }
+    }
+  }
+  if (currentTitle || currentContent.length > 0) {
+    sections.push({
+      title: currentTitle,
+      content: currentContent.join(""),
+      id: slugify(currentTitle || "outro"),
+      isHtml: true,
+    });
   }
 
   return sections.filter((s) => s.title || s.content);
@@ -80,35 +132,36 @@ function parseSections(markdown: string): Section[] {
 
 /* ── Prose class string ─────────────────────────────────── */
 const proseClasses = cn(
-  // base
   "prose prose-neutral dark:prose-invert max-w-none",
-  // paragraphs
   "prose-p:text-muted-foreground prose-p:leading-[1.8] prose-p:mb-4",
-  // headings
   "prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground",
-  // links
   "prose-a:text-primary prose-a:underline-offset-2 prose-a:decoration-primary/40 hover:prose-a:decoration-primary",
-  // images
   "prose-img:rounded-lg prose-img:shadow-sm",
-  // strong / emphasis
   "prose-strong:text-foreground prose-strong:font-semibold prose-em:text-muted-foreground",
-  // lists
   "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
   "prose-li:leading-[1.8] prose-li:mb-2 prose-li:pl-1",
   "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-4 prose-ol:my-4",
   "prose-ul:list-disc prose-ol:list-decimal",
   "[&_ul]:marker:text-primary [&_ol]:marker:text-primary [&_ol]:marker:font-semibold",
-  // blockquote
   "prose-blockquote:border-l-4 prose-blockquote:border-primary/40 prose-blockquote:bg-muted/40 prose-blockquote:rounded-r-lg prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:not-italic prose-blockquote:text-muted-foreground",
-  // code
   "prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.85em] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
-  // table
   "prose-table:text-sm prose-table:border prose-table:border-border prose-table:rounded-lg prose-table:overflow-hidden",
   "prose-th:bg-muted/60 prose-th:p-3 prose-th:text-left prose-th:font-semibold prose-th:text-foreground prose-th:border prose-th:border-border",
   "prose-td:p-3 prose-td:border prose-td:border-border prose-td:text-muted-foreground",
-  // hr
   "prose-hr:border-border/50 prose-hr:my-6",
 );
+
+/* ── Content renderer (HTML or Markdown) ────────────────── */
+function ContentRenderer({ content, isHtml }: { content: string; isHtml: boolean }) {
+  if (isHtml) {
+    return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: content }} />;
+  }
+  return (
+    <article className={proseClasses}>
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </article>
+  );
+}
 
 /* ── Collapsible Section Card ───────────────────────────── */
 function SectionCard({ section, defaultOpen = true }: { section: Section; defaultOpen?: boolean }) {
@@ -138,9 +191,7 @@ function SectionCard({ section, defaultOpen = true }: { section: Section; defaul
       >
         <div className="overflow-hidden">
           <CardContent className="pt-5 pb-6">
-            <article className={proseClasses}>
-              <ReactMarkdown>{section.content}</ReactMarkdown>
-            </article>
+            <ContentRenderer content={section.content} isHtml={section.isHtml} />
           </CardContent>
         </div>
       </div>
@@ -185,7 +236,10 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
 
   const sections = useMemo(() => {
     if (!detailedContent) return [];
-    return parseSections(detailedContent);
+    if (isHtmlContent(detailedContent)) {
+      return parseHtmlSections(detailedContent);
+    }
+    return parseMarkdownSections(detailedContent);
   }, [detailedContent]);
 
   const tocSections = useMemo(() => sections.filter((s) => s.title), [sections]);
@@ -231,6 +285,26 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
           <p className="text-sm text-muted-foreground">Chưa có bài giới thiệu chi tiết. Nhấn "AI tạo bài viết" để tạo tự động.</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // If no sections found (simple HTML without h2), render as single block
+  if (sections.length === 0 || (sections.length === 1 && !sections[0].title)) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-xl font-bold flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <BookOpen className="h-5 w-5 text-primary" /> Giới thiệu chi tiết về {toolName}
+          </h2>
+          {isAdmin && generateButton("ghost", "Tạo lại")}
+        </div>
+        <Card>
+          <CardContent className="py-6">
+            <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} />
+          </CardContent>
+        </Card>
+        <BackToTop />
+      </div>
     );
   }
 
@@ -299,9 +373,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
           return (
             <Card key={idx}>
               <CardContent className="py-6">
-                <article className={proseClasses}>
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
-                </article>
+                <ContentRenderer content={section.content} isHtml={section.isHtml} />
               </CardContent>
             </Card>
           );
