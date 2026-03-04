@@ -152,8 +152,35 @@ const proseClasses = cn(
   "prose-hr:border-border/50 prose-hr:my-6",
 );
 
-/* ── Content renderer (HTML or Markdown) ────────────────── */
-function ContentRenderer({ content, isHtml }: { content: string; isHtml: boolean }) {
+/* ── Content renderer (HTML or Markdown) with shortcode support ── */
+function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml: boolean; toolId?: string }) {
+  // Check for [deals] or [deal:CODE] shortcodes
+  const shortcodeRegex = /\[deals?\]|\[deal:([^\]]+)\]/g;
+  const hasShortcodes = shortcodeRegex.test(content);
+
+  if (hasShortcodes && toolId) {
+    // Split content by shortcodes and render inline
+    const parts = content.split(/(\[deals?\]|\[deal:[^\]]+\])/g);
+    return (
+      <div>
+        {parts.map((part, i) => {
+          const dealMatch = part.match(/^\[deal:([^\]]+)\]$/);
+          if (part === "[deals]" || part === "[deal]") {
+            return <DealsWidget key={i} toolId={toolId} />;
+          }
+          if (dealMatch) {
+            return <DealsWidget key={i} toolId={toolId} couponCode={dealMatch[1]} />;
+          }
+          if (!part) return null;
+          if (isHtml) {
+            return <div key={i} className={proseClasses} dangerouslySetInnerHTML={{ __html: part }} />;
+          }
+          return <article key={i} className={proseClasses}><ReactMarkdown>{part}</ReactMarkdown></article>;
+        })}
+      </div>
+    );
+  }
+
   if (isHtml) {
     return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: content }} />;
   }
