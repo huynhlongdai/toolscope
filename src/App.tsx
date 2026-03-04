@@ -10,6 +10,8 @@ import ToolsPage from "./pages/ToolsPage";
 import ToolDetail from "./pages/ToolDetail";
 import CategoryPage from "./pages/CategoryPage";
 import NotFound from "./pages/NotFound";
+import BlogPage from "./pages/BlogPage";
+import BlogDetail from "./pages/BlogDetail";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
 
 const queryClient = new QueryClient();
@@ -27,6 +29,8 @@ const App = () => (
             <Route path="/tools" element={<ToolsPage />} />
             <Route path="/tool/:slug" element={<ToolDetail />} />
             <Route path="/category/:slug" element={<CategoryPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
