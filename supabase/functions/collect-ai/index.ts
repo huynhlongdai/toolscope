@@ -17,7 +17,8 @@ function extractDomain(url: string): string {
 }
 
 // Search tools by keyword using Firecrawl search, with AI fallback
-async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
+// Returns { results, source } to track data origin
+async function searchByKeyword(keyword: string, limit = 20): Promise<{ results: any[]; source: string }> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
   
   // Try Firecrawl first
@@ -31,7 +32,7 @@ async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
 
       if (response.ok) {
         const data = await response.json();
-        return data.data || [];
+        return { results: data.data || [], source: "firecrawl" };
       }
       console.warn(`Firecrawl search returned ${response.status}, falling back to AI search`);
     } catch (e) {
@@ -40,7 +41,8 @@ async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
   }
 
   // Fallback: use AI to generate search-like results
-  return await searchByAI(keyword, limit);
+  const results = await searchByAI(keyword, limit);
+  return { results, source: "ai_fallback" };
 }
 
 // AI-based fallback search when Firecrawl is unavailable
