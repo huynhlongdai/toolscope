@@ -113,6 +113,7 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiKeyword, setAiKeyword] = useState("");
   const [aiMode, setAiMode] = useState<"keyword" | "suggest">("keyword");
+  const [suggestedVideos, setSuggestedVideos] = useState<{ search_query: string; title: string; reason: string }[]>([]);
 
   const seoContentDefault = wf?.seo_content || {};
 
