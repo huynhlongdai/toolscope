@@ -16,23 +16,71 @@ function extractDomain(url: string): string {
   try { return new URL(url).hostname; } catch { return url; }
 }
 
-// Search tools by keyword using Firecrawl search
+// Search tools by keyword using Firecrawl search, with AI fallback
 async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!apiKey) throw new Error("FIRECRAWL_API_KEY not configured");
+  
+  // Try Firecrawl first
+  if (apiKey) {
+    try {
+      const response = await fetch("https://api.firecrawl.dev/v1/search", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ query: `${keyword} tool software app SaaS`, limit }),
+      });
 
-  const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      if (response.ok) {
+        const data = await response.json();
+        return data.data || [];
+      }
+      console.warn(`Firecrawl search returned ${response.status}, falling back to AI search`);
+    } catch (e) {
+      console.warn("Firecrawl search error, falling back to AI:", e);
+    }
+  }
+
+  // Fallback: use AI to generate search-like results
+  return await searchByAI(keyword, limit);
+}
+
+// AI-based fallback search when Firecrawl is unavailable
+async function searchByAI(keyword: string, limit = 20): Promise<any[]> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const prompt = `List ${limit} popular and real software tools/apps/SaaS products related to "${keyword}".
+For each tool, provide:
+- title: the tool name
+- url: the official website URL
+- description: a brief description
+
+Return ONLY a valid JSON array: [{"title":"...","url":"...","description":"..."}]
+Only include real, existing tools. No fictional products.`;
+
+  const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      query: `${keyword} tool software app SaaS`,
-      limit,
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: "You are a software tools expert. Respond with valid JSON array only." },
+        { role: "user", content: prompt },
+      ],
     }),
   });
 
-  if (!response.ok) throw new Error(`Firecrawl search failed: ${response.status}`);
-  const data = await response.json();
-  return data.data || [];
+  if (!aiResp.ok) throw new Error(`AI search fallback failed: ${aiResp.status}`);
+  const aiData = await aiResp.json();
+  let raw = aiData.choices?.[0]?.message?.content || "[]";
+  raw = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    console.error("Failed to parse AI search results");
+    return [];
+  }
 }
 
 // Scrape a listing URL to extract tools
