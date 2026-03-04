@@ -19,14 +19,19 @@ interface Block {
 }
 
 const blockTypes = [
-  { type: "hero", label: "Hero" },
-  { type: "text", label: "Text (Rich)" },
-  { type: "image", label: "Image" },
-  { type: "cta", label: "CTA" },
-  { type: "features", label: "Features Grid" },
-  { type: "faq", label: "FAQ" },
-  { type: "video", label: "Video" },
-  { type: "divider", label: "Divider" },
+  { type: "hero", label: "🎯 Hero" },
+  { type: "text", label: "📝 Text (Rich)" },
+  { type: "image", label: "🖼️ Image" },
+  { type: "cta", label: "📢 CTA" },
+  { type: "features", label: "⚡ Features Grid" },
+  { type: "faq", label: "❓ FAQ" },
+  { type: "video", label: "🎬 Video" },
+  { type: "divider", label: "➖ Divider" },
+  { type: "testimonials", label: "💬 Testimonials" },
+  { type: "pricing", label: "💰 Price Table" },
+  { type: "accordion", label: "📋 Accordion" },
+  { type: "button", label: "🔘 Button" },
+  { type: "countdown", label: "⏳ Countdown" },
 ];
 
 const defaultBlockData: Record<string, any> = {
@@ -38,6 +43,24 @@ const defaultBlockData: Record<string, any> = {
   faq: { title: "FAQ", items: [{ question: "Câu hỏi?", answer: "Trả lời." }] },
   video: { url: "", title: "" },
   divider: {},
+  testimonials: {
+    title: "Khách hàng nói gì",
+    items: [{ name: "Nguyễn Văn A", role: "CEO, Công ty ABC", quote: "Sản phẩm rất tuyệt vời!", avatar: "" }],
+  },
+  pricing: {
+    title: "Bảng giá",
+    plans: [
+      { name: "Free", price: "$0", period: "/tháng", features: ["Tính năng A", "Tính năng B"], buttonText: "Bắt đầu", buttonUrl: "#", highlighted: false },
+      { name: "Pro", price: "$29", period: "/tháng", features: ["Tất cả Free", "Tính năng C", "Tính năng D"], buttonText: "Nâng cấp", buttonUrl: "#", highlighted: true },
+      { name: "Enterprise", price: "Liên hệ", period: "", features: ["Tất cả Pro", "Hỗ trợ riêng"], buttonText: "Liên hệ", buttonUrl: "#", highlighted: false },
+    ],
+  },
+  accordion: {
+    title: "Thông tin thêm",
+    items: [{ title: "Mục 1", content: "Nội dung mục 1" }],
+  },
+  button: { text: "Click me", url: "#", variant: "primary", align: "center" },
+  countdown: { title: "Ưu đãi kết thúc sau", targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), bgColor: "#6366f1" },
 };
 
 export default function AdminPageEditor() {
@@ -86,7 +109,7 @@ export default function AdminPageEditor() {
   };
 
   const addBlock = (type: string) => {
-    setBlocks([...blocks, { type, data: { ...defaultBlockData[type] } }]);
+    setBlocks([...blocks, { type, data: JSON.parse(JSON.stringify(defaultBlockData[type] ?? {})) }]);
   };
 
   const removeBlock = (idx: number) => setBlocks(blocks.filter((_, i) => i !== idx));
@@ -115,7 +138,6 @@ export default function AdminPageEditor() {
           </div>
         </div>
 
-        {/* Page Settings */}
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -139,7 +161,6 @@ export default function AdminPageEditor() {
           </CardContent>
         </Card>
 
-        {/* Block Palette */}
         <Card>
           <CardHeader><CardTitle className="text-base">Thêm Block</CardTitle></CardHeader>
           <CardContent>
@@ -153,7 +174,6 @@ export default function AdminPageEditor() {
           </CardContent>
         </Card>
 
-        {/* Canvas */}
         <div className="space-y-4">
           {blocks.map((block, idx) => (
             <Card key={idx}>
@@ -230,16 +250,11 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         <div className="space-y-2">
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="grid grid-cols-3 gap-2">
-              <Input placeholder="Icon" value={item.icon} onChange={(e) => {
-                const items = [...d.items]; items[i] = { ...items[i], icon: e.target.value }; update("items", items);
-              }} />
-              <Input placeholder="Title" value={item.title} onChange={(e) => {
-                const items = [...d.items]; items[i] = { ...items[i], title: e.target.value }; update("items", items);
-              }} />
-              <Input placeholder="Description" value={item.description} onChange={(e) => {
-                const items = [...d.items]; items[i] = { ...items[i], description: e.target.value }; update("items", items);
-              }} />
+            <div key={i} className="flex gap-2 items-center">
+              <Input className="w-16" placeholder="Icon" value={item.icon} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], icon: e.target.value }; update("items", items); }} />
+              <Input placeholder="Title" value={item.title} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], title: e.target.value }; update("items", items); }} />
+              <Input placeholder="Description" value={item.description} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], description: e.target.value }; update("items", items); }} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
             </div>
           ))}
           <Button size="sm" variant="outline" onClick={() => update("items", [...(d.items ?? []), { icon: "✨", title: "", description: "" }])}>
@@ -252,13 +267,10 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         <div className="space-y-2">
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="grid grid-cols-2 gap-2">
-              <Input placeholder="Question" value={item.question} onChange={(e) => {
-                const items = [...d.items]; items[i] = { ...items[i], question: e.target.value }; update("items", items);
-              }} />
-              <Textarea placeholder="Answer" value={item.answer} onChange={(e) => {
-                const items = [...d.items]; items[i] = { ...items[i], answer: e.target.value }; update("items", items);
-              }} rows={1} />
+            <div key={i} className="flex gap-2 items-start">
+              <Input placeholder="Question" value={item.question} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], question: e.target.value }; update("items", items); }} />
+              <Textarea placeholder="Answer" value={item.answer} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], answer: e.target.value }; update("items", items); }} rows={1} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
             </div>
           ))}
           <Button size="sm" variant="outline" onClick={() => update("items", [...(d.items ?? []), { question: "", answer: "" }])}>
@@ -266,6 +278,112 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
           </Button>
         </div>
       );
+
+    // NEW BLOCKS
+    case "testimonials":
+      return (
+        <div className="space-y-3">
+          <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
+          {(d.items ?? []).map((item: any, i: number) => (
+            <div key={i} className="border rounded-lg p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="Tên" value={item.name} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], name: e.target.value }; update("items", items); }} />
+                <Input placeholder="Vai trò" value={item.role} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], role: e.target.value }; update("items", items); }} />
+              </div>
+              <Textarea placeholder="Trích dẫn" value={item.quote} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], quote: e.target.value }; update("items", items); }} rows={2} />
+              <div className="flex gap-2 items-center">
+                <Input placeholder="Avatar URL" value={item.avatar || ""} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], avatar: e.target.value }; update("items", items); }} />
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => update("items", [...(d.items ?? []), { name: "", role: "", quote: "", avatar: "" }])}>
+            <Plus className="mr-1 h-3 w-3" /> Thêm testimonial
+          </Button>
+        </div>
+      );
+
+    case "pricing":
+      return (
+        <div className="space-y-3">
+          <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
+          {(d.plans ?? []).map((plan: any, i: number) => (
+            <div key={i} className="border rounded-lg p-3 space-y-2">
+              <div className="grid grid-cols-4 gap-2">
+                <Input placeholder="Tên gói" value={plan.name} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], name: e.target.value }; update("plans", plans); }} />
+                <Input placeholder="Giá" value={plan.price} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], price: e.target.value }; update("plans", plans); }} />
+                <Input placeholder="Chu kỳ" value={plan.period} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], period: e.target.value }; update("plans", plans); }} />
+                <div className="flex items-center gap-2">
+                  <label className="text-xs flex items-center gap-1">
+                    <input type="checkbox" checked={plan.highlighted || false} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], highlighted: e.target.checked }; update("plans", plans); }} />
+                    Nổi bật
+                  </label>
+                </div>
+              </div>
+              <Textarea placeholder="Tính năng (mỗi dòng 1 tính năng)" value={(plan.features ?? []).join("\n")} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], features: e.target.value.split("\n") }; update("plans", plans); }} rows={3} />
+              <div className="flex gap-2 items-center">
+                <Input placeholder="Button text" value={plan.buttonText} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], buttonText: e.target.value }; update("plans", plans); }} />
+                <Input placeholder="Button URL" value={plan.buttonUrl} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], buttonUrl: e.target.value }; update("plans", plans); }} />
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const plans = d.plans.filter((_: any, j: number) => j !== i); update("plans", plans); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+              </div>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => update("plans", [...(d.plans ?? []), { name: "", price: "", period: "/tháng", features: [], buttonText: "Chọn gói", buttonUrl: "#", highlighted: false }])}>
+            <Plus className="mr-1 h-3 w-3" /> Thêm gói
+          </Button>
+        </div>
+      );
+
+    case "accordion":
+      return (
+        <div className="space-y-2">
+          <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
+          {(d.items ?? []).map((item: any, i: number) => (
+            <div key={i} className="flex gap-2 items-start">
+              <Input placeholder="Tiêu đề" value={item.title} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], title: e.target.value }; update("items", items); }} />
+              <Textarea placeholder="Nội dung" value={item.content} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], content: e.target.value }; update("items", items); }} rows={1} />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+            </div>
+          ))}
+          <Button size="sm" variant="outline" onClick={() => update("items", [...(d.items ?? []), { title: "", content: "" }])}>
+            <Plus className="mr-1 h-3 w-3" /> Thêm mục
+          </Button>
+        </div>
+      );
+
+    case "button":
+      return (
+        <div className="grid grid-cols-4 gap-3">
+          <Input placeholder="Text" value={d.text} onChange={(e) => update("text", e.target.value)} />
+          <Input placeholder="URL" value={d.url} onChange={(e) => update("url", e.target.value)} />
+          <Select value={d.variant || "primary"} onValueChange={(v) => update("variant", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="primary">Primary</SelectItem>
+              <SelectItem value="secondary">Secondary</SelectItem>
+              <SelectItem value="outline">Outline</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={d.align || "center"} onValueChange={(v) => update("align", v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="left">Trái</SelectItem>
+              <SelectItem value="center">Giữa</SelectItem>
+              <SelectItem value="right">Phải</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      );
+
+    case "countdown":
+      return (
+        <div className="grid grid-cols-3 gap-3">
+          <Input placeholder="Tiêu đề" value={d.title} onChange={(e) => update("title", e.target.value)} />
+          <Input type="datetime-local" value={d.targetDate || ""} onChange={(e) => update("targetDate", e.target.value)} />
+          <Input type="color" value={d.bgColor || "#6366f1"} onChange={(e) => update("bgColor", e.target.value)} title="Màu nền" />
+        </div>
+      );
+
     default:
       return <p className="text-sm text-muted-foreground">Unknown block type: {block.type}</p>;
   }

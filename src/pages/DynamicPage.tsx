@@ -6,8 +6,10 @@ import { Footer } from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 interface Block {
   type: string;
@@ -21,11 +23,7 @@ export default function DynamicPage() {
     queryKey: ["page", slug],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pages")
-        .select("*")
-        .eq("slug", slug!)
-        .eq("status", "published")
-        .maybeSingle();
+        .from("pages").select("*").eq("slug", slug!).eq("status", "published").maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -33,9 +31,7 @@ export default function DynamicPage() {
   });
 
   useEffect(() => {
-    if (page) {
-      document.title = page.seo_title || page.title;
-    }
+    if (page) document.title = page.seo_title || page.title;
   }, [page]);
 
   if (isLoading) {
@@ -79,6 +75,44 @@ export default function DynamicPage() {
   );
 }
 
+// Countdown component
+function CountdownTimer({ targetDate }: { targetDate: string }) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calc = () => {
+      const diff = Math.max(0, new Date(targetDate).getTime() - Date.now());
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      });
+    };
+    calc();
+    const interval = setInterval(calc, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <div className="flex justify-center gap-4 text-3xl font-bold md:text-5xl">
+      {[
+        { val: timeLeft.days, label: "Ngày" },
+        { val: timeLeft.hours, label: "Giờ" },
+        { val: timeLeft.minutes, label: "Phút" },
+        { val: timeLeft.seconds, label: "Giây" },
+      ].map((item, i) => (
+        <div key={i} className="flex flex-col items-center">
+          <span className="tabular-nums">{pad(item.val)}</span>
+          <span className="text-xs font-normal opacity-80 mt-1">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BlockRenderer({ block }: { block: Block }) {
   const d = block.data;
 
@@ -89,9 +123,7 @@ function BlockRenderer({ block }: { block: Block }) {
           <div className="container text-center space-y-4">
             <h1 className="text-4xl font-bold md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.title}</h1>
             {d.subtitle && <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{d.subtitle}</p>}
-            {d.buttonText && (
-              <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>
-            )}
+            {d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}
           </div>
         </section>
       );
@@ -116,9 +148,7 @@ function BlockRenderer({ block }: { block: Block }) {
           <div className="container text-center space-y-4">
             <h2 className="text-3xl font-bold">{d.title}</h2>
             {d.description && <p className="text-muted-foreground">{d.description}</p>}
-            {d.buttonText && (
-              <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>
-            )}
+            {d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}
           </div>
         </section>
       );
@@ -146,16 +176,14 @@ function BlockRenderer({ block }: { block: Block }) {
         <section className="py-16">
           <div className="container max-w-3xl">
             {d.title && <h2 className="text-3xl font-bold text-center mb-8">{d.title}</h2>}
-            <div className="space-y-4">
+            <Accordion type="single" collapsible className="w-full">
               {(d.items ?? []).map((item: any, i: number) => (
-                <Card key={i}>
-                  <CardContent className="pt-6">
-                    <h3 className="font-semibold mb-2">{item.question}</h3>
-                    <p className="text-sm text-muted-foreground">{item.answer}</p>
-                  </CardContent>
-                </Card>
+                <AccordionItem key={i} value={`faq-${i}`}>
+                  <AccordionTrigger>{item.question}</AccordionTrigger>
+                  <AccordionContent>{item.answer}</AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </div>
         </section>
       );
@@ -172,6 +200,119 @@ function BlockRenderer({ block }: { block: Block }) {
       );
     case "divider":
       return <div className="container"><hr className="my-8 border-border" /></div>;
+
+    // NEW BLOCKS
+    case "testimonials":
+      return (
+        <section className="py-16 bg-muted/30">
+          <div className="container">
+            {d.title && <h2 className="text-3xl font-bold text-center mb-10">{d.title}</h2>}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {(d.items ?? []).map((item: any, i: number) => (
+                <Card key={i} className="relative overflow-hidden">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="text-4xl text-primary/20 absolute top-4 right-4">"</div>
+                    <p className="italic text-muted-foreground relative z-10">"{item.quote}"</p>
+                    <div className="flex items-center gap-3 pt-2">
+                      {item.avatar ? (
+                        <img src={item.avatar} alt={item.name} className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">
+                          {item.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-sm">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">{item.role}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+
+    case "pricing":
+      return (
+        <section className="py-16">
+          <div className="container">
+            {d.title && <h2 className="text-3xl font-bold text-center mb-10">{d.title}</h2>}
+            <div className={cn("grid gap-6 mx-auto", (d.plans?.length ?? 0) <= 3 ? "md:grid-cols-3 max-w-5xl" : "md:grid-cols-4 max-w-6xl")}>
+              {(d.plans ?? []).map((plan: any, i: number) => (
+                <Card key={i} className={cn("relative flex flex-col", plan.highlighted && "border-primary shadow-lg scale-105")}>
+                  {plan.highlighted && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full">
+                      Phổ biến nhất
+                    </div>
+                  )}
+                  <CardContent className="pt-8 flex-1 flex flex-col">
+                    <h3 className="text-lg font-bold text-center">{plan.name}</h3>
+                    <div className="text-center my-4">
+                      <span className="text-4xl font-bold">{plan.price}</span>
+                      {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
+                    </div>
+                    <ul className="space-y-2 flex-1 mb-6">
+                      {(plan.features ?? []).map((f: string, j: number) => (
+                        <li key={j} className="flex items-center gap-2 text-sm">
+                          <span className="text-primary">✓</span> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <Button asChild variant={plan.highlighted ? "default" : "outline"} className="w-full">
+                      <a href={plan.buttonUrl}>{plan.buttonText}</a>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+
+    case "accordion":
+      return (
+        <section className="py-16">
+          <div className="container max-w-3xl">
+            {d.title && <h2 className="text-3xl font-bold text-center mb-8">{d.title}</h2>}
+            <Accordion type="single" collapsible className="w-full">
+              {(d.items ?? []).map((item: any, i: number) => (
+                <AccordionItem key={i} value={`acc-${i}`}>
+                  <AccordionTrigger>{item.title}</AccordionTrigger>
+                  <AccordionContent>{item.content}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
+      );
+
+    case "button":
+      return (
+        <section className="py-8">
+          <div className={cn("container", d.align === "center" && "text-center", d.align === "right" && "text-right")}>
+            <Button
+              asChild
+              variant={d.variant === "outline" ? "outline" : d.variant === "secondary" ? "secondary" : "default"}
+              size="lg"
+            >
+              <a href={d.url}>{d.text}</a>
+            </Button>
+          </div>
+        </section>
+      );
+
+    case "countdown":
+      return (
+        <section className="py-16" style={{ background: `linear-gradient(135deg, ${d.bgColor || "#6366f1"}, ${d.bgColor || "#6366f1"}dd)` }}>
+          <div className="container text-center text-white space-y-6">
+            {d.title && <p className="text-lg opacity-90">⏰ {d.title}</p>}
+            {d.targetDate && <CountdownTimer targetDate={d.targetDate} />}
+          </div>
+        </section>
+      );
+
     default:
       return null;
   }
