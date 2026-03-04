@@ -31,12 +31,12 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3, 4] },
+      }),
       Image,
-      Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Underline,
       Youtube.configure({ width: 640, height: 360 }),
       Color,
       Highlight.configure({ multicolor: true }),
