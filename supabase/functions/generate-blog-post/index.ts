@@ -11,6 +11,7 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { action, topic, type, content, title, tools_list, tool_name, tool_description, categories_list } = body;
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     let messages: { role: string; content: string }[] = [];
