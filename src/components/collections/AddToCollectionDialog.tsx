@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, FolderPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -48,24 +49,33 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
 
   if (!user) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="gap-1.5"
-        onClick={() => toast({ title: "Vui lòng đăng nhập", variant: "destructive" })}
-      >
-        <FolderPlus className="h-3.5 w-3.5" /> Thêm vào Collection
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => toast({ title: "Vui lòng đăng nhập", variant: "destructive" })}
+          >
+            <FolderPlus className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent><p>Thêm vào Collection</p></TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <FolderPlus className="h-3.5 w-3.5" /> Thêm vào Collection
-        </Button>
-      </DialogTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="icon">
+              <FolderPlus className="h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+        </TooltipTrigger>
+        <TooltipContent><p>Thêm vào Collection</p></TooltipContent>
+      </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Thêm "{toolName}" vào Collection</DialogTitle>
