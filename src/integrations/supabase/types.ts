@@ -595,6 +595,83 @@ export type Database = {
           },
         ]
       }
+      deals: {
+        Row: {
+          click_count: number | null
+          coupon_code: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          deal_price: number | null
+          deal_url: string | null
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          is_exclusive: boolean | null
+          is_verified: boolean | null
+          original_price: number | null
+          starts_at: string | null
+          title: string
+          tool_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          click_count?: number | null
+          coupon_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deal_price?: number | null
+          deal_url?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_exclusive?: boolean | null
+          is_verified?: boolean | null
+          original_price?: number | null
+          starts_at?: string | null
+          title: string
+          tool_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          click_count?: number | null
+          coupon_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deal_price?: number | null
+          deal_url?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_exclusive?: boolean | null
+          is_verified?: boolean | null
+          original_price?: number | null
+          starts_at?: string | null
+          title?: string
+          tool_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string
