@@ -103,6 +103,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       variant={active ? "secondary" : "ghost"}
       size="icon"
       className="h-7 w-7"
+      onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
       onClick={onClick}
       title={title}
       disabled={disabled}
