@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Star, ExternalLink, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { getToolLogoUrl } from "@/lib/favicon";
 
 interface ToolCardProps {
   id: string;
@@ -9,6 +10,7 @@ interface ToolCardProps {
   slug: string;
   shortDescription?: string;
   logoUrl?: string;
+  websiteUrl?: string;
   pricingType: string;
   avgRating: number;
   ratingCount: number;
@@ -40,6 +42,7 @@ export function ToolCard({
   slug,
   shortDescription,
   logoUrl,
+  websiteUrl,
   pricingType,
   avgRating,
   ratingCount,
@@ -61,11 +64,14 @@ export function ToolCard({
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground">
-              {logoUrl ? (
-                <img src={logoUrl} alt={name} className="h-full w-full rounded-xl object-cover" />
-              ) : (
-                name.charAt(0).toUpperCase()
-              )}
+              {(() => {
+                const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
+                return resolvedLogo ? (
+                  <img src={resolvedLogo} alt={name} className="h-full w-full rounded-xl object-cover" />
+                ) : (
+                  name.charAt(0).toUpperCase()
+                );
+              })()}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

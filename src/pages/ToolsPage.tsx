@@ -251,6 +251,7 @@ export default function ToolsPage() {
                       slug={r.tool.slug}
                       shortDescription={r.reason}
                       logoUrl={r.tool.logo_url || undefined}
+                      websiteUrl={r.tool.website_url || undefined}
                       pricingType={r.tool.pricing_type}
                       avgRating={Number(r.tool.avg_rating) || 0}
                       ratingCount={r.tool.rating_count}
@@ -294,6 +295,7 @@ export default function ToolsPage() {
                         slug={tool.slug}
                         shortDescription={tool.short_description || undefined}
                         logoUrl={tool.logo_url || undefined}
+                        websiteUrl={tool.website_url || undefined}
                         pricingType={tool.pricing_type}
                         avgRating={Number(tool.avg_rating) || 0}
                         ratingCount={tool.rating_count}

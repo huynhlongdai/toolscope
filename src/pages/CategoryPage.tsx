@@ -65,6 +65,7 @@ export default function CategoryPage() {
                     slug={tool.slug}
                     shortDescription={tool.short_description || undefined}
                     logoUrl={tool.logo_url || undefined}
+                    websiteUrl={tool.website_url || undefined}
                     pricingType={tool.pricing_type}
                     avgRating={Number(tool.avg_rating) || 0}
                     ratingCount={tool.rating_count}

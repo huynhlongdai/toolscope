@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { getToolLogoUrl } from "@/lib/favicon";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -162,9 +163,12 @@ export default function ToolDetail() {
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-start gap-5">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl font-bold text-muted-foreground">
-                {tool.logo_url ? (
-                  <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-2xl object-cover" />
-                ) : tool.name.charAt(0)}
+                {(() => {
+                  const resolvedLogo = getToolLogoUrl(tool.logo_url, tool.website_url);
+                  return resolvedLogo ? (
+                    <img src={resolvedLogo} alt={tool.name} className="h-full w-full rounded-2xl object-cover" />
+                  ) : tool.name.charAt(0);
+                })()}
               </div>
               <div>
                 <div className="flex items-center gap-3">
@@ -384,6 +388,8 @@ export default function ToolDetail() {
                         name={alt.name}
                         slug={alt.slug}
                         shortDescription={alt.short_description || undefined}
+                        logoUrl={alt.logo_url || undefined}
+                        websiteUrl={alt.website_url || undefined}
                         pricingType={alt.pricing_type}
                         avgRating={Number(alt.avg_rating) || 0}
                         ratingCount={alt.rating_count}
