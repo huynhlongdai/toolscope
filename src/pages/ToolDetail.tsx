@@ -95,22 +95,6 @@ export default function ToolDetail() {
     enabled: !!tool?.id && !!user?.id,
   });
 
-  const { data: alternatives } = useQuery({
-    queryKey: ["alternatives", tool?.category_id, tool?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tools")
-        .select("*, categories(name), ai_scores(overall_score, is_recommended)")
-        .eq("status", "published")
-        .eq("category_id", tool!.category_id!)
-        .neq("id", tool!.id)
-        .order("avg_rating", { ascending: false })
-        .limit(3);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!tool?.category_id,
-  });
 
   const toggleBookmark = async () => {
     if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
