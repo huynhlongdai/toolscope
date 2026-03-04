@@ -1,247 +1,183 @@
 
 
-## ToolScope - Kế hoạch triển khai đầy đủ
+## Plan tổng hợp: Nâng cấp toàn diện Admin CMS
 
-### Tổng quan
-Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
-
----
-
-### 🏠 TRANG CÔNG KHAI
-
-**1. Trang chủ**
-- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
-- Section "AI Recommended Tools" với badge
-- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
-- Tool nổi bật / trending / mới nhất
-- Bộ lọc theo danh mục, rating, giá, tags
-- "For You" feed cá nhân hóa
-- Nút chuyển ngôn ngữ + Dark/Light mode
-
-**2. Trang chi tiết công cụ**
-- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
-- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
-- Badge "AI Recommended" nếu đạt chuẩn
-- Bài review chi tiết từ editor (markdown, ảnh, video embed)
-- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
-- Bình luận threaded (trả lời lồng nhau)
-- Q&A section với upvote câu trả lời hay nhất
-- Danh sách alternatives (tool tương tự)
-- "Works well with" integrations
-- Nút Bookmark, Share, Follow
-- Pricing history chart + alert giảm giá
-
-**3. Trang so sánh công cụ**
-- Chọn 2-4 tool để so sánh side-by-side
-- Bảng so sánh tính năng, giá, rating, AI score
-- AI tự động tạo kết luận & đề xuất
-- ROI Calculator: nhập team size → tính chi phí
-
-**4. Trang danh sách & tìm kiếm**
-- Grid/list view toggle
-- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
-- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
-- Infinite scroll + skeleton loading
-- Search history, auto-complete, popular searches
-- Voice search (Web Speech API)
-
-**5. Trang danh mục**
-- Mỗi danh mục có landing page riêng + mô tả + top tools
-- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
-
-**6. Trang Trending**
-- Tools đang trending tuần/tháng
-- "Rising Stars" - tools mới nổi tăng rating nhanh
-- Biểu đồ xu hướng popularity theo thời gian
-
-**7. Trang Use Cases & Workflows**
-- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
-- Mỗi use case gợi ý combo tools phù hợp
-- User submit workflow + tools đang dùng
-
-**8. Trang Collections & Lists**
-- User tạo collection tool theo chủ đề
-- Editor tạo "Curated Lists" (Top 10 AI Tools...)
-- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
-- Collections công khai có thể upvote
-
-**9. Trang Profile người dùng**
-- Reviews đã viết, câu hỏi, tools bookmarked, collections
-- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
-- Lịch sử hoạt động
-- Recently viewed tools
-
-**10. Trang Blog/Tin tức**
-- Bài viết về xu hướng công cụ mới
-- AI tóm tắt tin tự động
-- Weekly digest
+Gộp tất cả các plan chưa triển khai (TipTap Editor, AdminTools chi tiết, AdminBlog editor, AdminUsers quản lý, Fake stats/reviews/Q&A, Menu Manager, Page Builder, ShareButtons, Dashboard biểu đồ) thành 1 lần triển khai.
 
 ---
 
-### 🤖 TÍNH NĂNG AI
+### Hiện trạng
 
-**1. AI Search thông minh**
-- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
-- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
-- "Similar to [tool X]" search
-
-**2. Chatbot tư vấn AI**
-- Widget chat floating trên mọi trang
-- Hỏi đáp, so sánh, tư vấn lựa chọn tool
-- Streaming response token-by-token
-- Trả lời dựa trên dữ liệu tools trong database
-
-**3. AI Thu thập dữ liệu tự động**
-- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
-- Tự điền form thêm tool mới
-- Scheduled re-scrape hàng tuần phát hiện thay đổi
-- User submit URL tool → AI thu thập → Admin duyệt
-
-**4. AI Hỗ trợ viết bài review**
-- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
-- Editor chỉnh sửa → xuất bản
-- AI dịch tự động sang ngôn ngữ khác
-
-**5. AI Đánh giá & chấm điểm**
-- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
-- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
-- Tóm tắt ưu/nhược bằng AI
-- Badge "AI Recommended"
-
-**6. AI Spam Detection**
-- Tự động phát hiện comment/review spam
-- Flag nội dung nghi vấn cho admin
-
-**7. AI Personalization**
-- Onboarding quiz → gợi ý tools theo lĩnh vực
-- "Because you liked [X]" recommendations
+| Component | Thiếu |
+|-----------|-------|
+| AdminUsers | Chỉ có xem + đổi role. Không sửa/xóa user, không xem chi tiết |
+| AdminTools | Form 7 field đơn giản. Thiếu category selector, tags, platforms, SEO, featured/trending, detailed_content editor, fake stats, fake reviews/Q&A, pricing plans, related tools, affiliate, share |
+| AdminBlog | Chỉ danh sách + đổi status + xóa. Không có form tạo/sửa bài |
+| AdminDashboard | 4 stat cards, không biểu đồ |
+| Header/Footer | Menu hardcode |
+| Rich text editor | Không có |
+| Page Builder | Không có |
+| ShareButtons | Không có |
+| DB | Chưa có bảng menus, pages, page_templates |
 
 ---
 
-### 🔐 HỆ THỐNG NGƯỜI DÙNG
+### Triển khai (11 tasks)
 
-- Đăng ký/đăng nhập: Email + Google OAuth
-- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
-- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
-- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
-- **Admin**: toàn quyền
+#### 1. Cài TipTap + tạo RichTextEditor component
+Cài: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-image`, `@tiptap/extension-link`, `@tiptap/extension-placeholder`, `@tiptap/extension-text-align`, `@tiptap/extension-underline`, `@tiptap/extension-youtube`, `@tiptap/extension-table` + row/cell/header, `@tiptap/extension-color`, `@tiptap/extension-text-style`
 
-**Gamification**
-- Điểm reputation (viết review, Q&A, upvote nhận được)
-- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
-- Leaderboard contributors hàng tháng
+Tạo `src/components/admin/RichTextEditor.tsx` -- toolbar: Bold, Italic, Underline, Strikethrough, H1-H4, Lists, Alignment, Image URL, Link, YouTube, Table, Blockquote, Code block, Undo/Redo. Output HTML.
+
+#### 2. Nâng cấp AdminUsers -- quản lý đầy đủ
+
+Thêm vào `AdminUsers.tsx`:
+- **Chỉnh sửa user**: Dialog sửa profile (display_name, username, bio, website, avatar_url, reputation_score)
+- **Xóa user**: Xóa profile + user_roles (confirm dialog). Lưu ý: không xóa auth.users từ client -- chỉ xóa profile + roles
+- **Xem chi tiết**: Expandable row hoặc dialog hiển thị bio, website, ngày tạo, số reviews/comments/questions
+- **Ban/Suspend**: Thêm cột `is_banned boolean` vào profiles (migration). User bị ban không thể đăng nhập
+- **Filter**: Lọc theo role (All/Admin/Editor/User)
+- **Stats**: Hiển thị số reviews, comments, questions mỗi user
+- **Bulk actions**: Checkbox chọn nhiều user để đổi role hoặc ban hàng loạt
+
+#### 3. Nâng cấp AdminTools form -- 6 tabs chi tiết
+
+Mở rộng `ToolFormDialog` thành large dialog:
+
+**Tab Cơ bản**: Name, Slug, Short desc, Category dropdown (fetch DB), Platforms multi-select, Pricing type, Website URL, Logo URL, Affiliate URL, Featured/Trending toggles
+
+**Tab Nội dung**: Description (RichTextEditor) + Detailed Content (RichTextEditor) -- admin chỉnh sửa trực tiếp trang giới thiệu tool
+
+**Tab Fake Stats**: Set trực tiếp `avg_rating`, `rating_count`, `view_count` trên bảng tools
+
+**Tab Reviews & Q&A ảo**:
+- Danh sách reviews hiện có, nút tạo review ảo (`is_editor_review = true`)
+- Danh sách questions, nút tạo Q&A ảo
+- Toggle bật/tắt (đổi status) cho từng review
+
+**Tab Pricing Plans**: Quản lý `pricing_details` (jsonb) -- thêm/sửa/xóa plan (tên, giá, currency, features). Thêm record `pricing_history`
+
+**Tab Gợi ý & SEO**:
+- Related tools: autocomplete search, lưu vào `related_tool_ids uuid[]` (cần migration)
+- SEO: meta title, meta description, slug preview
+- Share preview links (Facebook/Twitter/LinkedIn)
+
+#### 4. Nâng cấp AdminBlog -- full Blog CMS
+- Nút "Tạo bài viết" + nút "Sửa" mỗi bài
+- Form: Title, Slug auto-gen, Excerpt, Cover image URL, Tags, Content (RichTextEditor), Status, nút Publish
+- Search + filter
+
+#### 5. ShareButtons component
+Tạo `src/components/share/ShareButtons.tsx`: Facebook, Twitter/X, LinkedIn, Copy link.
+Tích hợp vào BlogDetail + ToolDetail.
+
+#### 6. AdminDashboard biểu đồ
+Recharts: "Tools mới theo tuần" (BarChart) + "Top 5 tools xem nhiều".
+
+#### 7. Database migration
+
+```sql
+-- Thêm cột vào tools
+ALTER TABLE tools ADD COLUMN IF NOT EXISTS related_tool_ids uuid[] DEFAULT '{}';
+
+-- Thêm cột ban user
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_banned boolean DEFAULT false;
+
+-- Bảng menus
+CREATE TABLE menus (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  location text NOT NULL, -- 'header', 'footer'
+  items jsonb NOT NULL DEFAULT '[]',
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE menus ENABLE ROW LEVEL SECURITY;
+-- Public read, admin write
+
+-- Bảng pages
+CREATE TABLE pages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text UNIQUE NOT NULL,
+  blocks jsonb NOT NULL DEFAULT '[]',
+  seo_title text,
+  seo_description text,
+  status content_status DEFAULT 'draft',
+  template text DEFAULT 'blank',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
+
+-- Bảng page_templates
+CREATE TABLE page_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  thumbnail_url text,
+  blocks jsonb NOT NULL DEFAULT '[]',
+  category text
+);
+ALTER TABLE page_templates ENABLE ROW LEVEL SECURITY;
+```
+
+RLS: Admin-only write, public SELECT cho menus + published pages + templates.
+
+#### 8. Menu Manager (`/admin/menus`)
+- Chọn location (Header/Footer)
+- Nested list editor: label, URL, children, open_new_tab
+- Thêm item từ pages hoặc custom URL
+
+#### 9. Dynamic Header & Footer
+- `Header.tsx`: Fetch menu từ DB `location='header'`, fallback hardcode hiện tại
+- `Footer.tsx`: Tương tự `location='footer'`
+- Cache React Query staleTime dài
+
+#### 10. Page Builder (`/admin/pages`)
+- Danh sách trang + CRUD
+- Page Editor 2 cột: Block Palette (trái) + Canvas (phải)
+- Block types: Hero, Text (RichTextEditor), Image, CTA, Features Grid, FAQ, Video, Divider, Tool Cards, Blog Posts
+- `BlockRenderer.tsx` + `blocks/*.tsx`
+- Seed 3 templates: Landing, About, Blank
+
+#### 11. Dynamic Page Route
+- Route `/p/:slug` trong App.tsx
+- `DynamicPage.tsx`: fetch page, render blocks
+- SEO: set document.title
 
 ---
 
-### 📊 ADMIN DASHBOARD
-
-**Quản lý cơ bản**
-- CRUD tools, categories, tags, blog posts
-- Quản lý users, phân quyền role
-- Quản lý reviews, bình luận, Q&A
-- Bulk import tools từ CSV
-
-**Analytics & Dashboard**
-- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
-- Top tools phổ biến, user activity, đăng ký mới
-- Top contributors
-- Revenue tracking (nếu affiliate)
-
-**Content Moderation**
-- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
-- Hệ thống báo cáo spam/vi phạm
-- Approve/reject/flag + AI spam detection
-- Audit log mọi thao tác admin/editor
-
-**AI Management**
-- Nút "Auto-collect từ URL" khi thêm tool
-- Nút "Generate AI Draft" khi tạo review
-- Xem/chỉnh sửa AI scores
-- Log các lần AI scrape/generate
-- Scheduled re-scrape settings
-
-**Quản lý đa ngôn ngữ**
-- Trạng thái dịch mỗi bài (đã dịch/chưa)
-- Trigger dịch lại khi nội dung thay đổi
-- Chỉnh sửa bản dịch thủ công
+### Cập nhật content rendering
+- `BlogDetail.tsx`: Render HTML (`dangerouslySetInnerHTML` + `prose`) khi content là HTML, fallback ReactMarkdown
+- `ToolDetail.tsx`: Tương tự cho description + detailed_content. Hiển thị pricing_details thành bảng giá. Related tools ưu tiên `related_tool_ids`, fallback category. ShareButtons thay nút copy link
 
 ---
 
-### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
+### Files tổng hợp
 
-- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
-- Editor viết 1 ngôn ngữ → AI dịch tự động
-- URL routing: `/vi/tool/...`, `/en/tool/...`
-- Bảng `translations` lưu bản dịch
-- Hreflang tags + canonical URLs cho SEO
+| File | Action |
+|------|--------|
+| DB Migration | 3 bảng mới + 2 cột mới |
+| `src/components/admin/RichTextEditor.tsx` | Tạo mới |
+| `src/components/share/ShareButtons.tsx` | Tạo mới |
+| `src/pages/admin/AdminUsers.tsx` | Nâng cấp lớn -- sửa/xóa/ban/filter/stats |
+| `src/pages/admin/AdminTools.tsx` | Rewrite -- 6 tabs |
+| `src/pages/admin/AdminBlog.tsx` | Thêm full CRUD editor |
+| `src/pages/admin/AdminDashboard.tsx` | Thêm biểu đồ |
+| `src/pages/admin/AdminMenus.tsx` | Tạo mới |
+| `src/pages/admin/AdminPages.tsx` | Tạo mới |
+| `src/pages/admin/AdminPageEditor.tsx` | Tạo mới |
+| `src/components/page-builder/BlockRenderer.tsx` | Tạo mới |
+| `src/components/page-builder/BlockPalette.tsx` | Tạo mới |
+| `src/components/page-builder/BlockEditor.tsx` | Tạo mới |
+| `src/components/page-builder/blocks/*.tsx` | ~10 block components |
+| `src/pages/DynamicPage.tsx` | Tạo mới |
+| `src/pages/BlogDetail.tsx` | HTML rendering + ShareButtons |
+| `src/pages/ToolDetail.tsx` | Pricing table + related tools + ShareButtons |
+| `src/components/layout/Header.tsx` | Fetch menu từ DB |
+| `src/components/layout/Footer.tsx` | Fetch menu từ DB |
+| `src/components/admin/AdminLayout.tsx` | Thêm nav: Menus, Pages |
+| `src/App.tsx` | Thêm routes |
 
----
-
-### 🔔 THÔNG BÁO & FOLLOW
-
-- Follow tool → thông báo review mới, thay đổi pricing
-- Follow user/editor → thông báo review mới
-- Follow category → tool mới trong danh mục
-- Thông báo in-app + email digest tùy chọn
-- Price drop alerts
-
----
-
-### 📱 MOBILE RESPONSIVE
-
-- Mobile-first responsive design
-- Bottom navigation bar (Home, Search, Bookmarks, Profile)
-- Collapsible filters
-- Pull-to-refresh, infinite scroll
-- Skeleton loading states
-- Touch-friendly rating, buttons
-- Share sheet native
-- "Quick Rate" swipe cards
-- Lazy loading images
-- Sticky header thu gọn khi scroll
-
----
-
-### 📈 SEO & GROWTH
-
-- Auto-generate sitemap XML
-- Structured data JSON-LD cho Rich Snippets
-- Open Graph social cards tự động
-- Hreflang tags đa ngôn ngữ
-- Canonical URLs
-- Newsletter đăng ký email weekly digest
-
----
-
-### 🏗️ BACKEND (Lovable Cloud + Supabase)
-
-**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
-
-**Edge Functions**:
-- `collect-tool-data`: Firecrawl scrape + AI parse
-- `generate-review`: AI tạo draft review
-- `evaluate-tool`: AI chấm điểm
-- `translate-content`: AI dịch đa ngôn ngữ
-- `ai-search`: Tìm kiếm thông minh
-- `ai-chat`: Chatbot tư vấn (streaming)
-- `detect-spam`: AI phát hiện spam
-
-**Auth + RLS**: Phân quyền theo role, security definer functions
-
----
-
-### 📋 THỨ TỰ TRIỂN KHAI
-
-1. Database schema + Auth + Roles
-2. Trang chủ + Danh sách tools + Chi tiết tool (responsive)
-3. Review, Rating, Bình luận, Q&A, Upvote/Downvote
-4. AI Search + Chatbot tư vấn
-5. AI thu thập + viết bài + đánh giá (Firecrawl)
-6. So sánh tools + Pricing tracker
-7. Collections, Bookmarks, Follow, Notifications
-8. Admin dashboard đầy đủ + Moderation
-9. Đa ngôn ngữ tự động
-10. Trending, Gamification, Personalization
-11. Use Cases, Integrations map, Blog
-12. SEO optimization + Mobile polish
+Do khối lượng rất lớn (~20+ files), sẽ chia thành 2-3 lần triển khai tuần tự.
 
