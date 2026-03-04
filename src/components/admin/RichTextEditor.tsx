@@ -177,6 +177,45 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
             </Button>
           </PopoverContent>
         </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant={editor.isActive("highlight") ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+              title="Highlight"
+            >
+              <Highlighter className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-2" align="start">
+            <div className="grid grid-cols-6 gap-1">
+              {[
+                "#fef08a", "#bbf7d0", "#bfdbfe", "#fecaca", "#e9d5ff", "#fed7aa",
+                "#fde047", "#86efac", "#93c5fd", "#fca5a5", "#d8b4fe", "#fdba74",
+              ].map((color) => (
+                <button
+                  key={color}
+                  className="h-5 w-5 rounded border border-border hover:scale-110 transition-transform"
+                  style={{ backgroundColor: color }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => editor.chain().focus().toggleHighlight({ color }).run()}
+                />
+              ))}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-1 h-7 text-xs"
+              onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+              onClick={() => editor.chain().focus().unsetHighlight().run()}
+            >
+              <RemoveFormatting className="h-3 w-3 mr-1" /> Xóa highlight
+            </Button>
+          </PopoverContent>
+        </Popover>
         <div className="w-px bg-border mx-0.5" />
         <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })} title="H1">
           <Heading1 className="h-3.5 w-3.5" />
