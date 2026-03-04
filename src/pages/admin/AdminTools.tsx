@@ -78,7 +78,10 @@ export default function AdminTools() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Tools</h1>
-          <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Batch Import</Button>
+            <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
+          </div>
         </div>
 
         <div className="flex gap-4">
