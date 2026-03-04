@@ -27,6 +27,7 @@ export default function AdminTools() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showBatchImport, setShowBatchImport] = useState(false);
 
   const { data: tools = [], isLoading } = useQuery({
     queryKey: ["admin-tools", statusFilter],
