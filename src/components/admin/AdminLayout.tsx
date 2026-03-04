@@ -12,11 +12,12 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { Menu, FileStack } from "lucide-react";
+import { Menu, FileStack, BrainCircuit } from "lucide-react";
 
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
   { title: "Quản lý Tools", url: "/admin/tools", icon: Wrench },
+  { title: "CollectAI", url: "/admin/collect", icon: BrainCircuit },
   { title: "Quản lý Users", url: "/admin/users", icon: Users },
   { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
   { title: "Moderation", url: "/admin/moderation", icon: Shield },
