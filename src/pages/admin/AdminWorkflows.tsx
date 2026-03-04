@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Workflow, GripVertical, X } from "lucide-react";
+import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
