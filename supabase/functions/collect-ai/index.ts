@@ -209,11 +209,14 @@ serve(async (req) => {
       const type = search_type || "keyword";
 
       let content = "";
+      let dataSource = "firecrawl";
       if (type === "keyword") {
-        const results = await searchByKeyword(query);
+        const { results, source } = await searchByKeyword(query);
+        dataSource = source;
         content = results.map(r => `Title: ${r.title || ""}\nURL: ${r.url || ""}\nDescription: ${r.description || ""}\n---`).join("\n");
       } else {
         content = await scrapeListingUrl(query);
+        dataSource = content.startsWith("Unable to scrape") ? "ai_fallback" : "firecrawl";
       }
 
       const tools = await parseToolsWithAI(content, type, query, category_name);
@@ -228,7 +231,7 @@ serve(async (req) => {
           results_count: tools.length,
           status: "completed",
           created_by: userId || "00000000-0000-0000-0000-000000000000",
-          metadata: { category_name },
+          metadata: { category_name, data_source: dataSource },
         })
         .select("id")
         .single();
@@ -245,7 +248,7 @@ serve(async (req) => {
           pricing_type: t.pricing_type || "contact",
           category_name: t.category_name || category_name || null,
           source_url: t.source_url || null,
-          collected_data: t,
+          collected_data: { ...t, data_source: dataSource },
           status: "pending",
         }));
 
@@ -256,6 +259,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         session_id: session.id, 
         tools_count: tools.length,
+        data_source: dataSource,
         tools: tools.slice(0, 5), // preview
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
