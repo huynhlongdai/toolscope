@@ -126,8 +126,12 @@ export function HeroSection() {
 
         {!results && (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+            <TrendingUp className="h-3.5 w-3.5" />
             <span>Phổ biến:</span>
-            {["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"].map((tag) => (
+            {(popularKeywords && popularKeywords.length > 0
+              ? popularKeywords.map(k => k.keyword)
+              : fallbackTags
+            ).map((tag) => (
               <button
                 key={tag}
                 onClick={() => { setQuery(tag); search(tag); }}
