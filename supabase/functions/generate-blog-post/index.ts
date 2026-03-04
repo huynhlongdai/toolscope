@@ -74,6 +74,36 @@ Return ONLY valid JSON:
         },
         { role: "user", content: content?.substring(0, 3000) || "" }
       ];
+    } else if (action === "suggest_tools") {
+      // AI suggests related tools based on blog content
+      const { tools_list } = await req.json().catch(() => ({}));
+      messages = [
+        {
+          role: "system",
+          content: `You are an AI assistant that matches blog content to relevant tools.
+Given a blog post and a list of available tools, select the most relevant tools.
+Return ONLY valid JSON: { "tool_ids": ["id1", "id2", ...] }
+Select 3-8 most relevant tools. Match based on topic, keywords, and context.`
+        },
+        {
+          role: "user",
+          content: `Blog title: ${title}\n\nBlog content (excerpt):\n${content?.substring(0, 2000)}\n\nAvailable tools:\n${tools_list || "[]"}`
+        }
+      ];
+    } else if (action === "suggest_category") {
+      const { tool_name, tool_description, categories_list } = await req.json().catch(() => ({}));
+      messages = [
+        {
+          role: "system",
+          content: `You are a categorization expert. Given a tool and available categories, suggest the best matching category.
+Return ONLY valid JSON: { "category_id": "id", "reason": "brief explanation" }
+If no good match, return: { "category_id": null, "suggested_name": "New Category Name", "reason": "explanation" }`
+        },
+        {
+          role: "user",
+          content: `Tool: ${tool_name}\nDescription: ${tool_description}\n\nCategories:\n${categories_list || "[]"}`
+        }
+      ];
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400,
