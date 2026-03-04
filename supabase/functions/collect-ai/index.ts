@@ -17,7 +17,8 @@ function extractDomain(url: string): string {
 }
 
 // Search tools by keyword using Firecrawl search, with AI fallback
-async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
+// Returns { results, source } to track data origin
+async function searchByKeyword(keyword: string, limit = 20): Promise<{ results: any[]; source: string }> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
   
   // Try Firecrawl first
@@ -31,7 +32,7 @@ async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
 
       if (response.ok) {
         const data = await response.json();
-        return data.data || [];
+        return { results: data.data || [], source: "firecrawl" };
       }
       console.warn(`Firecrawl search returned ${response.status}, falling back to AI search`);
     } catch (e) {
@@ -40,7 +41,8 @@ async function searchByKeyword(keyword: string, limit = 20): Promise<any[]> {
   }
 
   // Fallback: use AI to generate search-like results
-  return await searchByAI(keyword, limit);
+  const results = await searchByAI(keyword, limit);
+  return { results, source: "ai_fallback" };
 }
 
 // AI-based fallback search when Firecrawl is unavailable
@@ -207,11 +209,14 @@ serve(async (req) => {
       const type = search_type || "keyword";
 
       let content = "";
+      let dataSource = "firecrawl";
       if (type === "keyword") {
-        const results = await searchByKeyword(query);
+        const { results, source } = await searchByKeyword(query);
+        dataSource = source;
         content = results.map(r => `Title: ${r.title || ""}\nURL: ${r.url || ""}\nDescription: ${r.description || ""}\n---`).join("\n");
       } else {
         content = await scrapeListingUrl(query);
+        dataSource = content.startsWith("Unable to scrape") ? "ai_fallback" : "firecrawl";
       }
 
       const tools = await parseToolsWithAI(content, type, query, category_name);
@@ -226,7 +231,7 @@ serve(async (req) => {
           results_count: tools.length,
           status: "completed",
           created_by: userId || "00000000-0000-0000-0000-000000000000",
-          metadata: { category_name },
+          metadata: { category_name, data_source: dataSource },
         })
         .select("id")
         .single();
@@ -243,7 +248,7 @@ serve(async (req) => {
           pricing_type: t.pricing_type || "contact",
           category_name: t.category_name || category_name || null,
           source_url: t.source_url || null,
-          collected_data: t,
+          collected_data: { ...t, data_source: dataSource },
           status: "pending",
         }));
 
@@ -254,6 +259,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         session_id: session.id, 
         tools_count: tools.length,
+        data_source: dataSource,
         tools: tools.slice(0, 5), // preview
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -489,11 +495,14 @@ Return ONLY valid JSON:
       // Reuse search logic
       const type = schedule.search_type || "keyword";
       let content = "";
+      let dataSource = "firecrawl";
       if (type === "keyword") {
-        const results = await searchByKeyword(schedule.keyword);
+        const { results, source } = await searchByKeyword(schedule.keyword);
+        dataSource = source;
         content = results.map((r: any) => `Title: ${r.title || ""}\nURL: ${r.url || ""}\nDescription: ${r.description || ""}\n---`).join("\n");
       } else {
         content = await scrapeListingUrl(schedule.keyword);
+        dataSource = content.startsWith("Unable to scrape") ? "ai_fallback" : "firecrawl";
       }
 
       // Get category name
@@ -514,7 +523,7 @@ Return ONLY valid JSON:
           results_count: tools.length,
           status: "completed",
           created_by: schedule.created_by,
-          metadata: { scheduled: true, schedule_id: schedule.id },
+          metadata: { scheduled: true, schedule_id: schedule.id, data_source: dataSource },
         })
         .select("id")
         .single();
@@ -528,7 +537,7 @@ Return ONLY valid JSON:
           pricing_type: t.pricing_type || "contact",
           category_name: t.category_name || catName || null,
           source_url: t.source_url || null,
-          collected_data: t,
+          collected_data: { ...t, data_source: dataSource },
           status: "pending",
         }));
         await supabase.from("collect_items").insert(items);
@@ -541,7 +550,7 @@ Return ONLY valid JSON:
         results_total: (schedule.results_total || 0) + tools.length,
       }).eq("id", schedule.id);
 
-      return new Response(JSON.stringify({ success: true, tools_count: tools.length, session_id: session?.id }), {
+      return new Response(JSON.stringify({ success: true, tools_count: tools.length, data_source: dataSource, session_id: session?.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
