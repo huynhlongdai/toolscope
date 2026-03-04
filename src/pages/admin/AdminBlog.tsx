@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 
 export default function AdminBlog() {
@@ -20,6 +20,7 @@ export default function AdminBlog() {
   const [search, setSearch] = useState("");
   const [editPost, setEditPost] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showAIDialog, setShowAIDialog] = useState(false);
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["admin-blog"],
@@ -55,7 +56,12 @@ export default function AdminBlog() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Blog</h1>
-          <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Tạo bài viết</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowAIDialog(true)}>
+              <Sparkles className="mr-2 h-4 w-4" /> Viết bằng AI
+            </Button>
+            <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Tạo bài viết</Button>
+          </div>
         </div>
 
         <div className="relative max-w-sm">
@@ -117,25 +123,142 @@ export default function AdminBlog() {
         {(editPost || showAdd) && (
           <BlogFormDialog post={editPost} open={!!editPost || showAdd} onClose={() => { setEditPost(null); setShowAdd(false); }} userId={user?.id} />
         )}
+
+        {showAIDialog && (
+          <AIWriteDialog open={showAIDialog} onClose={() => setShowAIDialog(false)} onGenerated={(data) => {
+            setShowAIDialog(false);
+            setEditPost({
+              title: data.title,
+              slug: data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+              excerpt: data.excerpt,
+              content: data.content,
+              tags: data.tags,
+              seo_title: data.seo_title,
+              seo_description: data.seo_description,
+              seo_keywords: data.seo_keywords,
+              _isNew: true,
+            });
+          }} />
+        )}
       </div>
     </AdminLayout>
   );
 }
 
+/* ---------- AI Write Dialog ---------- */
+function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose: () => void; onGenerated: (data: any) => void }) {
+  const [topic, setTopic] = useState("");
+  const [type, setType] = useState("guide");
+  const [loading, setLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!topic.trim()) { toast.error("Nhập chủ đề bài viết"); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: { action: "generate", topic, type },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      onGenerated(data);
+      toast.success("AI đã tạo bài viết!");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi tạo bài viết");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" /> Viết bài bằng AI</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Chủ đề / Keyword</Label>
+            <Input placeholder='VD: "Top 10 AI Design Tools 2026"' value={topic} onChange={(e) => setTopic(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Kiểu bài viết</Label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="listicle">Listicle (Top N...)</SelectItem>
+                <SelectItem value="comparison">So sánh</SelectItem>
+                <SelectItem value="guide">Hướng dẫn</SelectItem>
+                <SelectItem value="review">Review</SelectItem>
+                <SelectItem value="news">Tin tức / Xu hướng</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button className="w-full" onClick={handleGenerate} disabled={loading}>
+            {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Đang viết...</> : <><Sparkles className="mr-2 h-4 w-4" /> Tạo bài viết</>}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------- Blog Form Dialog ---------- */
 function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: boolean; onClose: () => void; userId?: string }) {
   const queryClient = useQueryClient();
+  const isNew = !post?.id || post?._isNew;
   const [saving, setSaving] = useState(false);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: post?.title ?? "",
     slug: post?.slug ?? "",
     excerpt: post?.excerpt ?? "",
     cover_image_url: post?.cover_image_url ?? "",
-    tags: (post?.tags ?? []).join(", "),
+    tags: Array.isArray(post?.tags) ? post.tags.join(", ") : (post?.tags ?? ""),
     content: post?.content ?? "",
     status: post?.status ?? "draft",
+    seo_title: post?.seo_title ?? "",
+    seo_description: post?.seo_description ?? "",
+    seo_keywords: Array.isArray(post?.seo_keywords) ? post.seo_keywords.join(", ") : (post?.seo_keywords ?? ""),
   });
 
   const updateField = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  const handleAutoSEO = async () => {
+    if (!form.content && !form.title) { toast.error("Cần có tiêu đề hoặc nội dung"); return; }
+    setAiLoading("seo");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: { action: "generate_seo", title: form.title, content: form.content },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      updateField("seo_title", data.seo_title || "");
+      updateField("seo_description", data.seo_description || "");
+      if (data.seo_keywords) updateField("seo_keywords", data.seo_keywords.join(", "));
+      if (data.suggested_tags && !form.tags) updateField("tags", data.suggested_tags.join(", "));
+      toast.success("Đã tạo SEO metadata!");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi tạo SEO");
+    } finally {
+      setAiLoading(null);
+    }
+  };
+
+  const handleAutoExcerpt = async () => {
+    if (!form.content) { toast.error("Cần có nội dung"); return; }
+    setAiLoading("excerpt");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: { action: "generate_excerpt", content: form.content },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      updateField("excerpt", data.excerpt || "");
+      toast.success("Đã tạo excerpt!");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi tạo excerpt");
+    } finally {
+      setAiLoading(null);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.title || !form.slug) { toast.error("Tiêu đề và slug là bắt buộc"); return; }
@@ -147,10 +270,13 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       cover_image_url: form.cover_image_url || null,
       tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
       content: form.content, status: form.status as any,
+      seo_title: form.seo_title || null,
+      seo_description: form.seo_description || null,
+      seo_keywords: form.seo_keywords ? form.seo_keywords.split(",").map((k: string) => k.trim()).filter(Boolean) : null,
     };
     if (form.status === "published" && !post?.published_at) payload.published_at = new Date().toISOString();
 
-    if (post) {
+    if (!isNew && post?.id) {
       const { error } = await supabase.from("blog_posts").update(payload).eq("id", post.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã cập nhật");
@@ -167,22 +293,31 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{post ? "Chỉnh sửa bài viết" : "Tạo bài viết mới"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{isNew ? "Tạo bài viết mới" : "Chỉnh sửa bài viết"}</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          {/* Basic fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Tiêu đề *</Label>
-              <Input value={form.title} onChange={(e) => { updateField("title", e.target.value); if (!post) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
+              <Input value={form.title} onChange={(e) => { updateField("title", e.target.value); if (isNew) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
             </div>
             <div className="space-y-2">
               <Label>Slug *</Label>
               <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value)} />
             </div>
           </div>
+
           <div className="space-y-2">
-            <Label>Excerpt</Label>
+            <div className="flex items-center justify-between">
+              <Label>Excerpt</Label>
+              <Button variant="ghost" size="sm" onClick={handleAutoExcerpt} disabled={!!aiLoading}>
+                {aiLoading === "excerpt" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                Tạo tự động
+              </Button>
+            </div>
             <Input value={form.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cover Image URL</Label>
@@ -193,10 +328,35 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
               <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
             </div>
           </div>
+
           <div className="space-y-2">
             <Label>Nội dung</Label>
             <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." />
           </div>
+
+          {/* SEO Section */}
+          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm flex items-center gap-2">🔍 SEO Metadata</h3>
+              <Button variant="outline" size="sm" onClick={handleAutoSEO} disabled={!!aiLoading}>
+                {aiLoading === "seo" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                Tạo SEO tự động
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label>SEO Title <span className="text-muted-foreground text-xs">({form.seo_title.length}/60)</span></Label>
+              <Input value={form.seo_title} onChange={(e) => updateField("seo_title", e.target.value)} placeholder="Tiêu đề tối ưu cho SEO" maxLength={70} />
+            </div>
+            <div className="space-y-2">
+              <Label>SEO Description <span className="text-muted-foreground text-xs">({form.seo_description.length}/160)</span></Label>
+              <Input value={form.seo_description} onChange={(e) => updateField("seo_description", e.target.value)} placeholder="Mô tả meta cho công cụ tìm kiếm" maxLength={170} />
+            </div>
+            <div className="space-y-2">
+              <Label>SEO Keywords (phẩy phân cách)</Label>
+              <Input value={form.seo_keywords} onChange={(e) => updateField("seo_keywords", e.target.value)} placeholder="keyword1, keyword2, ..." />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Trạng thái</Label>
             <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
