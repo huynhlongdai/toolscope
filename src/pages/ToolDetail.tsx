@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { ReviewForm } from "@/components/tool-detail/ReviewForm";
 import { VoteButtons } from "@/components/tool-detail/VoteButtons";
