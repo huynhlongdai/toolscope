@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Workflow, GripVertical, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Workflow, GripVertical, X, Sparkles, Loader2 } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
