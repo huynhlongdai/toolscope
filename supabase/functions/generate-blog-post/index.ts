@@ -89,7 +89,6 @@ Select 3-8 most relevant tools. Match based on topic, keywords, and context.`
         }
       ];
     } else if (action === "suggest_category") {
-      const { tool_name, tool_description, categories_list } = await req.json().catch(() => ({}));
       messages = [
         {
           role: "system",
