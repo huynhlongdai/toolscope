@@ -77,6 +77,7 @@ const App = () => (
           </Routes>
           <AIChatWidget />
         </BrowserRouter>
+        </I18nProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
