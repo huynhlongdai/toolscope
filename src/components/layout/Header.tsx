@@ -59,25 +59,6 @@ export function Header() {
             <Search className="h-4 w-4" />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Bookmark trang này (Ctrl+D)"
-            onClick={() => {
-              // Trigger browser bookmark dialog
-              if ((window as any).sidebar?.addPanel) {
-                (window as any).sidebar.addPanel(document.title, window.location.href, '');
-              } else if ((window as any).external?.AddFavorite) {
-                (window as any).external.AddFavorite(window.location.href, document.title);
-              } else {
-                // Modern browsers - prompt user with keyboard shortcut
-                alert(`Nhấn ${navigator.userAgent.includes('Mac') ? '⌘+D' : 'Ctrl+D'} để bookmark trang này!`);
-              }
-            }}
-          >
-            <Bookmark className="h-4 w-4" />
-          </Button>
-
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>

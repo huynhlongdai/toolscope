@@ -201,7 +201,7 @@ export default function ToolDetail() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {(tool.affiliate_url || tool.website_url) && (
                 <Button asChild className="gap-2">
                   <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer">
@@ -209,6 +209,22 @@ export default function ToolDetail() {
                   </a>
                 </Button>
               )}
+              <Button
+                variant="outline"
+                className="gap-2"
+                title={`Nhấn ${navigator.userAgent.includes('Mac') ? '⌘+D' : 'Ctrl+D'} để bookmark`}
+                onClick={() => {
+                  if ((window as any).sidebar?.addPanel) {
+                    (window as any).sidebar.addPanel(document.title, window.location.href, '');
+                  } else if ((window as any).external?.AddFavorite) {
+                    (window as any).external.AddFavorite(window.location.href, document.title);
+                  } else {
+                    alert(`Nhấn ${navigator.userAgent.includes('Mac') ? '⌘+D' : 'Ctrl+D'} để bookmark trang này!`);
+                  }
+                }}
+              >
+                <Star className="h-4 w-4" /> Bookmark trang
+              </Button>
               <Button variant="outline" size="icon" onClick={toggleBookmark}>
                 {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
               </Button>
