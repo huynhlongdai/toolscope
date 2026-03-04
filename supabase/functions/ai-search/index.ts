@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query } = await req.json();
+    const { query, source } = await req.json();
     if (!query || typeof query !== "string") {
       return new Response(JSON.stringify({ error: "Query is required" }), {
         status: 400,
@@ -23,7 +23,50 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all published tools with their scores and categories
+    const normalizedQuery = query.trim().toLowerCase();
+
+    // Check search_rules for matching patterns
+    const { data: rules } = await supabase
+      .from("search_rules")
+      .select("*")
+      .eq("is_active", true);
+
+    let pinnedToolIds: string[] = [];
+    let redirectUrl: string | null = null;
+
+    if (rules) {
+      for (const rule of rules) {
+        let matches = false;
+        if (rule.match_type === "exact") {
+          matches = normalizedQuery === rule.keyword_pattern.toLowerCase();
+        } else if (rule.match_type === "contains") {
+          matches = normalizedQuery.includes(rule.keyword_pattern.toLowerCase());
+        } else if (rule.match_type === "regex") {
+          try { matches = new RegExp(rule.keyword_pattern, "i").test(normalizedQuery); } catch {}
+        }
+        if (matches) {
+          if (rule.redirect_url) redirectUrl = rule.redirect_url;
+          if (rule.pinned_tool_ids?.length) pinnedToolIds.push(...rule.pinned_tool_ids);
+        }
+      }
+    }
+
+    // If redirect rule matched, return redirect
+    if (redirectUrl) {
+      // Still log the search
+      await supabase.from("search_logs").insert({
+        query,
+        normalized_query: normalizedQuery,
+        results_count: 0,
+        source: source || "hero",
+      });
+      return new Response(
+        JSON.stringify({ redirect: redirectUrl }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch all published tools
     const { data: tools, error } = await supabase
       .from("tools")
       .select("id, name, slug, short_description, description, pricing_type, avg_rating, rating_count, logo_url, is_trending, is_featured, categories(name), ai_scores(overall_score, is_recommended, pros, cons, summary)")
@@ -138,6 +181,34 @@ Chỉ trả về tools thực sự phù hợp với nhu cầu. Sắp xếp theo 
       const fullTool = tools?.find((t: any) => t.id === r.id);
       return { ...r, tool: fullTool || null };
     }).filter((r: any) => r.tool);
+
+    // Prepend pinned tools from rules (if not already in results)
+    if (pinnedToolIds.length > 0) {
+      const existingIds = new Set(enrichedResults.map((r: any) => r.id));
+      for (const pinnedId of pinnedToolIds) {
+        if (!existingIds.has(pinnedId)) {
+          const pinnedTool = tools?.find((t: any) => t.id === pinnedId);
+          if (pinnedTool) {
+            enrichedResults.unshift({
+              id: pinnedTool.id,
+              name: pinnedTool.name,
+              slug: pinnedTool.slug,
+              reason: "Được đề xuất",
+              tool: pinnedTool,
+              pinned: true,
+            });
+          }
+        }
+      }
+    }
+
+    // Log the search (fire and forget)
+    supabase.from("search_logs").insert({
+      query,
+      normalized_query: normalizedQuery,
+      results_count: enrichedResults.length,
+      source: source || "hero",
+    }).then(() => {});
 
     return new Response(
       JSON.stringify({ results: enrichedResults, summary: searchResults.summary }),
