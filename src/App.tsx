@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
+import { I18nProvider } from "@/lib/i18n";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ToolsPage from "./pages/ToolsPage";
@@ -15,6 +16,10 @@ import BlogDetail from "./pages/BlogDetail";
 import ComparePage from "./pages/ComparePage";
 import CollectionsPage from "./pages/CollectionsPage";
 import CollectionDetail from "./pages/CollectionDetail";
+import TrendingPage from "./pages/TrendingPage";
+import ProfilePage from "./pages/ProfilePage";
+import BookmarksPage from "./pages/BookmarksPage";
+import WorkflowsPage from "./pages/WorkflowsPage";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminTools from "./pages/admin/AdminTools";
@@ -35,6 +40,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <I18nProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -49,6 +55,12 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/collection/:id" element={<CollectionDetail />} />
+            <Route path="/trending" element={<TrendingPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:id" element={<ProfilePage />} />
+            <Route path="/bookmarks" element={<BookmarksPage />} />
+            <Route path="/workflows" element={<WorkflowsPage />} />
+            <Route path="/workflow/:slug" element={<WorkflowsPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
@@ -65,6 +77,7 @@ const App = () => (
           </Routes>
           <AIChatWidget />
         </BrowserRouter>
+        </I18nProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

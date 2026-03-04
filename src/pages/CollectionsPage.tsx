@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useCollections } from "@/hooks/useCollections";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,6 +188,7 @@ export default function CollectionsPage() {
         </section>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

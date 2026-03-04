@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers, Shield } from "lucide-react";
+import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers, Shield, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,8 +25,9 @@ interface MenuItem {
 
 const defaultNavItems: MenuItem[] = [
   { label: "Khám phá", url: "/tools" },
-  { label: "Danh mục", url: "/categories" },
+  { label: "Trending", url: "/trending" },
   { label: "So sánh", url: "/compare" },
+  { label: "Workflows", url: "/workflows" },
   { label: "Collections", url: "/collections" },
   { label: "Blog", url: "/blog" },
 ];
@@ -35,6 +37,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
+  const { locale, setLocale } = useI18n();
   const navigate = useNavigate();
 
   const { data: dbMenuItems } = useQuery({
@@ -115,6 +118,16 @@ export function Header() {
 
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocale(locale === "vi" ? "en" : "vi")}
+            className="hidden md:flex gap-1 text-xs font-medium"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {locale === "vi" ? "EN" : "VI"}
           </Button>
 
           {user ? (

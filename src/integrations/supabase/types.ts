@@ -1137,6 +1137,71 @@ export type Database = {
           },
         ]
       }
+      translations: {
+        Row: {
+          created_at: string | null
+          entity_id: string
+          entity_type: string
+          field_name: string
+          id: string
+          is_auto: boolean | null
+          locale: string
+          translated_text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          entity_id: string
+          entity_type: string
+          field_name: string
+          id?: string
+          is_auto?: boolean | null
+          locale?: string
+          translated_text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          entity_id?: string
+          entity_type?: string
+          field_name?: string
+          id?: string
+          is_auto?: boolean | null
+          locale?: string
+          translated_text?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_type: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_type: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_type?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1184,6 +1249,65 @@ export type Database = {
           {
             foreignKeyName: "votes_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          author_id: string | null
+          category: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          slug: string
+          status: Database["public"]["Enums"]["content_status"] | null
+          steps: Json | null
+          title: string
+          tool_ids: string[] | null
+          updated_at: string | null
+          upvotes: number | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          slug: string
+          status?: Database["public"]["Enums"]["content_status"] | null
+          steps?: Json | null
+          title: string
+          tool_ids?: string[] | null
+          updated_at?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["content_status"] | null
+          steps?: Json | null
+          title?: string
+          tool_ids?: string[] | null
+          updated_at?: string | null
+          upvotes?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_author_id_fkey"
+            columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
