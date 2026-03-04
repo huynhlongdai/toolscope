@@ -337,7 +337,7 @@ export default function ToolDetail() {
                     <CardTitle className="flex items-center gap-2">
                       <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
                     </CardTitle>
-                    <ReviewForm toolId={tool.id} userId={user?.id} />
+                    <StructuredReviewForm toolId={tool.id} userId={user?.id} />
                   </div>
                 </CardHeader>
                 <CardContent>
