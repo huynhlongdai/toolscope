@@ -1,0 +1,1 @@
+ALTER TABLE public.tools ADD COLUMN affiliate_url text;

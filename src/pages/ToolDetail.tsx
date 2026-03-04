@@ -198,10 +198,10 @@ export default function ToolDetail() {
             </div>
 
             <div className="flex gap-2">
-              {tool.website_url && (
-                <Button asChild>
-                  <a href={tool.website_url} target="_blank" rel="noopener noreferrer">
-                    <Globe className="h-4 w-4 mr-1.5" /> Truy cập
+              {(tool.affiliate_url || tool.website_url) && (
+                <Button asChild className="gap-2">
+                  <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer">
+                    <Globe className="h-4 w-4" /> Truy cập website
                   </a>
                 </Button>
               )}
