@@ -63,7 +63,7 @@ export function DealCard({ deal, toolName }: { deal: Deal; toolName?: string }) 
 
   const handleClick = async () => {
     // Increment click count
-    await supabase.rpc("increment_deal_click", { deal_id: deal.id }).catch(() => {});
+    try { await supabase.rpc("increment_deal_click" as any, { deal_id: deal.id }); } catch {}
   };
 
   const discountLabel = deal.discount_type === "percentage" && deal.discount_value
