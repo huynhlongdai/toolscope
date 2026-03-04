@@ -165,6 +165,20 @@ Guidelines:
                     required: ["problem", "solution", "common_mistakes", "tips", "prerequisites", "target_audience", "use_cases", "estimated_time", "difficulty_level"],
                     additionalProperties: false,
                   },
+                  suggested_videos: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        search_query: { type: "string", description: "YouTube search query to find this video" },
+                        title: { type: "string", description: "Expected video title" },
+                        reason: { type: "string", description: "Why this video is relevant" },
+                      },
+                      required: ["search_query", "title", "reason"],
+                      additionalProperties: false,
+                    },
+                    description: "3-5 YouTube video search suggestions related to this workflow",
+                  },
                 },
                 required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content"],
                 additionalProperties: false,
