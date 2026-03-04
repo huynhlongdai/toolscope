@@ -46,7 +46,7 @@ export function Header() {
         .eq("location", "header")
         .maybeSingle();
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-        return data.items as MenuItem[];
+        return data.items as unknown as MenuItem[];
       }
       return null;
     },

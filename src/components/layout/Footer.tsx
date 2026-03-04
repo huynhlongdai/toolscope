@@ -52,7 +52,7 @@ export function Footer() {
         .eq("location", "footer")
         .maybeSingle();
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-        return data.items as FooterColumn[];
+        return data.items as unknown as FooterColumn[];
       }
       return null;
     },
