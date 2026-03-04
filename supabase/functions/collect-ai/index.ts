@@ -335,6 +335,159 @@ Return ONLY valid JSON:
       });
     }
 
+    if (action === "batch-enrich") {
+      // === BATCH ENRICH all pending items ===
+      const limit = 20; // process max 20 at a time to avoid timeout
+      const { data: pendingItems, error: fetchErr } = await supabase
+        .from("collect_items")
+        .select("id, name, website_url, description")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true })
+        .limit(limit);
+
+      if (fetchErr) throw new Error(fetchErr.message);
+      if (!pendingItems?.length) {
+        return new Response(JSON.stringify({ success: true, enriched_count: 0, message: "No pending items" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+      let enrichedCount = 0;
+      const errors: string[] = [];
+
+      for (const item of pendingItems) {
+        try {
+          let scrapeContent = "";
+          if (item.website_url) {
+            try { scrapeContent = (await scrapeListingUrl(item.website_url)).slice(0, 3000); } catch {}
+          }
+
+          const prompt = `Analyze: ${item.name}\nURL: ${item.website_url || "unknown"}\nDesc: ${item.description || "none"}\n${scrapeContent ? `Content:\n${scrapeContent}` : ""}\n\nReturn JSON: {"description":"Vietnamese 2-3 paragraphs","short_description":"max 100 chars Vietnamese","pricing_type":"free|freemium|paid|open_source|contact","logo_url":"URL or null","category_name":"Vietnamese category"}`;
+
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-lite",
+              messages: [
+                { role: "system", content: "Extract tool info. Valid JSON only." },
+                { role: "user", content: prompt },
+              ],
+            }),
+          });
+
+          if (!aiResp.ok) {
+            if (aiResp.status === 429) { errors.push(`Rate limited at item ${enrichedCount}`); break; }
+            errors.push(`${item.name}: AI ${aiResp.status}`);
+            continue;
+          }
+
+          let raw = (await aiResp.json()).choices?.[0]?.message?.content || "{}";
+          raw = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+          let enriched: any = {};
+          try { enriched = JSON.parse(raw); } catch { continue; }
+
+          await supabase.from("collect_items").update({
+            description: enriched.description || item.description,
+            logo_url: enriched.logo_url,
+            pricing_type: enriched.pricing_type,
+            category_name: enriched.category_name,
+            collected_data: { enriched },
+          }).eq("id", item.id);
+
+          enrichedCount++;
+          // Small delay to avoid rate limits
+          await new Promise(r => setTimeout(r, 500));
+        } catch (e: any) {
+          errors.push(`${item.name}: ${e.message}`);
+        }
+      }
+
+      return new Response(JSON.stringify({ 
+        success: true, 
+        enriched_count: enrichedCount, 
+        total: pendingItems.length,
+        errors: errors.length > 0 ? errors : undefined,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "run-schedule") {
+      // === RUN A SPECIFIC SCHEDULE ===
+      const { schedule_id } = await req.json().catch(() => ({}));
+      
+      const { data: schedule } = await supabase
+        .from("collect_schedules")
+        .select("*")
+        .eq("id", schedule_id || "")
+        .single();
+
+      if (!schedule) throw new Error("Schedule not found");
+
+      // Reuse search logic
+      const type = schedule.search_type || "keyword";
+      let content = "";
+      if (type === "keyword") {
+        const results = await searchByKeyword(schedule.keyword);
+        content = results.map((r: any) => `Title: ${r.title || ""}\nURL: ${r.url || ""}\nDescription: ${r.description || ""}\n---`).join("\n");
+      } else {
+        content = await scrapeListingUrl(schedule.keyword);
+      }
+
+      // Get category name
+      let catName = "";
+      if (schedule.category_id) {
+        const { data: cat } = await supabase.from("categories").select("name").eq("id", schedule.category_id).single();
+        catName = cat?.name || "";
+      }
+
+      const tools = await parseToolsWithAI(content, type, schedule.keyword, catName);
+
+      const { data: session } = await supabase
+        .from("collect_sessions")
+        .insert({
+          search_type: type,
+          query: schedule.keyword,
+          category_id: schedule.category_id,
+          results_count: tools.length,
+          status: "completed",
+          created_by: schedule.created_by,
+          metadata: { scheduled: true, schedule_id: schedule.id },
+        })
+        .select("id")
+        .single();
+
+      if (session && tools.length > 0) {
+        const items = tools.map((t: any) => ({
+          session_id: session.id,
+          name: t.name || "Unknown",
+          website_url: t.website_url || null,
+          description: t.description || null,
+          pricing_type: t.pricing_type || "contact",
+          category_name: t.category_name || catName || null,
+          source_url: t.source_url || null,
+          collected_data: t,
+          status: "pending",
+        }));
+        await supabase.from("collect_items").insert(items);
+      }
+
+      // Update schedule
+      await supabase.from("collect_schedules").update({
+        last_run_at: new Date().toISOString(),
+        last_session_id: session?.id || null,
+        results_total: (schedule.results_total || 0) + tools.length,
+      }).eq("id", schedule.id);
+
+      return new Response(JSON.stringify({ success: true, tools_count: tools.length, session_id: session?.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Unknown action: ${action}`);
   } catch (e) {
     console.error("collect-ai error:", e);
