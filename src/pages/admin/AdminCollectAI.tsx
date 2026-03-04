@@ -674,7 +674,7 @@ export default function AdminCollectAI() {
                 </TableHeader>
                 <TableBody>
                   {sessions.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chưa có lịch sử</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Chưa có lịch sử</TableCell></TableRow>
                   ) : sessions.map(s => (
                     <TableRow key={s.id}>
                       <TableCell className="text-xs">{new Date(s.created_at).toLocaleString("vi-VN")}</TableCell>
@@ -683,6 +683,11 @@ export default function AdminCollectAI() {
                         {s.metadata?.scheduled && <Badge variant="secondary" className="ml-1 text-xs">Auto</Badge>}
                       </TableCell>
                       <TableCell className="max-w-[300px]"><p className="text-sm truncate">{s.query}</p></TableCell>
+                      <TableCell>
+                        <Badge variant={s.metadata?.data_source === "firecrawl" ? "default" : "secondary"} className="text-xs">
+                          {s.metadata?.data_source === "firecrawl" ? "🔥 Firecrawl" : s.metadata?.data_source === "ai_fallback" ? "🤖 AI" : "—"}
+                        </Badge>
+                      </TableCell>
                       <TableCell><Badge variant="secondary">{s.results_count} tools</Badge></TableCell>
                       <TableCell><Badge variant={s.status === "completed" ? "default" : "secondary"}>{s.status}</Badge></TableCell>
                       <TableCell>
