@@ -11,6 +11,8 @@ export function HeroSection() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { results, summary, loading, search, clear } = useAISearch();
+  const { data: popularKeywords } = usePopularKeywords();
+  const fallbackTags = ["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
