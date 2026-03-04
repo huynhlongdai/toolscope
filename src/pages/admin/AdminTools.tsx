@@ -16,8 +16,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { marked } from "marked";
 
 export default function AdminTools() {
   const queryClient = useQueryClient();
