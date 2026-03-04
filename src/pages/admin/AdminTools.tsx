@@ -150,6 +150,7 @@ export default function AdminTools() {
                     <TableCell>{tool.view_count}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <TranslateButton toolId={tool.id} toolName={tool.name} />
                         {tool.website_url && (
                           <Button variant="ghost" size="icon" asChild>
                             <a href={tool.website_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4" /></a>
