@@ -476,6 +476,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               </CardContent>
             </Card>
 
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tên *</Label>
                 <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); if (!tool) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
