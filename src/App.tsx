@@ -33,6 +33,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import DynamicPage from "./pages/DynamicPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 
 const queryClient = new QueryClient();
 
