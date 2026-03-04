@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
