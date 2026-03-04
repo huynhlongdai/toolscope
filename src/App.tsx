@@ -16,6 +16,13 @@ import ComparePage from "./pages/ComparePage";
 import CollectionsPage from "./pages/CollectionsPage";
 import CollectionDetail from "./pages/CollectionDetail";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminTools from "./pages/admin/AdminTools";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminReviews from "./pages/admin/AdminReviews";
+import AdminModeration from "./pages/admin/AdminModeration";
+import AdminBlog from "./pages/admin/AdminBlog";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +44,13 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/collection/:id" element={<CollectionDetail />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/tools" element={<AdminTools />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/reviews" element={<AdminReviews />} />
+            <Route path="/admin/moderation" element={<AdminModeration />} />
+            <Route path="/admin/blog" element={<AdminBlog />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
