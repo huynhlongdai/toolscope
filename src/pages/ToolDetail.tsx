@@ -450,34 +450,17 @@ export default function ToolDetail() {
                 </Card>
               )}
 
+              {/* Review Breakdown */}
+              <ReviewBreakdown reviews={(reviews || []) as any} />
+
+              {/* Screenshots */}
+              <ScreenshotGallery toolId={tool.id} toolName={tool.name} />
+
               {/* Deals */}
               <DealsSection toolId={tool.id} toolName={tool.name} />
 
               {/* Alternatives */}
-              {alternatives && alternatives.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Alternatives</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {alternatives.map((alt) => (
-                      <ToolCard
-                        key={alt.id}
-                        id={alt.id}
-                        name={alt.name}
-                        slug={alt.slug}
-                        shortDescription={alt.short_description || undefined}
-                        logoUrl={alt.logo_url || undefined}
-                        websiteUrl={alt.website_url || undefined}
-                        pricingType={alt.pricing_type}
-                        avgRating={Number(alt.avg_rating) || 0}
-                        ratingCount={alt.rating_count}
-                        categoryName={(alt.categories as any)?.name}
-                      />
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
+              <AlternativesSection toolId={tool.id} toolName={tool.name} categoryId={tool.category_id} />
 
               {/* Find Similar with AI */}
               <Button
