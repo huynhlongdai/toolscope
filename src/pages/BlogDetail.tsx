@@ -127,6 +127,29 @@ export default function BlogDetail() {
               <ReactMarkdown>{post.content}</ReactMarkdown>
             )}
           </div>
+
+          {relatedTools.length > 0 && (
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-xl font-bold mb-4">🔗 Công cụ liên quan</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {relatedTools.map((t: any) => (
+                  <ToolCard
+                    key={t.id}
+                    id={t.id}
+                    name={t.name}
+                    slug={t.slug}
+                    shortDescription={t.short_description}
+                    logoUrl={t.logo_url}
+                    websiteUrl={t.website_url}
+                    pricingType={t.pricing_type}
+                    avgRating={t.avg_rating ?? 0}
+                    ratingCount={t.rating_count ?? 0}
+                    categoryName={t.categories?.name}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </article>
       </main>
       <Footer />
