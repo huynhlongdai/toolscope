@@ -376,7 +376,7 @@ export default function ToolDetail() {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* AI Score Card */}
-              {aiScore && (
+              {aiScore ? (
                 <Card className="border-primary/20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -430,6 +430,19 @@ export default function ToolDetail() {
                     {aiScore.summary && (
                       <p className="text-xs text-muted-foreground border-t border-border pt-3">{aiScore.summary}</p>
                     )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-dashed border-muted-foreground/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-muted-foreground">
+                      <Zap className="h-5 w-5" /> AI Score
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center py-6">
+                    <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Đang phân tích bằng AI...</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Điểm đánh giá sẽ sớm có mặt tại đây</p>
                   </CardContent>
                 </Card>
               )}
