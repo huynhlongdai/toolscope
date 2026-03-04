@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Star, Bookmark, BookmarkCheck, Share2,
   MessageCircle, ArrowLeft,
-  Globe, DollarSign, Zap, Shield, BarChart3
+  Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
 } from "lucide-react";
 import { useState } from "react";
 
@@ -30,6 +30,7 @@ export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
@@ -359,7 +360,9 @@ export default function ToolDetail() {
               {/* Alternatives */}
               {alternatives && alternatives.length > 0 && (
                 <Card>
-                  <CardHeader><CardTitle className="text-base">Alternatives</CardTitle></CardHeader>
+                  <CardHeader>
+                    <CardTitle className="text-base">Alternatives</CardTitle>
+                  </CardHeader>
                   <CardContent className="space-y-3">
                     {alternatives.map((alt) => (
                       <ToolCard
@@ -377,6 +380,16 @@ export default function ToolDetail() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Find Similar with AI */}
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => navigate(`/tools?q=${encodeURIComponent(`Similar to ${tool.name}`)}`)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Tìm tool tương tự bằng AI
+              </Button>
             </div>
           </div>
         </div>
