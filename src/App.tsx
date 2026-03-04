@@ -55,6 +55,12 @@ const App = () => (
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/collection/:id" element={<CollectionDetail />} />
+            <Route path="/trending" element={<TrendingPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:id" element={<ProfilePage />} />
+            <Route path="/bookmarks" element={<BookmarksPage />} />
+            <Route path="/workflows" element={<WorkflowsPage />} />
+            <Route path="/workflow/:slug" element={<WorkflowsPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
