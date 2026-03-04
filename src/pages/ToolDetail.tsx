@@ -484,6 +484,7 @@ export default function ToolDetail() {
         </div>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

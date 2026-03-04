@@ -320,6 +320,7 @@ export default function ToolsPage() {
         </div>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

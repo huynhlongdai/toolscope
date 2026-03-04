@@ -187,6 +187,7 @@ export default function CollectionsPage() {
         </section>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

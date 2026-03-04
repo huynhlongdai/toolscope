@@ -695,6 +695,7 @@ export default function ComparePage() {
         </div>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }

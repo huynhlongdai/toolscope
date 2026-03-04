@@ -89,6 +89,7 @@ export default function BlogPage() {
         )}
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
