@@ -81,7 +81,7 @@ export default function DealsPage() {
                 {deal.tools?.name && (
                   <p className="text-xs font-medium text-muted-foreground mb-1.5 truncate">{deal.tools.name}</p>
                 )}
-                <DealCard deal={deal} toolName={deal.tools?.name} />
+                <DealCard deal={deal} toolName={deal.tools?.name} toolSlug={deal.tools?.slug} />
               </div>
             ))}
           </div>
