@@ -1,10 +1,13 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { Home } from "lucide-react";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -17,6 +20,17 @@ export default function CategoryPage() {
       return data;
     },
     enabled: !!slug,
+  });
+
+  // Fetch parent category if exists
+  const { data: parentCategory } = useQuery({
+    queryKey: ["parent-category", category?.parent_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("name, slug").eq("id", category!.parent_id!).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!category?.parent_id,
   });
 
   const { data: tools, isLoading } = useQuery({
@@ -35,11 +49,66 @@ export default function CategoryPage() {
     enabled: !!category?.id,
   });
 
+  // JSON-LD BreadcrumbList
+  const breadcrumbJsonLd = category ? {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Trang chủ", item: window.location.origin + "/" },
+      { "@type": "ListItem", position: 2, name: "Danh mục", item: window.location.origin + "/categories" },
+      ...(parentCategory ? [{ "@type": "ListItem", position: 3, name: parentCategory.name, item: window.location.origin + "/category/" + parentCategory.slug }] : []),
+      { "@type": "ListItem", position: parentCategory ? 4 : 3, name: category.name },
+    ],
+  } : null;
+
   return (
     <div className="flex min-h-screen flex-col">
+      {category && (
+        <SEOHead
+          title={`${category.name} — Công cụ AI tốt nhất | ToolScope`}
+          description={category.description || `Khám phá các công cụ AI hàng đầu trong danh mục ${category.name} trên ToolScope.`}
+        />
+      )}
+      {breadcrumbJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      )}
       <Header />
       <main className="flex-1">
         <div className="container py-8">
+          {/* Breadcrumb */}
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/" className="flex items-center gap-1">
+                    <Home className="h-3.5 w-3.5" />
+                    Trang chủ
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/categories">Danh mục</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              {parentCategory && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to={`/category/${parentCategory.slug}`}>{parentCategory.name}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                </>
+              )}
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{category?.name || "..."}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
           <div className="mb-8">
             <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {category?.name || "Đang tải..."}
