@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 import BlogPage from "./pages/BlogPage";
 import BlogDetail from "./pages/BlogDetail";
 import ComparePage from "./pages/ComparePage";
+import CollectionsPage from "./pages/CollectionsPage";
+import CollectionDetail from "./pages/CollectionDetail";
 import { AIChatWidget } from "./components/chat/AIChatWidget";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
             <Route path="/compare" element={<ComparePage />} />
+            <Route path="/collections" element={<CollectionsPage />} />
+            <Route path="/collection/:id" element={<CollectionDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />

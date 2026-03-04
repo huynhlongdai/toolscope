@@ -11,6 +11,8 @@ import { CommentSection } from "@/components/tool-detail/CommentSection";
 import { QASection } from "@/components/tool-detail/QASection";
 import { DetailedArticle } from "@/components/tool-detail/DetailedArticle";
 import { PricingHistoryChart } from "@/components/tool-detail/PricingHistoryChart";
+import { FollowButton } from "@/components/follow/FollowButton";
+import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,22 +211,8 @@ export default function ToolDetail() {
                   </a>
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="gap-2"
-                title={`Nhấn ${navigator.userAgent.includes('Mac') ? '⌘+D' : 'Ctrl+D'} để bookmark`}
-                onClick={() => {
-                  if ((window as any).sidebar?.addPanel) {
-                    (window as any).sidebar.addPanel(document.title, window.location.href, '');
-                  } else if ((window as any).external?.AddFavorite) {
-                    (window as any).external.AddFavorite(window.location.href, document.title);
-                  } else {
-                    alert(`Nhấn ${navigator.userAgent.includes('Mac') ? '⌘+D' : 'Ctrl+D'} để bookmark trang này!`);
-                  }
-                }}
-              >
-                <Star className="h-4 w-4" /> Bookmark trang
-              </Button>
+              <FollowButton targetType="tool" targetId={tool.id} />
+              <AddToCollectionDialog toolId={tool.id} toolName={tool.name} />
               <Button variant="outline" size="icon" onClick={toggleBookmark}>
                 {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
               </Button>
