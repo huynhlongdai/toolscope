@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
