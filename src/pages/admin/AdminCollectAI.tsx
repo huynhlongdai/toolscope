@@ -666,6 +666,7 @@ export default function AdminCollectAI() {
                     <TableHead>Thời gian</TableHead>
                     <TableHead>Loại</TableHead>
                     <TableHead>Truy vấn</TableHead>
+                    <TableHead>Nguồn</TableHead>
                     <TableHead>Kết quả</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead>Thao tác</TableHead>
