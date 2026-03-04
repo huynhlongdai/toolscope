@@ -191,6 +191,9 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
         tool_ids: data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids,
         seo_content: data.seo_content ? { ...prev.seo_content, ...data.seo_content } : prev.seo_content,
       }));
+      if (data.suggested_videos?.length) {
+        setSuggestedVideos(data.suggested_videos);
+      }
       toast.success("AI đã tạo workflow + SEO content thành công!");
     } catch (e: any) {
       toast.error(e.message || "Lỗi tạo workflow bằng AI");
