@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Eye, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { ShareButtons } from "@/components/share/ShareButtons";
+import { ToolCard } from "@/components/tools/ToolCard";
 
 export default function BlogDetail() {
   const { slug } = useParams<{ slug: string }>();
