@@ -9,7 +9,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, topic, type, content, title } = await req.json();
+    const body = await req.json();
+    const { action, topic, type, content, title, tools_list, tool_name, tool_description, categories_list } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -73,6 +74,33 @@ Return ONLY valid JSON:
           content: "Summarize the following blog post in 2-3 concise sentences. Return ONLY the summary text, no JSON."
         },
         { role: "user", content: content?.substring(0, 3000) || "" }
+      ];
+    } else if (action === "suggest_tools") {
+      messages = [
+        {
+          role: "system",
+          content: `You are an AI assistant that matches blog content to relevant tools.
+Given a blog post and a list of available tools, select the most relevant tools.
+Return ONLY valid JSON: { "tool_ids": ["id1", "id2", ...] }
+Select 3-8 most relevant tools. Match based on topic, keywords, and context.`
+        },
+        {
+          role: "user",
+          content: `Blog title: ${title}\n\nBlog content (excerpt):\n${content?.substring(0, 2000)}\n\nAvailable tools:\n${tools_list || "[]"}`
+        }
+      ];
+    } else if (action === "suggest_category") {
+      messages = [
+        {
+          role: "system",
+          content: `You are a categorization expert. Given a tool and available categories, suggest the best matching category.
+Return ONLY valid JSON: { "category_id": "id", "reason": "brief explanation" }
+If no good match, return: { "category_id": null, "suggested_name": "New Category Name", "reason": "explanation" }`
+        },
+        {
+          role: "user",
+          content: `Tool: ${tool_name}\nDescription: ${tool_description}\n\nCategories:\n${categories_list || "[]"}`
+        }
       ];
     } else {
       return new Response(JSON.stringify({ error: "Invalid action" }), {

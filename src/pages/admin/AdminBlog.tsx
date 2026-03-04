@@ -271,6 +271,30 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
     }
   };
 
+  const handleSuggestTools = async () => {
+    if (!form.content && !form.title) { toast.error("Cần có tiêu đề hoặc nội dung"); return; }
+    setAiLoading("suggest_tools");
+    try {
+      const toolsList = JSON.stringify(allTools.map((t: any) => ({ id: t.id, name: t.name })));
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: { action: "suggest_tools", title: form.title, content: form.content, tools_list: toolsList },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const ids = (data.tool_ids || []).filter((id: string) => allTools.some((t: any) => t.id === id));
+      if (ids.length) {
+        updateField("related_tool_ids", [...new Set([...form.related_tool_ids, ...ids])]);
+        toast.success(`AI gợi ý ${ids.length} tools!`);
+      } else {
+        toast.info("Không tìm thấy tool phù hợp");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi gợi ý tools");
+    } finally {
+      setAiLoading(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.title || !form.slug) { toast.error("Tiêu đề và slug là bắt buộc"); return; }
     if (!userId) { toast.error("Cần đăng nhập"); return; }
@@ -348,7 +372,13 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
 
           {/* Related Tools */}
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-            <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+              <Button variant="ghost" size="sm" onClick={handleSuggestTools} disabled={!!aiLoading}>
+                {aiLoading === "suggest_tools" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                AI gợi ý
+              </Button>
+            </div>
             <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
             {toolSearch && (
               <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
