@@ -297,6 +297,48 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 
   const updateField = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
 
+  const handleAutoFill = async () => {
+    const query = autoFillQuery.trim() || form.website_url || form.name;
+    if (!query) { toast.error("Nhập tên tool hoặc URL để thu thập"); return; }
+    setAutoFilling(true);
+    try {
+      const isUrl = /^https?:\/\//i.test(query) || /\.\w{2,}/.test(query);
+      const { data, error } = await supabase.functions.invoke("collect-tool-data", {
+        body: isUrl ? { url: query } : { name: query },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Map results to form
+      setForm(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        slug: data.slug || prev.slug,
+        short_description: data.short_description || prev.short_description,
+        description: autoConvert(data.description || prev.description),
+        detailed_content: autoConvert(data.detailed_content || prev.detailed_content),
+        website_url: data.website_url || prev.website_url,
+        logo_url: data.logo_url || prev.logo_url,
+        pricing_type: data.pricing_type || prev.pricing_type,
+        platforms: data.platforms?.length ? data.platforms : prev.platforms,
+        pricing_details: Array.isArray(data.pricing_details) && data.pricing_details.length > 0 ? data.pricing_details : prev.pricing_details,
+      }));
+
+      // Try to match category
+      if (data.category_suggestion && categories.length > 0) {
+        const suggestion = data.category_suggestion.toLowerCase();
+        const match = categories.find((c: any) => c.name.toLowerCase().includes(suggestion) || suggestion.includes(c.name.toLowerCase()));
+        if (match) updateField("category_id", match.id);
+      }
+
+      toast.success("Đã thu thập thông tin thành công!");
+    } catch (e: any) {
+      toast.error(e.message || "Không thể thu thập dữ liệu");
+    } finally {
+      setAutoFilling(false);
+    }
+  };
+
   const platformOptions = ["Web", "iOS", "Android", "macOS", "Windows", "Linux"];
 
   const togglePlatform = (p: string) => {
