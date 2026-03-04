@@ -4,15 +4,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GitCompareArrows, Plus, X, Star, Check, Minus, Calculator,
-  TrendingUp, Sparkles, Users, DollarSign, Loader2
+  TrendingUp, Users, DollarSign, BarChart3, Clock, Zap, ArrowRightLeft
 } from "lucide-react";
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, LineChart, Line
+} from "recharts";
+import { format } from "date-fns";
+
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+];
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -47,8 +61,172 @@ function ScoreBar({ score, max = 10 }: { score: number | null; max?: number }) {
   );
 }
 
+/* ─── Radar Chart ─── */
+function CompareRadarChart({ tools }: { tools: ToolWithScores[] }) {
+  const dimensions = [
+    { key: "ease_of_use", label: "Dễ sử dụng" },
+    { key: "features", label: "Tính năng" },
+    { key: "value_for_money", label: "Giá trị" },
+    { key: "performance", label: "Hiệu suất" },
+    { key: "support", label: "Hỗ trợ" },
+  ];
+
+  const data = dimensions.map((d) => {
+    const row: any = { dimension: d.label };
+    tools.forEach((t) => {
+      row[t.name] = Number((t.ai_scores as any)?.[d.key]) || 0;
+    });
+    return row;
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BarChart3 className="h-5 w-5 text-primary" /> Biểu đồ Radar AI Score
+        </CardTitle>
+        <CardDescription>So sánh trực quan các tiêu chí đánh giá</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={data}>
+              <PolarGrid stroke="hsl(var(--border))" />
+              <PolarAngleAxis dataKey="dimension" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+              <PolarRadiusAxis angle={90} domain={[0, 10]} tick={{ fontSize: 10 }} />
+              {tools.map((t, i) => (
+                <Radar
+                  key={t.id}
+                  name={t.name}
+                  dataKey={t.name}
+                  stroke={CHART_COLORS[i]}
+                  fill={CHART_COLORS[i]}
+                  fillOpacity={0.15}
+                  strokeWidth={2}
+                />
+              ))}
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem",
+                fontSize: "12px",
+              }} />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Bar Chart Score Comparison ─── */
+function CompareBarChart({ tools }: { tools: ToolWithScores[] }) {
+  const data = tools.map((t) => ({
+    name: t.name,
+    "AI Score": Number(t.ai_scores?.overall_score) || 0,
+    "Rating": Number(t.avg_rating || 0) * 2, // scale to 10
+    "Lượt xem": Math.min(t.view_count / 100, 10), // normalize
+  }));
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <BarChart3 className="h-5 w-5 text-accent" /> So sánh tổng quan
+        </CardTitle>
+        <CardDescription>AI Score, Rating (×2) và Popularity</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+              <YAxis domain={[0, 10]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+              <Tooltip contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem",
+                fontSize: "12px",
+              }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar dataKey="AI Score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Rating" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Lượt xem" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Pricing Trend Comparison ─── */
+function PricingTrendChart({ toolIds, tools }: { toolIds: string[]; tools: ToolWithScores[] }) {
+  const { data: allHistory } = useQuery({
+    queryKey: ["pricing-history-compare", toolIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pricing_history")
+        .select("*")
+        .in("tool_id", toolIds)
+        .order("recorded_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: toolIds.length > 0,
+  });
+
+  if (!allHistory || allHistory.length === 0) return null;
+
+  // Build unified timeline
+  const dateMap = new Map<string, any>();
+  allHistory.forEach((h) => {
+    const dateKey = format(new Date(h.recorded_at), "MM/yyyy");
+    if (!dateMap.has(dateKey)) dateMap.set(dateKey, { date: dateKey });
+    const toolName = tools.find((t) => t.id === h.tool_id)?.name || "Unknown";
+    dateMap.get(dateKey)![toolName] = Number(h.price_amount) || 0;
+  });
+  const chartData = Array.from(dateMap.values());
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <TrendingUp className="h-5 w-5 text-primary" /> Xu hướng giá theo thời gian
+        </CardTitle>
+        <CardDescription>So sánh biến động giá của các công cụ</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+              <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+              <Tooltip contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "0.5rem",
+                fontSize: "12px",
+              }} formatter={(value: number) => [`$${value}`, ""]} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {tools.map((t, i) => (
+                <Line key={t.id} type="monotone" dataKey={t.name} stroke={CHART_COLORS[i]} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── ROI Calculator ─── */
 function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
   const [teamSize, setTeamSize] = useState(10);
+  const [months, setMonths] = useState(12);
 
   return (
     <Card>
@@ -56,38 +234,57 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
         <CardTitle className="flex items-center gap-2 text-lg">
           <Calculator className="h-5 w-5 text-primary" /> ROI Calculator
         </CardTitle>
+        <CardDescription>Tính toán chi phí dựa trên quy mô đội ngũ</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 flex items-center gap-3">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <label className="text-sm font-medium">Team size:</label>
-          <Input
-            type="number" min={1} max={1000} value={teamSize}
-            onChange={(e) => setTeamSize(Number(e.target.value) || 1)}
-            className="h-8 w-24"
-          />
-          <span className="text-sm text-muted-foreground">người</span>
+        <div className="mb-4 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium">Team:</label>
+            <Input type="number" min={1} max={1000} value={teamSize}
+              onChange={(e) => setTeamSize(Number(e.target.value) || 1)} className="h-8 w-20" />
+            <span className="text-xs text-muted-foreground">người</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <label className="text-sm font-medium">Thời gian:</label>
+            <Input type="number" min={1} max={60} value={months}
+              onChange={(e) => setMonths(Number(e.target.value) || 1)} className="h-8 w-20" />
+            <span className="text-xs text-muted-foreground">tháng</span>
+          </div>
         </div>
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${tools.length}, 1fr)` }}>
-          {tools.map((tool) => {
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
+          {tools.map((tool, i) => {
             const pricing = tool.pricing_details as any;
             const monthlyPerUser = pricing?.monthly_price || (tool.pricing_type === "free" ? 0 : null);
             const monthlyCost = monthlyPerUser != null ? monthlyPerUser * teamSize : null;
-            const yearlyCost = monthlyCost != null ? monthlyCost * 12 : null;
+            const totalCost = monthlyCost != null ? monthlyCost * months : null;
+            const dailyCost = monthlyCost != null ? monthlyCost / 30 : null;
 
             return (
-              <div key={tool.id} className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-                <p className="text-sm font-semibold mb-2">{tool.name}</p>
+              <div key={tool.id} className="rounded-lg border border-border p-4 text-center" style={{ borderColor: CHART_COLORS[i] }}>
+                <p className="text-sm font-semibold mb-3">{tool.name}</p>
                 {monthlyCost != null ? (
-                  <>
-                    <p className="text-2xl font-bold text-primary">${monthlyCost.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">/tháng</p>
-                    <p className="mt-1 text-sm font-medium">${yearlyCost!.toLocaleString()}/năm</p>
-                    <p className="text-[10px] text-muted-foreground">${monthlyPerUser}/user/tháng</p>
-                  </>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-3xl font-bold text-primary">${totalCost!.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">tổng {months} tháng</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="rounded-md bg-muted/50 p-2">
+                        <p className="text-sm font-semibold">${monthlyCost.toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">/tháng</p>
+                      </div>
+                      <div className="rounded-md bg-muted/50 p-2">
+                        <p className="text-sm font-semibold">${dailyCost!.toFixed(1)}</p>
+                        <p className="text-[10px] text-muted-foreground">/ngày</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user/tháng</p>
+                  </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {tool.pricing_type === "free" ? "Miễn phí" : "Liên hệ để báo giá"}
+                  <p className="text-sm text-muted-foreground py-4">
+                    {tool.pricing_type === "free" ? "🎉 Miễn phí" : "Liên hệ để báo giá"}
                   </p>
                 )}
               </div>
@@ -99,6 +296,131 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
   );
 }
 
+/* ─── Switching Cost Calculator ─── */
+function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
+  const [currentToolIdx, setCurrentToolIdx] = useState(0);
+  const [teamSize, setTeamSize] = useState(10);
+  const [hoursToMigrate, setHoursToMigrate] = useState(8);
+  const [hourlyRate, setHourlyRate] = useState(30);
+
+  const migrationCost = teamSize * hoursToMigrate * hourlyRate;
+  const productivityLossDays = Math.ceil(hoursToMigrate / 2);
+  const productivityLossCost = teamSize * productivityLossDays * hourlyRate * 2;
+  const totalSwitchingCost = migrationCost + productivityLossCost;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <ArrowRightLeft className="h-5 w-5 text-accent" /> Chi phí chuyển đổi (Switching Cost)
+        </CardTitle>
+        <CardDescription>Ước tính chi phí khi chuyển từ tool này sang tool khác</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Team size</label>
+            <Input type="number" min={1} value={teamSize} onChange={(e) => setTeamSize(Number(e.target.value) || 1)} className="h-8" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Giờ migration/người</label>
+            <Input type="number" min={1} value={hoursToMigrate} onChange={(e) => setHoursToMigrate(Number(e.target.value) || 1)} className="h-8" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chi phí/giờ (USD)</label>
+            <Input type="number" min={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value) || 1)} className="h-8" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chuyển từ</label>
+            <select
+              value={currentToolIdx}
+              onChange={(e) => setCurrentToolIdx(Number(e.target.value))}
+              className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+            >
+              {tools.map((t, i) => (
+                <option key={t.id} value={i}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg bg-muted/50 p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Chi phí migration</p>
+            <p className="text-xl font-bold text-foreground">${migrationCost.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">{teamSize} người × {hoursToMigrate}h × ${hourlyRate}/h</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-4 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Mất năng suất</p>
+            <p className="text-xl font-bold text-foreground">${productivityLossCost.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">~{productivityLossDays} ngày learning curve</p>
+          </div>
+          <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
+            <p className="text-xs font-medium text-primary mb-1">Tổng chi phí chuyển đổi</p>
+            <p className="text-2xl font-bold text-primary">${totalSwitchingCost.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground">từ {tools[currentToolIdx]?.name}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Productivity Score ─── */
+function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
+  const data = tools.map((t) => {
+    const ai = t.ai_scores;
+    const ease = Number(ai?.ease_of_use) || 5;
+    const feat = Number(ai?.features) || 5;
+    const perf = Number(ai?.performance) || 5;
+    const score = ((ease * 0.3 + feat * 0.4 + perf * 0.3) * 10).toFixed(0);
+    const timeSaved = Math.round(ease * 0.5 + perf * 0.3); // hours/week estimated
+    return { name: t.name, score: Number(score), timeSaved, ease, feat, perf };
+  });
+
+  const best = data.reduce((a, b) => (a.score > b.score ? a : b));
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Zap className="h-5 w-5 text-warning" /> Productivity Score
+        </CardTitle>
+        <CardDescription>Ước tính mức tăng năng suất dựa trên AI Score</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
+          {data.map((d, i) => (
+            <div key={d.name} className={`rounded-lg border p-4 text-center ${d.name === best.name ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+              {d.name === best.name && (
+                <Badge className="bg-primary text-primary-foreground text-[10px] mb-2">🏆 Best Pick</Badge>
+              )}
+              <p className="text-sm font-semibold mb-2">{d.name}</p>
+              <p className="text-3xl font-bold" style={{ color: CHART_COLORS[i] }}>{d.score}</p>
+              <p className="text-[10px] text-muted-foreground">/100 productivity score</p>
+              <div className="mt-3 space-y-1 text-left">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Tiết kiệm ~</span>
+                  <span className="font-medium">{d.timeSaved}h/tuần</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Dễ sử dụng</span>
+                  <span className="font-medium">{d.ease}/10</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Tính năng</span>
+                  <span className="font-medium">{d.feat}/10</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Main Compare Page ─── */
 export default function ComparePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIds = useMemo(() => {
@@ -249,104 +571,126 @@ export default function ComparePage() {
             </CardContent>
           </Card>
 
-          {/* Compare Table */}
+          {/* Content */}
           {isLoading ? (
             <Skeleton className="h-96 rounded-xl" />
           ) : tools.length < 2 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
               <GitCompareArrows className="mx-auto h-12 w-12 text-muted-foreground/30" />
               <p className="mt-4 text-lg font-medium">Chọn ít nhất 2 công cụ để bắt đầu so sánh</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Tìm kiếm và thêm công cụ ở thanh phía trên
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Tìm kiếm và thêm công cụ ở thanh phía trên</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Main comparison card */}
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="w-36 p-4 text-left text-sm font-medium text-muted-foreground" />
-                        {tools.map((tool) => (
-                          <th key={tool.id} className="p-4 text-center" style={{ width: `${100 / (colCount + 1)}%` }}>
-                            <div className="flex flex-col items-center gap-2">
-                              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-lg font-bold">
-                                {tool.logo_url
-                                  ? <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-xl object-cover" />
-                                  : tool.name.charAt(0)}
-                              </div>
-                              <span className="font-semibold text-sm">{tool.name}</span>
-                              {tool.ai_scores?.is_recommended && (
-                                <Badge className="bg-primary/90 text-primary-foreground text-[10px]">
-                                  ⚡ AI Recommended
-                                </Badge>
-                              )}
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {compareRows.map((row, i) => (
-                        <tr key={row.key} className={i % 2 === 0 ? "bg-muted/20" : ""}>
-                          <td className="p-3 text-sm font-medium text-muted-foreground">{row.label}</td>
+            <Tabs defaultValue="table" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4 max-w-lg">
+                <TabsTrigger value="table">📊 Bảng</TabsTrigger>
+                <TabsTrigger value="charts">📈 Biểu đồ</TabsTrigger>
+                <TabsTrigger value="pricing">💰 Chi phí</TabsTrigger>
+                <TabsTrigger value="tools">🔧 Công cụ</TabsTrigger>
+              </TabsList>
+
+              {/* TAB: Table */}
+              <TabsContent value="table" className="space-y-6">
+                <Card>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="w-36 p-4 text-left text-sm font-medium text-muted-foreground" />
                           {tools.map((tool) => (
-                            <td key={tool.id} className="p-3 text-center text-sm">
-                              <div className="flex items-center justify-center">{row.render(tool)}</div>
-                            </td>
+                            <th key={tool.id} className="p-4 text-center" style={{ width: `${100 / (colCount + 1)}%` }}>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-lg font-bold">
+                                  {tool.logo_url
+                                    ? <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-xl object-cover" />
+                                    : tool.name.charAt(0)}
+                                </div>
+                                <span className="font-semibold text-sm">{tool.name}</span>
+                                {tool.ai_scores?.is_recommended && (
+                                  <Badge className="bg-primary/90 text-primary-foreground text-[10px]">⚡ AI Recommended</Badge>
+                                )}
+                              </div>
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {compareRows.map((row, i) => (
+                          <tr key={row.key} className={i % 2 === 0 ? "bg-muted/20" : ""}>
+                            <td className="p-3 text-sm font-medium text-muted-foreground">{row.label}</td>
+                            {tools.map((tool) => (
+                              <td key={tool.id} className="p-3 text-center text-sm">
+                                <div className="flex items-center justify-center">{row.render(tool)}</div>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+
+                {/* Pros / Cons */}
+                <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                  {tools.map((tool) => (
+                    <Card key={tool.id}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{tool.name}</CardTitle>
+                        {tool.ai_scores?.summary && (
+                          <p className="text-xs text-muted-foreground mt-1">{tool.ai_scores.summary}</p>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {tool.ai_scores?.pros && tool.ai_scores.pros.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-accent mb-1">✅ Ưu điểm</p>
+                            <ul className="space-y-1">
+                              {tool.ai_scores.pros.map((p, i) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                  <Check className="h-3 w-3 mt-0.5 text-accent shrink-0" /> {p}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {tool.ai_scores?.cons && tool.ai_scores.cons.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-destructive mb-1">❌ Nhược điểm</p>
+                            <ul className="space-y-1">
+                              {tool.ai_scores.cons.map((c, i) => (
+                                <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                                  <Minus className="h-3 w-3 mt-0.5 text-destructive shrink-0" /> {c}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              </Card>
+              </TabsContent>
 
-              {/* Pros / Cons */}
-              <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
-                {tools.map((tool) => (
-                  <Card key={tool.id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base">{tool.name}</CardTitle>
-                      {tool.ai_scores?.summary && (
-                        <p className="text-xs text-muted-foreground mt-1">{tool.ai_scores.summary}</p>
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {tool.ai_scores?.pros && tool.ai_scores.pros.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-accent mb-1">✅ Ưu điểm</p>
-                          <ul className="space-y-1">
-                            {tool.ai_scores.pros.map((p, i) => (
-                              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                <Check className="h-3 w-3 mt-0.5 text-accent shrink-0" /> {p}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      {tool.ai_scores?.cons && tool.ai_scores.cons.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-destructive mb-1">❌ Nhược điểm</p>
-                          <ul className="space-y-1">
-                            {tool.ai_scores.cons.map((c, i) => (
-                              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                                <Minus className="h-3 w-3 mt-0.5 text-destructive shrink-0" /> {c}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {/* TAB: Charts */}
+              <TabsContent value="charts" className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <CompareRadarChart tools={tools} />
+                  <CompareBarChart tools={tools} />
+                </div>
+                <PricingTrendChart toolIds={selectedIds} tools={tools} />
+              </TabsContent>
 
-              {/* ROI Calculator */}
-              <ROICalculator tools={tools} />
-            </div>
+              {/* TAB: Pricing */}
+              <TabsContent value="pricing" className="space-y-6">
+                <ROICalculator tools={tools} />
+                <SwitchingCostCalculator tools={tools} />
+              </TabsContent>
+
+              {/* TAB: Tools */}
+              <TabsContent value="tools" className="space-y-6">
+                <ProductivityScore tools={tools} />
+              </TabsContent>
+            </Tabs>
           )}
         </div>
       </main>
