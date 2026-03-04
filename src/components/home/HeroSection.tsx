@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Search, Sparkles, Loader2, Bot } from "lucide-react";
+import { Search, Sparkles, Loader2, Bot, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { useAISearch } from "@/hooks/useAISearch";
+import { usePopularKeywords } from "@/hooks/usePopularKeywords";
 import { Badge } from "@/components/ui/badge";
 
 export function HeroSection() {
