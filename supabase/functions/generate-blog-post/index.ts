@@ -75,8 +75,6 @@ Return ONLY valid JSON:
         { role: "user", content: content?.substring(0, 3000) || "" }
       ];
     } else if (action === "suggest_tools") {
-      // AI suggests related tools based on blog content
-      const { tools_list } = await req.json().catch(() => ({}));
       messages = [
         {
           role: "system",
