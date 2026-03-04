@@ -152,6 +152,7 @@ export default function AdminTools() {
                     <TableCell>{tool.view_count}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <GenerateAIScoreButton toolId={tool.id} toolName={tool.name} />
                         <TranslateButton toolId={tool.id} toolName={tool.name} />
                         {tool.website_url && (
                           <Button variant="ghost" size="icon" asChild>
