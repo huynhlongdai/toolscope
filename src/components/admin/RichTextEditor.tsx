@@ -316,6 +316,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
               ⏳ Countdown
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`<p>[deals]</p>`)}>
+              🏷️ Deal Block (ưu đãi tool)
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setHorizontalRule().run()}>
               ➖ Đường phân cách
             </DropdownMenuItem>
