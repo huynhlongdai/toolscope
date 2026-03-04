@@ -181,6 +181,9 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const [autoFillQuery, setAutoFillQuery] = useState("");
+
   const autoConvert = (text: string) => {
     if (!text) return text;
     const looksLikeMarkdown = /^#{1,4}\s/m.test(text) || /\*\*[^*]+\*\*/m.test(text) || /^-\s/m.test(text) || /^\d+\.\s/m.test(text);
