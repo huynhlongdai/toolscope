@@ -1,137 +1,247 @@
 
 
-## Ý tưởng phát triển ToolScope - Học hỏi từ G2, Capterra, Product Hunt, AlternativeTo, TAAFT
+## ToolScope - Kế hoạch triển khai đầy đủ
 
-Sau khi phân tích 5 nền tảng lớn, dưới đây là các tính năng ToolScope **chưa có** mà nên bổ sung, chia theo mức độ ưu tiên.
-
----
-
-### A. Tính năng cao giá trị (High Impact)
-
-**1. G2 Grid / Quadrant Chart** (theo G2)
-- Biểu đồ 2 trục: Satisfaction (trục Y) vs Market Presence (trục X)
-- Mỗi tool là 1 chấm tròn, chia 4 góc: Leaders, High Performers, Contenders, Niche
-- Lọc theo danh mục, hiển thị trên trang Category
-- Sử dụng Recharts scatter plot, dữ liệu từ avg_rating + view_count + rating_count
-
-**2. Verified Reviews / Review Quality System** (theo G2 + Capterra)
-- Badge "Verified User" cho review từ user đã xác minh email
-- Review phải trả lời câu hỏi có cấu trúc: "What do you like best?", "What do you dislike?", "What problems solved?"
-- Hiển thị thông tin reviewer: vai trò, quy mô công ty, ngành nghề
-- Review helpfulness voting ("Was this review helpful? Yes/No")
-
-**3. "Alternatives To" Section** (theo AlternativeTo)
-- Mỗi tool có section "Alternatives" với danh sách tool tương tự
-- User vote "I switched from X to Y" - tracking migration patterns
-- AI tự gợi ý alternatives dựa trên cùng category + tags
-- Bảng `tool_alternatives` lưu cặp tool_id + alternative_id + vote_count
-
-**4. Vendor/Maker Profiles** (theo G2 "Claim Your Profile")
-- Cho phép vendor claim tool profile của họ
-- Vendor có thể trả lời reviews, cập nhật thông tin
-- Badge "Claimed by Vendor" trên tool card
-- Bảng `vendor_claims` với trạng thái pending/approved
-
-**5. Task-Based Discovery** (theo TAAFT)
-- Thay vì chỉ browse theo category, user chọn "task" cần làm
-- VD: "Generate images", "Write content", "Build website"
-- Bảng `tasks` + `tool_tasks` mapping tool cho từng task
-- Trang `/tasks` với grid các task phổ biến
+### Tổng quan
+Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
 
 ---
 
-### B. Tính năng tăng engagement (Medium Impact)
+### 🏠 TRANG CÔNG KHAI
 
-**6. Product Launch / Submit Tool** (theo Product Hunt)
-- User submit tool mới với mô tả, screenshots
-- Cộng đồng upvote trong "Launch Day"
-- Trang `/launches` hiển thị tools mới submit theo ngày
-- Maker có thể comment giới thiệu tool của mình
+**1. Trang chủ**
+- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
+- Section "AI Recommended Tools" với badge
+- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
+- Tool nổi bật / trending / mới nhất
+- Bộ lọc theo danh mục, rating, giá, tags
+- "For You" feed cá nhân hóa
+- Nút chuyển ngôn ngữ + Dark/Light mode
 
-**7. Discussion Forum / Threads** (theo Product Hunt)
-- Forum thảo luận theo topic: "Best tool for X?", "X vs Y?"
-- Upvote threads, threaded replies
-- Sidebar "Trending Forum Threads" trên trang chủ
+**2. Trang chi tiết công cụ**
+- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
+- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
+- Badge "AI Recommended" nếu đạt chuẩn
+- Bài review chi tiết từ editor (markdown, ảnh, video embed)
+- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
+- Bình luận threaded (trả lời lồng nhau)
+- Q&A section với upvote câu trả lời hay nhất
+- Danh sách alternatives (tool tương tự)
+- "Works well with" integrations
+- Nút Bookmark, Share, Follow
+- Pricing history chart + alert giảm giá
 
-**8. Seasonal Awards / Best Of** (theo G2 "Best Software Awards 2026")
-- Trang `/best` hiển thị Top tools theo quý/năm
-- Badge "Best of 2026" trên tool card
-- Auto-generate dựa trên rating + review count trong period
-- Chia theo category
+**3. Trang so sánh công cụ**
+- Chọn 2-4 tool để so sánh side-by-side
+- Bảng so sánh tính năng, giá, rating, AI score
+- AI tự động tạo kết luận & đề xuất
+- ROI Calculator: nhập team size → tính chi phí
 
-**9. AI Agents Directory** (theo TAAFT)
-- Section riêng cho AI Agents (không chỉ tools)
-- Filter: autonomous vs semi-autonomous, use case
-- Tag system riêng cho agents
+**4. Trang danh sách & tìm kiếm**
+- Grid/list view toggle
+- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
+- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
+- Infinite scroll + skeleton loading
+- Search history, auto-complete, popular searches
+- Voice search (Web Speech API)
 
-**10. Tool Changelog / Update Timeline** (theo AlternativeTo News)
-- Mỗi tool có timeline cập nhật: "v2.0 released", "New feature X added"
-- AI auto-scrape changelog từ website tool
-- User follow tool nhận notification khi có update
-- Hiển thị dạng timeline trên tool detail page
+**5. Trang danh mục**
+- Mỗi danh mục có landing page riêng + mô tả + top tools
+- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
 
----
+**6. Trang Trending**
+- Tools đang trending tuần/tháng
+- "Rising Stars" - tools mới nổi tăng rating nhanh
+- Biểu đồ xu hướng popularity theo thời gian
 
-### C. Tính năng monetization & growth (Nice to Have)
+**7. Trang Use Cases & Workflows**
+- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
+- Mỗi use case gợi ý combo tools phù hợp
+- User submit workflow + tools đang dùng
 
-**11. Company Profiles** (theo TAAFT)
-- Trang `/companies` - hiển thị các công ty và tất cả tools của họ
-- Thông tin: funding, team size, headquarters
-- Bảng `companies` + foreign key từ `tools.company_id`
+**8. Trang Collections & Lists**
+- User tạo collection tool theo chủ đề
+- Editor tạo "Curated Lists" (Top 10 AI Tools...)
+- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
+- Collections công khai có thể upvote
 
-**12. AI Model Directory** (theo TAAFT)
-- Trang `/models` - danh sách AI models (GPT-5, Gemini, Claude...)
-- Tools nào dùng model nào
-- So sánh models side-by-side
+**9. Trang Profile người dùng**
+- Reviews đã viết, câu hỏi, tools bookmarked, collections
+- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
+- Lịch sử hoạt động
+- Recently viewed tools
 
-**13. Job Impact Index** (theo TAAFT)
-- Đánh giá mức độ AI tool ảnh hưởng đến từng nghề
-- Biểu đồ: "AI Impact Score" cho từng ngành
-
-**14. Fundraise Tracker** (theo TAAFT)
-- Track các vòng gọi vốn của tool/company
-- Timeline: Seed → Series A → B...
-- Filter tools theo funding stage
-
-**15. Mini Tools / Interactive Demos** (theo TAAFT)
-- Embed mini demo trực tiếp trên trang (free text-to-speech, image gen...)
-- Cho user thử trước khi quyết định dùng tool
-
----
-
-### D. Cải thiện UX hiện có
-
-**16. Structured Review Form** (theo Capterra + G2)
-- Thay form review tự do bằng form có cấu trúc:
-  - Overall rating (1-5)
-  - Ease of use (1-5)
-  - Customer support (1-5)  
-  - Value for money (1-5)
-  - Likelihood to recommend (1-10 NPS)
-  - Pros (text), Cons (text), Use case (text)
-- Hiển thị breakdown bar chart trên tool detail
-
-**17. Comparison Advisor** (theo Capterra "1-on-1 Advice")
-- AI chatbot chuyên so sánh: "Nên dùng Notion hay ClickUp cho team 10 người?"
-- Trả lời dựa trên dữ liệu reviews + pricing + features trong DB
-
-**18. Screenshot Gallery** (mọi platform đều có)
-- Upload nhiều screenshots cho mỗi tool
-- Gallery slider trên tool detail page
-- Bảng `tool_screenshots` (tool_id, image_url, caption, order)
+**10. Trang Blog/Tin tức**
+- Bài viết về xu hướng công cụ mới
+- AI tóm tắt tin tự động
+- Weekly digest
 
 ---
 
-### Tóm tắt ưu tiên đề xuất
+### 🤖 TÍNH NĂNG AI
 
-| Ưu tiên | Tính năng | Lý do |
-|---------|-----------|-------|
-| 1 | Structured Review Form | Tăng chất lượng review, giống G2/Capterra |
-| 2 | Alternatives Section | Core feature của AlternativeTo, rất hữu ích |
-| 3 | G2 Grid Chart | Trực quan, differentiator mạnh |
-| 4 | Screenshot Gallery | Mọi platform đều có, thiếu là điểm yếu |
-| 5 | Task-Based Discovery | UX innovation từ TAAFT |
-| 6 | Product Launch/Submit | Community-driven growth từ Product Hunt |
-| 7 | Verified Reviews | Trust & credibility |
-| 8 | Seasonal Awards | SEO + engagement boost |
+**1. AI Search thông minh**
+- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
+- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
+- "Similar to [tool X]" search
+
+**2. Chatbot tư vấn AI**
+- Widget chat floating trên mọi trang
+- Hỏi đáp, so sánh, tư vấn lựa chọn tool
+- Streaming response token-by-token
+- Trả lời dựa trên dữ liệu tools trong database
+
+**3. AI Thu thập dữ liệu tự động**
+- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
+- Tự điền form thêm tool mới
+- Scheduled re-scrape hàng tuần phát hiện thay đổi
+- User submit URL tool → AI thu thập → Admin duyệt
+
+**4. AI Hỗ trợ viết bài review**
+- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
+- Editor chỉnh sửa → xuất bản
+- AI dịch tự động sang ngôn ngữ khác
+
+**5. AI Đánh giá & chấm điểm**
+- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
+- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
+- Tóm tắt ưu/nhược bằng AI
+- Badge "AI Recommended"
+
+**6. AI Spam Detection**
+- Tự động phát hiện comment/review spam
+- Flag nội dung nghi vấn cho admin
+
+**7. AI Personalization**
+- Onboarding quiz → gợi ý tools theo lĩnh vực
+- "Because you liked [X]" recommendations
+
+---
+
+### 🔐 HỆ THỐNG NGƯỜI DÙNG
+
+- Đăng ký/đăng nhập: Email + Google OAuth
+- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
+- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
+- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
+- **Admin**: toàn quyền
+
+**Gamification**
+- Điểm reputation (viết review, Q&A, upvote nhận được)
+- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
+- Leaderboard contributors hàng tháng
+
+---
+
+### 📊 ADMIN DASHBOARD
+
+**Quản lý cơ bản**
+- CRUD tools, categories, tags, blog posts
+- Quản lý users, phân quyền role
+- Quản lý reviews, bình luận, Q&A
+- Bulk import tools từ CSV
+
+**Analytics & Dashboard**
+- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
+- Top tools phổ biến, user activity, đăng ký mới
+- Top contributors
+- Revenue tracking (nếu affiliate)
+
+**Content Moderation**
+- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
+- Hệ thống báo cáo spam/vi phạm
+- Approve/reject/flag + AI spam detection
+- Audit log mọi thao tác admin/editor
+
+**AI Management**
+- Nút "Auto-collect từ URL" khi thêm tool
+- Nút "Generate AI Draft" khi tạo review
+- Xem/chỉnh sửa AI scores
+- Log các lần AI scrape/generate
+- Scheduled re-scrape settings
+
+**Quản lý đa ngôn ngữ**
+- Trạng thái dịch mỗi bài (đã dịch/chưa)
+- Trigger dịch lại khi nội dung thay đổi
+- Chỉnh sửa bản dịch thủ công
+
+---
+
+### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
+
+- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
+- Editor viết 1 ngôn ngữ → AI dịch tự động
+- URL routing: `/vi/tool/...`, `/en/tool/...`
+- Bảng `translations` lưu bản dịch
+- Hreflang tags + canonical URLs cho SEO
+
+---
+
+### 🔔 THÔNG BÁO & FOLLOW
+
+- Follow tool → thông báo review mới, thay đổi pricing
+- Follow user/editor → thông báo review mới
+- Follow category → tool mới trong danh mục
+- Thông báo in-app + email digest tùy chọn
+- Price drop alerts
+
+---
+
+### 📱 MOBILE RESPONSIVE
+
+- Mobile-first responsive design
+- Bottom navigation bar (Home, Search, Bookmarks, Profile)
+- Collapsible filters
+- Pull-to-refresh, infinite scroll
+- Skeleton loading states
+- Touch-friendly rating, buttons
+- Share sheet native
+- "Quick Rate" swipe cards
+- Lazy loading images
+- Sticky header thu gọn khi scroll
+
+---
+
+### 📈 SEO & GROWTH
+
+- Auto-generate sitemap XML
+- Structured data JSON-LD cho Rich Snippets
+- Open Graph social cards tự động
+- Hreflang tags đa ngôn ngữ
+- Canonical URLs
+- Newsletter đăng ký email weekly digest
+
+---
+
+### 🏗️ BACKEND (Lovable Cloud + Supabase)
+
+**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
+
+**Edge Functions**:
+- `collect-tool-data`: Firecrawl scrape + AI parse
+- `generate-review`: AI tạo draft review
+- `evaluate-tool`: AI chấm điểm
+- `translate-content`: AI dịch đa ngôn ngữ
+- `ai-search`: Tìm kiếm thông minh
+- `ai-chat`: Chatbot tư vấn (streaming)
+- `detect-spam`: AI phát hiện spam
+
+**Auth + RLS**: Phân quyền theo role, security definer functions
+
+---
+
+### 📋 THỨ TỰ TRIỂN KHAI
+
+1. Database schema + Auth + Roles
+2. Trang chủ + Danh sách tools + Chi tiết tool (responsive)
+3. Review, Rating, Bình luận, Q&A, Upvote/Downvote
+4. AI Search + Chatbot tư vấn
+5. AI thu thập + viết bài + đánh giá (Firecrawl)
+6. So sánh tools + Pricing tracker
+7. Collections, Bookmarks, Follow, Notifications
+8. Admin dashboard đầy đủ + Moderation
+9. Đa ngôn ngữ tự động
+10. Trending, Gamification, Personalization
+11. Use Cases, Integrations map, Blog
+12. SEO optimization + Mobile polish
 

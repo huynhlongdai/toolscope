@@ -1026,42 +1026,63 @@ export type Database = {
       reviews: {
         Row: {
           author_id: string
+          cons: string | null
           content: string
           created_at: string
+          customer_support: number | null
           downvotes: number
+          ease_of_use: number | null
           id: string
           is_editor_review: boolean
+          likelihood_to_recommend: number | null
+          pros: string | null
           status: Database["public"]["Enums"]["content_status"]
           title: string
           tool_id: string
           updated_at: string
           upvotes: number
+          use_case: string | null
+          value_for_money: number | null
         }
         Insert: {
           author_id: string
+          cons?: string | null
           content: string
           created_at?: string
+          customer_support?: number | null
           downvotes?: number
+          ease_of_use?: number | null
           id?: string
           is_editor_review?: boolean
+          likelihood_to_recommend?: number | null
+          pros?: string | null
           status?: Database["public"]["Enums"]["content_status"]
           title: string
           tool_id: string
           updated_at?: string
           upvotes?: number
+          use_case?: string | null
+          value_for_money?: number | null
         }
         Update: {
           author_id?: string
+          cons?: string | null
           content?: string
           created_at?: string
+          customer_support?: number | null
           downvotes?: number
+          ease_of_use?: number | null
           id?: string
           is_editor_review?: boolean
+          likelihood_to_recommend?: number | null
+          pros?: string | null
           status?: Database["public"]["Enums"]["content_status"]
           title?: string
           tool_id?: string
           updated_at?: string
           upvotes?: number
+          use_case?: string | null
+          value_for_money?: number | null
         }
         Relationships: [
           {
@@ -1180,6 +1201,80 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      tool_alternatives: {
+        Row: {
+          alternative_id: string
+          created_at: string
+          id: string
+          tool_id: string
+          vote_count: number
+        }
+        Insert: {
+          alternative_id: string
+          created_at?: string
+          id?: string
+          tool_id: string
+          vote_count?: number
+        }
+        Update: {
+          alternative_id?: string
+          created_at?: string
+          id?: string
+          tool_id?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_alternatives_alternative_id_fkey"
+            columns: ["alternative_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_alternatives_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_screenshots: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          image_url: string
+          sort_order: number
+          tool_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          sort_order?: number
+          tool_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          sort_order?: number
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_screenshots_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tool_tags: {
         Row: {

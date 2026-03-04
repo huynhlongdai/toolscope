@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
+import { G2GridChart } from "@/components/category/G2GridChart";
 import { cn } from "@/lib/utils";
 
 export default function CategoryPage() {
@@ -170,6 +171,11 @@ export default function CategoryPage() {
                 </button>
               ))}
             </div>
+          )}
+
+          {/* G2 Grid Chart */}
+          {tools && tools.length >= 3 && category && (
+            <G2GridChart tools={tools as any} categoryName={category.name} />
           )}
 
           {isLoading ? (

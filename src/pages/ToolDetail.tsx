@@ -6,8 +6,11 @@ import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { ToolCard } from "@/components/tools/ToolCard";
-import { ReviewForm } from "@/components/tool-detail/ReviewForm";
+
+import { StructuredReviewForm } from "@/components/tool-detail/StructuredReviewForm";
+import { ReviewBreakdown } from "@/components/tool-detail/ReviewBreakdown";
+import { ScreenshotGallery } from "@/components/tool-detail/ScreenshotGallery";
+import { AlternativesSection } from "@/components/tool-detail/AlternativesSection";
 import { VoteButtons } from "@/components/tool-detail/VoteButtons";
 import { CommentSection } from "@/components/tool-detail/CommentSection";
 import { QASection } from "@/components/tool-detail/QASection";
@@ -92,22 +95,6 @@ export default function ToolDetail() {
     enabled: !!tool?.id && !!user?.id,
   });
 
-  const { data: alternatives } = useQuery({
-    queryKey: ["alternatives", tool?.category_id, tool?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tools")
-        .select("*, categories(name), ai_scores(overall_score, is_recommended)")
-        .eq("status", "published")
-        .eq("category_id", tool!.category_id!)
-        .neq("id", tool!.id)
-        .order("avg_rating", { ascending: false })
-        .limit(3);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!tool?.category_id,
-  });
 
   const toggleBookmark = async () => {
     if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
@@ -334,7 +321,7 @@ export default function ToolDetail() {
                     <CardTitle className="flex items-center gap-2">
                       <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
                     </CardTitle>
-                    <ReviewForm toolId={tool.id} userId={user?.id} />
+                    <StructuredReviewForm toolId={tool.id} userId={user?.id} />
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -447,34 +434,17 @@ export default function ToolDetail() {
                 </Card>
               )}
 
+              {/* Review Breakdown */}
+              <ReviewBreakdown reviews={(reviews || []) as any} />
+
+              {/* Screenshots */}
+              <ScreenshotGallery toolId={tool.id} toolName={tool.name} />
+
               {/* Deals */}
               <DealsSection toolId={tool.id} toolName={tool.name} />
 
               {/* Alternatives */}
-              {alternatives && alternatives.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Alternatives</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {alternatives.map((alt) => (
-                      <ToolCard
-                        key={alt.id}
-                        id={alt.id}
-                        name={alt.name}
-                        slug={alt.slug}
-                        shortDescription={alt.short_description || undefined}
-                        logoUrl={alt.logo_url || undefined}
-                        websiteUrl={alt.website_url || undefined}
-                        pricingType={alt.pricing_type}
-                        avgRating={Number(alt.avg_rating) || 0}
-                        ratingCount={alt.rating_count}
-                        categoryName={(alt.categories as any)?.name}
-                      />
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
+              <AlternativesSection toolId={tool.id} toolName={tool.name} categoryId={tool.category_id} />
 
               {/* Find Similar with AI */}
               <Button
