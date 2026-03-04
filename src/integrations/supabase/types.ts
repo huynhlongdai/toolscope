@@ -601,6 +601,7 @@ export type Database = {
       }
       tools: {
         Row: {
+          affiliate_url: string | null
           avg_rating: number | null
           category_id: string | null
           created_at: string
@@ -625,6 +626,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          affiliate_url?: string | null
           avg_rating?: number | null
           category_id?: string | null
           created_at?: string
@@ -649,6 +651,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          affiliate_url?: string | null
           avg_rating?: number | null
           category_id?: string | null
           created_at?: string
