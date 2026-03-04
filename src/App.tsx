@@ -60,6 +60,7 @@ const App = () => (
             <Route path="/admin/menus" element={<AdminMenus />} />
             <Route path="/admin/pages" element={<AdminPages />} />
             <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
+            <Route path="/admin/collect" element={<AdminCollectAI />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
