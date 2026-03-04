@@ -192,7 +192,7 @@ function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml:
 }
 
 /* ── Collapsible Section Card ───────────────────────────── */
-function SectionCard({ section, defaultOpen = true }: { section: Section; defaultOpen?: boolean }) {
+function SectionCard({ section, defaultOpen = true, toolId }: { section: Section; defaultOpen?: boolean; toolId?: string }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
