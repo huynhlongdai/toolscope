@@ -372,6 +372,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       avg_rating: form.avg_rating, rating_count: form.rating_count,
       view_count: form.view_count, pricing_details: pricingPlans,
       related_tool_ids: relatedIds,
+      faq: form.faq.length > 0 ? form.faq : null,
     };
 
     if (tool) {
