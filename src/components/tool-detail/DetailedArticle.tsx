@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Loader2, BookOpen, Info, Layers, Award, CreditCard, Users, Rocket, ThumbsUp, CheckCircle } from "lucide-react";
+import { Sparkles, Loader2, BookOpen, Info, Layers, Award, CreditCard, Users, Rocket, ThumbsUp, CheckCircle, List } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface DetailedArticleProps {
@@ -34,9 +34,19 @@ function getIconForTitle(title: string): React.ReactNode {
   return <BookOpen className="h-5 w-5 text-primary" />;
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/gi, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
 interface Section {
   title: string;
   content: string;
+  id: string;
 }
 
 function parseSections(markdown: string): Section[] {
@@ -49,7 +59,7 @@ function parseSections(markdown: string): Section[] {
     const headingMatch = line.match(/^##\s+(.+)/);
     if (headingMatch) {
       if (currentTitle || currentLines.length > 0) {
-        sections.push({ title: currentTitle, content: currentLines.join("\n").trim() });
+        sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "intro") });
       }
       currentTitle = headingMatch[1];
       currentLines = [];
@@ -58,7 +68,7 @@ function parseSections(markdown: string): Section[] {
     }
   }
   if (currentTitle || currentLines.length > 0) {
-    sections.push({ title: currentTitle, content: currentLines.join("\n").trim() });
+    sections.push({ title: currentTitle, content: currentLines.join("\n").trim(), id: slugify(currentTitle || "outro") });
   }
 
   return sections.filter((s) => s.title || s.content);
@@ -73,6 +83,8 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
     if (!detailedContent) return [];
     return parseSections(detailedContent);
   }, [detailedContent]);
+
+  const tocSections = useMemo(() => sections.filter((s) => s.title), [sections]);
 
   const generateArticle = async () => {
     setGenerating(true);
@@ -118,6 +130,11 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
     );
   }
 
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(`section-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -128,26 +145,54 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
         {isAdmin && generateButton("ghost", "Tạo lại")}
       </div>
 
+      {/* Table of Contents */}
+      {tocSections.length > 1 && (
+        <Card className="border-primary/20 bg-primary/[0.02]">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+              <List className="h-4 w-4" /> Mục lục
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4 pt-0">
+            <nav>
+              <ol className="grid gap-1 sm:grid-cols-2">
+                {tocSections.map((section, idx) => (
+                  <li key={section.id}>
+                    <button
+                      onClick={() => scrollToSection(section.id)}
+                      className="w-full text-left flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors hover:bg-primary/10 hover:text-primary group"
+                    >
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                        {idx + 1}
+                      </span>
+                      <span className="truncate">{section.title}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sections */}
       {sections.map((section, idx) => {
-        // Skip sections with no content
         if (!section.content && !section.title) return null;
 
-        // Intro section (no title) renders differently
         if (!section.title) {
           return (
             <Card key={idx}>
               <CardContent className="pt-6">
-                <div className="prose prose-neutral dark:prose-invert max-w-none prose-p:text-muted-foreground prose-p:leading-relaxed">
+                <article className="prose prose-neutral dark:prose-invert max-w-none prose-p:text-muted-foreground prose-p:leading-relaxed prose-strong:text-foreground prose-ul:text-muted-foreground prose-ol:text-muted-foreground prose-blockquote:border-primary/50 prose-blockquote:text-muted-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
                   <ReactMarkdown>{section.content}</ReactMarkdown>
-                </div>
+                </article>
               </CardContent>
             </Card>
           );
         }
 
         return (
-          <Card key={idx} className="overflow-hidden">
+          <Card key={idx} id={`section-${section.id}`} className="overflow-hidden scroll-mt-20">
             <CardHeader className="bg-muted/30 border-b border-border/50 pb-3">
               <CardTitle className="flex items-center gap-2.5 text-lg">
                 {getIconForTitle(section.title)}
@@ -155,9 +200,9 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-5">
-              <div className="prose prose-neutral dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-primary prose-img:rounded-lg prose-p:leading-relaxed prose-li:leading-relaxed prose-table:text-sm prose-th:bg-muted/50 prose-th:p-2.5 prose-td:p-2.5 prose-th:text-left prose-table:border prose-th:border prose-td:border prose-table:border-border prose-th:border-border prose-td:border-border">
+              <article className="prose prose-neutral dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-primary prose-a:underline-offset-2 prose-img:rounded-lg prose-p:leading-relaxed prose-li:leading-relaxed prose-strong:text-foreground prose-ul:text-muted-foreground prose-ol:text-muted-foreground prose-blockquote:border-primary/50 prose-blockquote:text-muted-foreground prose-blockquote:not-italic prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-normal prose-code:before:content-none prose-code:after:content-none prose-table:text-sm prose-th:bg-muted/50 prose-th:p-2.5 prose-td:p-2.5 prose-th:text-left prose-th:font-semibold prose-table:border prose-th:border prose-td:border prose-table:border-border prose-th:border-border prose-td:border-border prose-hr:border-border/50">
                 <ReactMarkdown>{section.content}</ReactMarkdown>
-              </div>
+              </article>
             </CardContent>
           </Card>
         );
