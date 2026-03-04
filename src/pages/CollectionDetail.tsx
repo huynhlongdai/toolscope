@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Header } from "@/components/layout/Header";
@@ -8,13 +9,16 @@ import { ToolCard } from "@/components/tools/ToolCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Globe, Lock, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Globe, Lock, Trash2, StickyNote, Pencil, Check, X } from "lucide-react";
 import { useCollections } from "@/hooks/useCollections";
+import { toast } from "sonner";
 
 export default function CollectionDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { removeFromCollection } = useCollections();
+  const queryClient = useQueryClient();
 
   const { data: collection, isLoading } = useQuery({
     queryKey: ["collection", id],
@@ -108,36 +112,118 @@ export default function CollectionDetail() {
               const tool = item.tools as any;
               if (!tool) return null;
               return (
-                <div key={item.id} className="relative group">
-                  <ToolCard
-                    id={tool.id}
-                    name={tool.name}
-                    slug={tool.slug}
-                    shortDescription={tool.short_description || undefined}
-                    logoUrl={tool.logo_url || undefined}
-                    websiteUrl={tool.website_url || undefined}
-                    pricingType={tool.pricing_type}
-                    avgRating={Number(tool.avg_rating) || 0}
-                    ratingCount={tool.rating_count}
-                    categoryName={(tool.categories as any)?.name}
-                  />
-                  {isOwner && (
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeFromCollection({ collectionId: id!, toolId: tool.id })}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
+                <CollectionItemCard
+                  key={item.id}
+                  item={item}
+                  tool={tool}
+                  isOwner={isOwner}
+                  collectionId={id!}
+                  onRemove={() => removeFromCollection({ collectionId: id!, toolId: tool.id })}
+                  onNoteUpdated={() => queryClient.invalidateQueries({ queryKey: ["collection-items", id] })}
+                />
               );
             })}
           </div>
         )}
       </main>
       <Footer />
+    </div>
+  );
+}
+
+function CollectionItemCard({
+  item,
+  tool,
+  isOwner,
+  collectionId,
+  onRemove,
+  onNoteUpdated,
+}: {
+  item: any;
+  tool: any;
+  isOwner: boolean;
+  collectionId: string;
+  onRemove: () => void;
+  onNoteUpdated: () => void;
+}) {
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(item.note || "");
+
+  const saveNote = async () => {
+    const { error } = await supabase
+      .from("collection_items" as any)
+      .update({ note: noteText.trim() || null })
+      .eq("id", item.id);
+    if (error) {
+      toast.error("Lỗi lưu ghi chú");
+    } else {
+      toast.success("Đã lưu ghi chú");
+      onNoteUpdated();
+    }
+    setEditingNote(false);
+  };
+
+  return (
+    <div className="relative group space-y-2">
+      <ToolCard
+        id={tool.id}
+        name={tool.name}
+        slug={tool.slug}
+        shortDescription={tool.short_description || undefined}
+        logoUrl={tool.logo_url || undefined}
+        websiteUrl={tool.website_url || undefined}
+        pricingType={tool.pricing_type}
+        avgRating={Number(tool.avg_rating) || 0}
+        ratingCount={tool.rating_count}
+        categoryName={(tool.categories as any)?.name}
+      />
+
+      {/* Note display/edit */}
+      {(item.note || isOwner) && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+          {editingNote ? (
+            <div className="space-y-2">
+              <Textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Ghi chú..."
+                rows={2}
+                className="text-sm"
+                autoFocus
+              />
+              <div className="flex gap-1 justify-end">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingNote(false); setNoteText(item.note || ""); }}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveNote}>
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <StickyNote className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground flex-1">{item.note || "Thêm ghi chú..."}</p>
+              {isOwner && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setEditingNote(true)}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isOwner && (
+        <Button
+          variant="destructive"
+          size="icon"
+          className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={onRemove}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
     </div>
   );
 }

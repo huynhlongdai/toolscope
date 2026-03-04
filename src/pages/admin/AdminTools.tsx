@@ -79,6 +79,7 @@ export default function AdminTools() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Tools</h1>
           <div className="flex gap-2">
+            <BatchTranslateButton tools={filtered} />
             <Button variant="outline" onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Batch Import</Button>
             <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
           </div>
@@ -1158,6 +1159,56 @@ function TranslateButton({ toolId, toolName }: { toolId: string; toolName: strin
   return (
     <Button variant="ghost" size="icon" onClick={handleTranslate} disabled={translating} title="Dịch sang tiếng Anh">
       {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+    </Button>
+  );
+}
+
+function BatchTranslateButton({ tools }: { tools: any[] }) {
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+
+  const handleBatchTranslate = async () => {
+    const publishedTools = tools.filter((t: any) => t.status === "published");
+    if (publishedTools.length === 0) { toast.error("Không có tool published nào"); return; }
+    if (!confirm(`Dịch ${publishedTools.length} tools sang tiếng Anh?`)) return;
+
+    setRunning(true);
+    setProgress({ done: 0, total: publishedTools.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const tool of publishedTools) {
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-tool", {
+          body: { tool_id: tool.id, locale: "en" },
+        });
+        if (error || data?.error) throw error || new Error(data?.error);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+      setProgress(prev => ({ ...prev, done: prev.done + 1 }));
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    setRunning(false);
+    toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
+  };
+
+  return (
+    <Button variant="outline" onClick={handleBatchTranslate} disabled={running}>
+      {running ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {progress.done}/{progress.total}
+        </>
+      ) : (
+        <>
+          <Languages className="mr-2 h-4 w-4" /> Dịch tất cả
+        </>
+      )}
     </Button>
   );
 }
