@@ -32,6 +32,7 @@ const blockTypes = [
   { type: "accordion", label: "📋 Accordion" },
   { type: "button", label: "🔘 Button" },
   { type: "countdown", label: "⏳ Countdown" },
+  { type: "gallery", label: "🖼️ Gallery / Carousel" },
 ];
 
 const defaultBlockData: Record<string, any> = {
