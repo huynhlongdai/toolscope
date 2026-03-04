@@ -348,7 +348,13 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
 
           {/* Related Tools */}
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-            <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+              <Button variant="ghost" size="sm" onClick={handleSuggestTools} disabled={!!aiLoading}>
+                {aiLoading === "suggest_tools" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                AI gợi ý
+              </Button>
+            </div>
             <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
             {toolSearch && (
               <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
