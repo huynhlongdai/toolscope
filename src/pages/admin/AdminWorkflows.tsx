@@ -142,6 +142,41 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
     update("steps", s);
   };
 
+  const handleAiGenerate = async () => {
+    if (aiMode === "keyword" && !aiKeyword.trim()) {
+      toast.error("Nhập keyword để tạo workflow");
+      return;
+    }
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-workflow", {
+        body: {
+          keyword: aiKeyword.trim() || null,
+          tool_ids: form.tool_ids.length > 0 ? form.tool_ids : null,
+          mode: aiMode,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Apply AI results to form
+      setForm(prev => ({
+        ...prev,
+        title: data.title || prev.title,
+        slug: data.slug || prev.slug,
+        description: data.description || prev.description,
+        category: data.category || prev.category,
+        steps: data.steps?.length > 0 ? data.steps : prev.steps,
+        tool_ids: data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids,
+      }));
+      toast.success("AI đã tạo workflow thành công!");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi tạo workflow bằng AI");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.title || !form.slug) { toast.error("Tiêu đề và slug là bắt buộc"); return; }
     if (!userId) { toast.error("Cần đăng nhập"); return; }
