@@ -1,60 +1,247 @@
 
 
-## Plan: Auto-fill tool form bằng AI khi nhập tên hoặc URL
+## ToolScope - Kế hoạch triển khai đầy đủ
 
-### Vấn đề
-Khi thêm tool mới, admin phải nhập tay tất cả thông tin. Edge function `collect-tool-data` đã tồn tại và hoạt động tốt (scrape URL → AI phân tích → trả về structured data), nhưng chưa được tích hợp vào form thêm tool.
+### Tổng quan
+Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
 
-### Giải pháp
-Thêm nút "Auto-fill" vào tab Cơ bản của `ToolFormDialog`. Admin nhập tên hoặc website URL → gọi `collect-tool-data` → tự động điền toàn bộ form fields.
+---
 
-### Thay đổi
+### 🏠 TRANG CÔNG KHAI
 
-**`src/pages/admin/AdminTools.tsx`** - ToolFormDialog:
+**1. Trang chủ**
+- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
+- Section "AI Recommended Tools" với badge
+- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
+- Tool nổi bật / trending / mới nhất
+- Bộ lọc theo danh mục, rating, giá, tags
+- "For You" feed cá nhân hóa
+- Nút chuyển ngôn ngữ + Dark/Light mode
 
-1. Thêm state `autoFilling` (loading) vào ToolFormDialog
+**2. Trang chi tiết công cụ**
+- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
+- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
+- Badge "AI Recommended" nếu đạt chuẩn
+- Bài review chi tiết từ editor (markdown, ảnh, video embed)
+- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
+- Bình luận threaded (trả lời lồng nhau)
+- Q&A section với upvote câu trả lời hay nhất
+- Danh sách alternatives (tool tương tự)
+- "Works well with" integrations
+- Nút Bookmark, Share, Follow
+- Pricing history chart + alert giảm giá
 
-2. Thêm hàm `handleAutoFill`:
-   - Nếu `form.website_url` có giá trị → gọi `collect-tool-data` với URL đó
-   - Nếu chỉ có `form.name` → gọi `collect-tool-data` với URL `https://www.google.com/search?q={name}+tool` hoặc dùng tên làm query. Thực tế tốt hơn: tạo thêm logic trong edge function để hỗ trợ search by name.
-   - Khi nhận kết quả → map vào form state: name, slug, short_description, description, detailed_content, pricing_type, platforms, logo_url, website_url, pricing_details, features
-   - Auto-convert description/detailed_content từ Markdown sang HTML (dùng `marked.parse`)
-   - Match `category_suggestion` với categories hiện có để tự động chọn category_id
+**3. Trang so sánh công cụ**
+- Chọn 2-4 tool để so sánh side-by-side
+- Bảng so sánh tính năng, giá, rating, AI score
+- AI tự động tạo kết luận & đề xuất
+- ROI Calculator: nhập team size → tính chi phí
 
-3. UI: Thêm vào đầu tab "Cơ bản" một Card chứa:
-   - Input URL hoặc tên tool
-   - Nút "Thu thập tự động" với icon Wand/Sparkles + loading spinner
-   - Hint text giải thích chức năng
+**4. Trang danh sách & tìm kiếm**
+- Grid/list view toggle
+- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
+- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
+- Infinite scroll + skeleton loading
+- Search history, auto-complete, popular searches
+- Voice search (Web Speech API)
 
-**`supabase/functions/collect-tool-data/index.ts`**:
+**5. Trang danh mục**
+- Mỗi danh mục có landing page riêng + mô tả + top tools
+- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
 
-4. Mở rộng để hỗ trợ parameter `name` (ngoài `url`):
-   - Nếu nhận `name` thay vì `url` → dùng Firecrawl search API để tìm website chính thức của tool → sau đó scrape website đó
-   - Fallback: nếu không tìm được URL, dùng AI để generate thông tin cơ bản từ tên tool dựa trên kiến thức của model
+**6. Trang Trending**
+- Tools đang trending tuần/tháng
+- "Rising Stars" - tools mới nổi tăng rating nhanh
+- Biểu đồ xu hướng popularity theo thời gian
 
-5. Thêm `detailed_content` vào AI prompt output:
-   - Yêu cầu AI tạo bài giới thiệu chi tiết (HTML format) gồm: Tổng quan, Tính năng chính, Giá cả, Đối tượng sử dụng, Ưu/Nhược điểm
-   - Giúp admin có sẵn nội dung để chỉnh sửa trong TipTap editor
+**7. Trang Use Cases & Workflows**
+- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
+- Mỗi use case gợi ý combo tools phù hợp
+- User submit workflow + tools đang dùng
 
-### Luồng sử dụng
+**8. Trang Collections & Lists**
+- User tạo collection tool theo chủ đề
+- Editor tạo "Curated Lists" (Top 10 AI Tools...)
+- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
+- Collections công khai có thể upvote
 
-```text
-Admin mở "Thêm Tool mới"
-  ↓
-Nhập tên "Figma" hoặc URL "https://figma.com"
-  ↓
-Bấm "Thu thập tự động" 
-  ↓
-[Edge function: search name → find URL → scrape → AI analyze]
-  ↓
-Form tự động điền: name, slug, description, pricing, platforms, logo, ...
-  ↓
-Admin review + chỉnh sửa nếu cần → Lưu
-```
+**9. Trang Profile người dùng**
+- Reviews đã viết, câu hỏi, tools bookmarked, collections
+- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
+- Lịch sử hoạt động
+- Recently viewed tools
 
-### Files thay đổi
-| File | Action |
-|------|--------|
-| `src/pages/admin/AdminTools.tsx` | Thêm auto-fill UI + logic |
-| `supabase/functions/collect-tool-data/index.ts` | Hỗ trợ search by name + thêm detailed_content |
+**10. Trang Blog/Tin tức**
+- Bài viết về xu hướng công cụ mới
+- AI tóm tắt tin tự động
+- Weekly digest
+
+---
+
+### 🤖 TÍNH NĂNG AI
+
+**1. AI Search thông minh**
+- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
+- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
+- "Similar to [tool X]" search
+
+**2. Chatbot tư vấn AI**
+- Widget chat floating trên mọi trang
+- Hỏi đáp, so sánh, tư vấn lựa chọn tool
+- Streaming response token-by-token
+- Trả lời dựa trên dữ liệu tools trong database
+
+**3. AI Thu thập dữ liệu tự động**
+- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
+- Tự điền form thêm tool mới
+- Scheduled re-scrape hàng tuần phát hiện thay đổi
+- User submit URL tool → AI thu thập → Admin duyệt
+
+**4. AI Hỗ trợ viết bài review**
+- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
+- Editor chỉnh sửa → xuất bản
+- AI dịch tự động sang ngôn ngữ khác
+
+**5. AI Đánh giá & chấm điểm**
+- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
+- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
+- Tóm tắt ưu/nhược bằng AI
+- Badge "AI Recommended"
+
+**6. AI Spam Detection**
+- Tự động phát hiện comment/review spam
+- Flag nội dung nghi vấn cho admin
+
+**7. AI Personalization**
+- Onboarding quiz → gợi ý tools theo lĩnh vực
+- "Because you liked [X]" recommendations
+
+---
+
+### 🔐 HỆ THỐNG NGƯỜI DÙNG
+
+- Đăng ký/đăng nhập: Email + Google OAuth
+- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
+- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
+- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
+- **Admin**: toàn quyền
+
+**Gamification**
+- Điểm reputation (viết review, Q&A, upvote nhận được)
+- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
+- Leaderboard contributors hàng tháng
+
+---
+
+### 📊 ADMIN DASHBOARD
+
+**Quản lý cơ bản**
+- CRUD tools, categories, tags, blog posts
+- Quản lý users, phân quyền role
+- Quản lý reviews, bình luận, Q&A
+- Bulk import tools từ CSV
+
+**Analytics & Dashboard**
+- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
+- Top tools phổ biến, user activity, đăng ký mới
+- Top contributors
+- Revenue tracking (nếu affiliate)
+
+**Content Moderation**
+- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
+- Hệ thống báo cáo spam/vi phạm
+- Approve/reject/flag + AI spam detection
+- Audit log mọi thao tác admin/editor
+
+**AI Management**
+- Nút "Auto-collect từ URL" khi thêm tool
+- Nút "Generate AI Draft" khi tạo review
+- Xem/chỉnh sửa AI scores
+- Log các lần AI scrape/generate
+- Scheduled re-scrape settings
+
+**Quản lý đa ngôn ngữ**
+- Trạng thái dịch mỗi bài (đã dịch/chưa)
+- Trigger dịch lại khi nội dung thay đổi
+- Chỉnh sửa bản dịch thủ công
+
+---
+
+### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
+
+- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
+- Editor viết 1 ngôn ngữ → AI dịch tự động
+- URL routing: `/vi/tool/...`, `/en/tool/...`
+- Bảng `translations` lưu bản dịch
+- Hreflang tags + canonical URLs cho SEO
+
+---
+
+### 🔔 THÔNG BÁO & FOLLOW
+
+- Follow tool → thông báo review mới, thay đổi pricing
+- Follow user/editor → thông báo review mới
+- Follow category → tool mới trong danh mục
+- Thông báo in-app + email digest tùy chọn
+- Price drop alerts
+
+---
+
+### 📱 MOBILE RESPONSIVE
+
+- Mobile-first responsive design
+- Bottom navigation bar (Home, Search, Bookmarks, Profile)
+- Collapsible filters
+- Pull-to-refresh, infinite scroll
+- Skeleton loading states
+- Touch-friendly rating, buttons
+- Share sheet native
+- "Quick Rate" swipe cards
+- Lazy loading images
+- Sticky header thu gọn khi scroll
+
+---
+
+### 📈 SEO & GROWTH
+
+- Auto-generate sitemap XML
+- Structured data JSON-LD cho Rich Snippets
+- Open Graph social cards tự động
+- Hreflang tags đa ngôn ngữ
+- Canonical URLs
+- Newsletter đăng ký email weekly digest
+
+---
+
+### 🏗️ BACKEND (Lovable Cloud + Supabase)
+
+**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
+
+**Edge Functions**:
+- `collect-tool-data`: Firecrawl scrape + AI parse
+- `generate-review`: AI tạo draft review
+- `evaluate-tool`: AI chấm điểm
+- `translate-content`: AI dịch đa ngôn ngữ
+- `ai-search`: Tìm kiếm thông minh
+- `ai-chat`: Chatbot tư vấn (streaming)
+- `detect-spam`: AI phát hiện spam
+
+**Auth + RLS**: Phân quyền theo role, security definer functions
+
+---
+
+### 📋 THỨ TỰ TRIỂN KHAI
+
+1. Database schema + Auth + Roles
+2. Trang chủ + Danh sách tools + Chi tiết tool (responsive)
+3. Review, Rating, Bình luận, Q&A, Upvote/Downvote
+4. AI Search + Chatbot tư vấn
+5. AI thu thập + viết bài + đánh giá (Firecrawl)
+6. So sánh tools + Pricing tracker
+7. Collections, Bookmarks, Follow, Notifications
+8. Admin dashboard đầy đủ + Moderation
+9. Đa ngôn ngữ tự động
+10. Trending, Gamification, Personalization
+11. Use Cases, Integrations map, Blog
+12. SEO optimization + Mobile polish
 
