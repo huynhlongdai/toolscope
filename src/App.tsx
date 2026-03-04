@@ -76,6 +76,7 @@ const App = () => (
             <Route path="/admin/pages" element={<AdminPages />} />
             <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
             <Route path="/admin/collect" element={<AdminCollectAI />} />
+            <Route path="/admin/workflows" element={<AdminWorkflows />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
