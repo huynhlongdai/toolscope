@@ -323,6 +323,65 @@ export default function AdminCollectAI() {
 
           {/* === SEARCH TAB === */}
           <TabsContent value="search" className="space-y-4">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Database className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.total ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Tổng collected</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                    <Hourglass className="h-5 w-5 text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.pending ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Chờ duyệt</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <CheckCircle className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.approved ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Đã duyệt</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <PackageCheck className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.imported ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Đã import</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats?.sessions ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">Phiên thu thập</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
