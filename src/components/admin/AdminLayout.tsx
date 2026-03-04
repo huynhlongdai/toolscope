@@ -26,6 +26,7 @@ const navItems = [
   { title: "Categories & Tags", url: "/admin/categories", icon: Tags },
   { title: "Menu Manager", url: "/admin/menus", icon: Menu },
   { title: "Page Builder", url: "/admin/pages", icon: FileStack },
+  { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
 ];
 

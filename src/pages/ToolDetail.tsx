@@ -434,6 +434,9 @@ export default function ToolDetail() {
                 </Card>
               )}
 
+              {/* Deals */}
+              <DealsSection toolId={tool.id} toolName={tool.name} />
+
               {/* Alternatives */}
               {alternatives && alternatives.length > 0 && (
                 <Card>
