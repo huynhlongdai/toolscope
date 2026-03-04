@@ -1073,6 +1073,7 @@ export type Database = {
           status: Database["public"]["Enums"]["content_status"]
           submitted_by: string | null
           updated_at: string
+          upvotes: number
           view_count: number
           website_url: string | null
         }
@@ -1100,6 +1101,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"]
           submitted_by?: string | null
           updated_at?: string
+          upvotes?: number
           view_count?: number
           website_url?: string | null
         }
@@ -1127,6 +1129,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"]
           submitted_by?: string | null
           updated_at?: string
+          upvotes?: number
           view_count?: number
           website_url?: string | null
         }
