@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Workflow, GripVertical, X } from "lucide-react";
+import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
@@ -190,11 +191,9 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
               <Label>Danh mục</Label>
               <Input value={form.category} onChange={(e) => update("category", e.target.value)} placeholder="VD: Design, Marketing..." />
             </div>
-            <div className="space-y-2">
-              <Label>Cover Image URL</Label>
-              <Input value={form.cover_image_url} onChange={(e) => update("cover_image_url", e.target.value)} />
-            </div>
           </div>
+
+          <CoverImageUpload value={form.cover_image_url} onChange={(v) => update("cover_image_url", v)} />
 
           {/* Tools */}
           <div className="border rounded-lg p-4 space-y-3 bg-muted/30">

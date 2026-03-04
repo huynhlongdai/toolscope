@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
@@ -354,15 +355,11 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
             <Input value={form.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Cover Image URL</Label>
-              <Input value={form.cover_image_url} onChange={(e) => updateField("cover_image_url", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tags (phẩy phân cách)</Label>
-              <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
-            </div>
+          <CoverImageUpload value={form.cover_image_url} onChange={(v) => updateField("cover_image_url", v)} />
+
+          <div className="space-y-2">
+            <Label>Tags (phẩy phân cách)</Label>
+            <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
           </div>
 
           <div className="space-y-2">
