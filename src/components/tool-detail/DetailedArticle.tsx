@@ -401,7 +401,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
           return (
             <Card key={idx}>
               <CardContent className="py-6">
-                <ContentRenderer content={section.content} isHtml={section.isHtml} />
+                <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
               </CardContent>
             </Card>
           );
