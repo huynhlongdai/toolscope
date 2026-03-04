@@ -1,0 +1,217 @@
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, Medal, Crown, Star, MessageCircle, FileText, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
+
+function getRankIcon(idx: number) {
+  if (idx === 0) return <Crown className="h-5 w-5 text-amber-500" />;
+  if (idx === 1) return <Medal className="h-5 w-5 text-slate-400" />;
+  if (idx === 2) return <Medal className="h-5 w-5 text-amber-700" />;
+  return <span className="text-sm font-bold text-muted-foreground w-5 text-center">{idx + 1}</span>;
+}
+
+function getRankBg(idx: number) {
+  if (idx === 0) return "bg-amber-500/5 border-amber-500/20";
+  if (idx === 1) return "bg-slate-400/5 border-slate-400/20";
+  if (idx === 2) return "bg-amber-700/5 border-amber-700/20";
+  return "";
+}
+
+export default function LeaderboardPage() {
+  const { data: topUsers, isLoading } = useQuery({
+    queryKey: ["leaderboard-all"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, display_name, avatar_url, reputation_score, username, created_at")
+        .order("reputation_score", { ascending: false })
+        .limit(50);
+      return data || [];
+    },
+  });
+
+  const { data: topReviewers } = useQuery({
+    queryKey: ["leaderboard-reviewers"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("reviews")
+        .select("author_id, profiles:author_id(id, display_name, avatar_url, reputation_score)")
+        .eq("status", "published");
+
+      // Count reviews per user
+      const counts: Record<string, { profile: any; count: number }> = {};
+      (data || []).forEach((r: any) => {
+        const uid = r.author_id;
+        if (!counts[uid]) counts[uid] = { profile: r.profiles, count: 0 };
+        counts[uid].count++;
+      });
+
+      return Object.values(counts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+    },
+  });
+
+  const { data: topCommenters } = useQuery({
+    queryKey: ["leaderboard-commenters"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("comments")
+        .select("user_id, profiles:user_id(id, display_name, avatar_url, reputation_score)");
+
+      const counts: Record<string, { profile: any; count: number }> = {};
+      (data || []).forEach((c: any) => {
+        const uid = c.user_id;
+        if (!counts[uid]) counts[uid] = { profile: c.profiles, count: 0 };
+        counts[uid].count++;
+      });
+
+      return Object.values(counts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+    },
+  });
+
+  const { data: userBadges } = useQuery({
+    queryKey: ["leaderboard-badges"],
+    queryFn: async () => {
+      const { data } = await supabase.from("user_badges").select("user_id, badge_type");
+      const map: Record<string, string[]> = {};
+      (data || []).forEach((b: any) => {
+        if (!map[b.user_id]) map[b.user_id] = [];
+        map[b.user_id].push(b.badge_type);
+      });
+      return map;
+    },
+  });
+
+  const badgeEmoji: Record<string, string> = {
+    early_adopter: "🌟",
+    top_reviewer: "✍️",
+    helpful: "🤝",
+    power_user: "⚡",
+    curator: "📚",
+  };
+
+  const renderUserRow = (profile: any, idx: number, stat?: { label: string; value: number }) => (
+    <div
+      key={profile.id}
+      className={`flex items-center gap-4 rounded-xl border p-4 transition-colors hover:bg-muted/50 ${getRankBg(idx)}`}
+    >
+      <div className="flex items-center justify-center w-8">{getRankIcon(idx)}</div>
+      <Link to={`/profile/${profile.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={profile.avatar_url} />
+          <AvatarFallback>{(profile.display_name || "?").charAt(0)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="font-semibold truncate">{profile.display_name || "Ẩn danh"}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(userBadges?.[profile.id] || []).map((b: string) => (
+              <span key={b} className="text-xs" title={b}>{badgeEmoji[b] || "🏅"}</span>
+            ))}
+          </div>
+        </div>
+      </Link>
+      <div className="text-right shrink-0">
+        {stat ? (
+          <div>
+            <p className="text-lg font-bold text-primary">{stat.value}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+          </div>
+        ) : (
+          <div>
+            <p className="text-lg font-bold text-primary">{profile.reputation_score}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">điểm</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SEOHead
+        title="Bảng xếp hạng Contributors - ToolScope"
+        description="Top contributors được xếp hạng theo điểm reputation, reviews và hoạt động cộng đồng."
+      />
+      <Header />
+      <main className="flex-1 pb-20 md:pb-0">
+        <div className="container py-8 max-w-3xl">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Trophy className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Bảng xếp hạng
+              </h1>
+            </div>
+            <p className="text-muted-foreground">Top contributors theo reputation, reviews và hoạt động.</p>
+          </div>
+
+          <Tabs defaultValue="reputation" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="reputation" className="gap-1.5">
+                <TrendingUp className="h-4 w-4" /> Reputation
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="gap-1.5">
+                <FileText className="h-4 w-4" /> Reviews
+              </TabsTrigger>
+              <TabsTrigger value="comments" className="gap-1.5">
+                <MessageCircle className="h-4 w-4" /> Bình luận
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="reputation">
+              <div className="space-y-2">
+                {isLoading ? (
+                  Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)
+                ) : topUsers?.length ? (
+                  topUsers.map((u: any, idx: number) => renderUserRow(u, idx))
+                ) : (
+                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reviews">
+              <div className="space-y-2">
+                {topReviewers?.length ? (
+                  topReviewers.map((item: any, idx: number) =>
+                    renderUserRow(item.profile, idx, { label: "reviews", value: item.count })
+                  )
+                ) : (
+                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="comments">
+              <div className="space-y-2">
+                {topCommenters?.length ? (
+                  topCommenters.map((item: any, idx: number) =>
+                    renderUserRow(item.profile, idx, { label: "bình luận", value: item.count })
+                  )
+                ) : (
+                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+      <Footer />
+      <MobileBottomNav />
+    </div>
+  );
+}

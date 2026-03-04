@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
@@ -150,6 +150,7 @@ export default function AdminTools() {
                     <TableCell>{tool.view_count}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <TranslateButton toolId={tool.id} toolName={tool.name} />
                         {tool.website_url && (
                           <Button variant="ghost" size="icon" asChild>
                             <a href={tool.website_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4" /></a>
@@ -1132,5 +1133,31 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TranslateButton({ toolId, toolName }: { toolId: string; toolName: string }) {
+  const [translating, setTranslating] = useState(false);
+
+  const handleTranslate = async () => {
+    setTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("translate-tool", {
+        body: { tool_id: toolId, locale: "en" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Đã dịch "${toolName}" sang tiếng Anh (${data.saved} trường)`);
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi dịch tự động");
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  return (
+    <Button variant="ghost" size="icon" onClick={handleTranslate} disabled={translating} title="Dịch sang tiếng Anh">
+      {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+    </Button>
   );
 }

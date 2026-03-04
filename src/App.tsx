@@ -33,6 +33,7 @@ import AdminPages from "./pages/admin/AdminPages";
 import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import DynamicPage from "./pages/DynamicPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/bookmarks" element={<BookmarksPage />} />
             <Route path="/workflows" element={<WorkflowsPage />} />
             <Route path="/workflow/:slug" element={<WorkflowsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
