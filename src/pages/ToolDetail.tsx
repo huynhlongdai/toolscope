@@ -155,6 +155,26 @@ export default function ToolDetail() {
 
   const aiScore = tool.ai_scores as any;
   const cat = tool.categories as any;
+  const faqItems: { question: string; answer: string }[] = Array.isArray((tool as any).faq) ? (tool as any).faq : [];
+
+  // FAQ JSON-LD Schema
+  useEffect(() => {
+    if (faqItems.length === 0) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "faq-schema";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer },
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById("faq-schema")?.remove(); };
+  }, [faqItems]);
 
   return (
     <div className="flex min-h-screen flex-col">
