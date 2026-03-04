@@ -382,18 +382,47 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       faq: form.faq.length > 0 ? form.faq : null,
     };
 
+    let savedToolId = tool?.id;
+
     if (tool) {
       const { error } = await supabase.from("tools").update(payload).eq("id", tool.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã cập nhật tool");
     } else {
-      const { error } = await supabase.from("tools").insert({ ...payload, status: "published" as any });
+      const { data: newTool, error } = await supabase.from("tools").insert({ ...payload, status: "published" as any }).select("id").single();
       if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã thêm tool");
+      savedToolId = newTool?.id;
     }
+
+    // Auto-create and assign suggested tags
+    if (savedToolId && suggestedTags.length > 0) {
+      await autoCreateAndAssignTags(savedToolId, suggestedTags);
+    }
+
+    toast.success(tool ? "Đã cập nhật tool" : "Đã thêm tool");
     queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
     setSaving(false);
     onClose();
+  };
+
+  const autoCreateAndAssignTags = async (toolId: string, tagNames: string[]) => {
+    for (const tagName of tagNames) {
+      const slug = tagName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      if (!slug) continue;
+
+      // Find or create tag
+      let { data: existing } = await supabase.from("tags").select("id").eq("slug", slug).maybeSingle();
+      let tagId = existing?.id;
+
+      if (!tagId) {
+        const { data: created } = await supabase.from("tags").insert({ name: tagName, slug }).select("id").single();
+        tagId = created?.id;
+      }
+
+      if (tagId) {
+        // Link tag to tool (ignore duplicate errors)
+        await supabase.from("tool_tags").upsert({ tool_id: toolId, tag_id: tagId }, { onConflict: "tool_id,tag_id" });
+      }
+    }
   };
 
   const createFakeReview = async () => {
