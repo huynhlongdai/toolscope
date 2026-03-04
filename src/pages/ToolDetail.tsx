@@ -39,7 +39,7 @@ export default function ToolDetail() {
         .select("*, categories(name, slug), ai_scores(*)")
         .eq("slug", slug!)
         .eq("status", "published")
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },

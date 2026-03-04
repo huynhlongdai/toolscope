@@ -97,6 +97,13 @@ export type Database = {
             referencedRelation: "tools"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       categories: {
@@ -189,6 +196,13 @@ export type Database = {
             referencedRelation: "tools"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -257,6 +271,13 @@ export type Database = {
             referencedRelation: "tools"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       reviews: {
@@ -300,6 +321,13 @@ export type Database = {
           upvotes?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "reviews_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reviews_tool_id_fkey"
             columns: ["tool_id"]
@@ -483,7 +511,15 @@ export type Database = {
           user_id?: string
           vote?: Database["public"]["Enums"]["vote_type"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
