@@ -18,6 +18,124 @@ function getFaviconUrl(domain: string, size = 128): string {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 }
 
+function formatUrl(url: string): string {
+  let formatted = url.trim();
+  if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
+    formatted = `https://${formatted}`;
+  }
+  return formatted;
+}
+
+// Try Firecrawl first for deep scraping
+async function scrapeWithFirecrawl(url: string): Promise<{ content: string; branding: any } | null> {
+  const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!apiKey) return null;
+
+  try {
+    console.log("Attempting Firecrawl scrape for:", url);
+    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown", "links"],
+        onlyMainContent: false,
+        waitFor: 3000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("Firecrawl returned:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const markdown = data.data?.markdown || data.markdown || "";
+    const metadata = data.data?.metadata || data.metadata || {};
+    const links = data.data?.links || data.links || [];
+
+    const content = `Title: ${metadata.title || ""}
+Description: ${metadata.description || ""}
+OG Image: ${metadata.ogImage || metadata.og_image || ""}
+Source: ${metadata.sourceURL || url}
+Links found: ${links.length}
+Content:
+${markdown.slice(0, 5000)}`;
+
+    return {
+      content,
+      branding: {
+        logo: metadata.ogImage || metadata.og_image || null,
+        title: metadata.title || "",
+      },
+    };
+  } catch (err) {
+    console.warn("Firecrawl error:", err);
+    return null;
+  }
+}
+
+// Fallback: basic fetch + HTML parse
+async function scrapeWithFetch(url: string): Promise<{ content: string; branding: any }> {
+  let pageContent = "";
+  let ogImage = "";
+  let pageTitle = "";
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ToolScope/1.0)",
+        Accept: "text/html",
+      },
+      redirect: "follow",
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      pageTitle = titleMatch ? titleMatch[1].trim() : "";
+
+      const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
+      const metaDesc = descMatch ? descMatch[1].trim() : "";
+
+      const kwMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i);
+      const metaKeywords = kwMatch ? kwMatch[1].trim() : "";
+
+      const ogImgMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+      ogImage = ogImgMatch ? ogImgMatch[1].trim() : "";
+
+      const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      let bodyText = bodyMatch ? bodyMatch[1] : html;
+      bodyText = bodyText
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 3000);
+
+      pageContent = `Title: ${pageTitle}
+Meta Description: ${metaDesc}
+Meta Keywords: ${metaKeywords}
+OG Image: ${ogImage}
+Body Text: ${bodyText}`;
+    }
+  } catch (err) {
+    console.warn("Fetch fallback error:", err);
+    pageContent = `Could not fetch page content from ${url}.`;
+  }
+
+  return {
+    content: pageContent,
+    branding: { logo: ogImage || null, title: pageTitle },
+  };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -37,77 +155,26 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Format URL
-    let formattedUrl = url.trim();
-    if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
-
+    const formattedUrl = formatUrl(url);
     const domain = extractDomain(formattedUrl);
     const faviconUrl = getFaviconUrl(domain);
 
-    // Try to fetch the page content (basic scrape)
-    let pageContent = "";
-    let pageTitle = "";
-    try {
-      const pageResponse = await fetch(formattedUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; ToolScope/1.0; +https://toolscope.com)",
-          "Accept": "text/html",
-        },
-        redirect: "follow",
-      });
+    // Try Firecrawl first, fallback to basic fetch
+    const firecrawlResult = await scrapeWithFirecrawl(formattedUrl);
+    const scrapeResult = firecrawlResult || await scrapeWithFetch(formattedUrl);
+    const scrapeMethod = firecrawlResult ? "firecrawl" : "fetch";
 
-      if (pageResponse.ok) {
-        const html = await pageResponse.text();
-        // Extract title
-        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        pageTitle = titleMatch ? titleMatch[1].trim() : "";
-
-        // Extract meta description
-        const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
-          || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i);
-        const metaDesc = descMatch ? descMatch[1].trim() : "";
-
-        // Extract meta keywords
-        const kwMatch = html.match(/<meta[^>]*name=["']keywords["'][^>]*content=["']([^"']+)["']/i);
-        const metaKeywords = kwMatch ? kwMatch[1].trim() : "";
-
-        // Extract OG image for logo
-        const ogImgMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
-          || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-        const ogImage = ogImgMatch ? ogImgMatch[1].trim() : "";
-
-        // Extract visible text (strip tags, scripts, styles)
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-        let bodyText = bodyMatch ? bodyMatch[1] : html;
-        bodyText = bodyText
-          .replace(/<script[\s\S]*?<\/script>/gi, "")
-          .replace(/<style[\s\S]*?<\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 3000);
-
-        pageContent = `Title: ${pageTitle}
-Meta Description: ${metaDesc}
-Meta Keywords: ${metaKeywords}
-OG Image: ${ogImage}
-Body Text: ${bodyText}`;
-      }
-    } catch (fetchErr) {
-      console.warn("Failed to fetch page:", fetchErr);
-      pageContent = `Could not fetch page content from ${formattedUrl}. Using URL and domain only.`;
-    }
+    console.log(`Scraped with: ${scrapeMethod}`);
 
     // Use AI to extract structured tool data
-    const prompt = `Analyze this website and extract information for a tool/software directory. Return a JSON object with the following fields:
+    const prompt = `Analyze this website and extract information for a tool/software directory. Return a JSON object.
 
 URL: ${formattedUrl}
 Domain: ${domain}
+Scrape method: ${scrapeMethod}
 
 Page content:
-${pageContent}
+${scrapeResult.content}
 
 Return ONLY valid JSON (no markdown, no comments) with these fields:
 {
@@ -148,8 +215,6 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
 
     const aiData = await aiResponse.json();
     let rawContent = aiData.choices?.[0]?.message?.content || "{}";
-
-    // Clean markdown code blocks if present
     rawContent = rawContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
 
     let toolData: any;
@@ -158,7 +223,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
     } catch {
       console.error("Failed to parse AI response:", rawContent);
       toolData = {
-        name: pageTitle || domain,
+        name: scrapeResult.branding?.title || domain,
         slug: domain.replace(/\./g, "-").replace(/^www-/, ""),
         short_description: `Công cụ từ ${domain}`,
         description: null,
@@ -167,7 +232,10 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
       };
     }
 
-    // Use favicon if no logo found
+    // Logo priority: AI found > Firecrawl branding > Google Favicon
+    if (!toolData.logo_url && scrapeResult.branding?.logo) {
+      toolData.logo_url = scrapeResult.branding.logo;
+    }
     if (!toolData.logo_url) {
       toolData.logo_url = faviconUrl;
     }
@@ -184,15 +252,10 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
       if (toolData.platforms) updateData.platforms = toolData.platforms;
       if (toolData.pricing_details) updateData.pricing_details = toolData.pricing_details;
 
-      const { error: updateErr } = await supabase
-        .from("tools")
-        .update(updateData)
-        .eq("id", tool_id);
-
+      const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
       if (updateErr) console.error("Failed to update tool:", updateErr);
       toolData.saved = !updateErr;
     } else if (save_to_db && !tool_id) {
-      // Create new tool
       const { data: newTool, error: insertErr } = await supabase
         .from("tools")
         .insert({
@@ -222,6 +285,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
     }
 
     toolData.favicon_url = faviconUrl;
+    toolData.scrape_method = scrapeMethod;
 
     return new Response(JSON.stringify(toolData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
