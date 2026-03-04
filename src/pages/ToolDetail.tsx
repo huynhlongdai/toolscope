@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
   Star, Bookmark, BookmarkCheck, Share2,
@@ -211,17 +212,27 @@ export default function ToolDetail() {
                   </a>
                 </Button>
               )}
-              <FollowButton targetType="tool" targetId={tool.id} />
+              <FollowButton targetType="tool" targetId={tool.id} showCount />
               <AddToCollectionDialog toolId={tool.id} toolName={tool.name} />
-              <Button variant="outline" size="icon" onClick={toggleBookmark}>
-                {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
-              </Button>
-              <Button variant="outline" size="icon" onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast({ title: "Đã copy link!" });
-              }}>
-                <Share2 className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" onClick={toggleBookmark}>
+                    {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="icon" onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast({ title: "Đã copy link!" });
+                  }}>
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent><p>Chia sẻ</p></TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
