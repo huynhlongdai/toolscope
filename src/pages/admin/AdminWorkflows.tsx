@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 export default function AdminWorkflows() {
@@ -113,6 +113,7 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiKeyword, setAiKeyword] = useState("");
   const [aiMode, setAiMode] = useState<"keyword" | "suggest">("keyword");
+  const [suggestedVideos, setSuggestedVideos] = useState<{ search_query: string; title: string; reason: string }[]>([]);
 
   const seoContentDefault = wf?.seo_content || {};
 
@@ -190,6 +191,9 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
         tool_ids: data.tool_ids?.length > 0 ? [...new Set([...prev.tool_ids, ...data.tool_ids])] : prev.tool_ids,
         seo_content: data.seo_content ? { ...prev.seo_content, ...data.seo_content } : prev.seo_content,
       }));
+      if (data.suggested_videos?.length) {
+        setSuggestedVideos(data.suggested_videos);
+      }
       toast.success("AI đã tạo workflow + SEO content thành công!");
     } catch (e: any) {
       toast.error(e.message || "Lỗi tạo workflow bằng AI");
@@ -477,6 +481,39 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                 </div>
               )}
             </div>
+
+            {/* AI Suggested Videos */}
+            {suggestedVideos.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  Video YouTube gợi ý bởi AI
+                </Label>
+                <div className="space-y-2">
+                  {suggestedVideos.map((video, i) => (
+                    <div key={i} className="flex items-start gap-3 rounded-lg border p-3 bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{video.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{video.reason}</p>
+                      </div>
+                      <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(video.search_query)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                          <ExternalLink className="h-3 w-3" /> Tìm
+                        </Button>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Nhấn "Tìm" để tìm video trên YouTube, sau đó copy URL và dán vào ô Video URL phía trên.
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

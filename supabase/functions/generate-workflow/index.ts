@@ -69,7 +69,8 @@ Guidelines:
 - Steps should have detailed descriptions (3-5 sentences each)
 - Categories: Design, Marketing, Development, Content, Productivity, Business, AI, Data
 - The slug should be lowercase, hyphen-separated Vietnamese (no diacritics)
-- Prioritize tools from the platform when applicable${toolsContext}${popularToolsContext}`;
+- Prioritize tools from the platform when applicable
+12. **YouTube Video Suggestions**: Suggest 3-5 real YouTube search queries (in Vietnamese and English) that would find relevant tutorial/guide videos for this workflow topic. Also suggest specific video titles that likely exist on YouTube.${toolsContext}${popularToolsContext}`;
 
     const userPrompt = keyword
       ? `Create a comprehensive, SEO-optimized workflow about: "${keyword}". ${tool_ids?.length ? "Incorporate the provided tools where relevant." : "Suggest appropriate tools from the platform."}`
@@ -164,8 +165,22 @@ Guidelines:
                     required: ["problem", "solution", "common_mistakes", "tips", "prerequisites", "target_audience", "use_cases", "estimated_time", "difficulty_level"],
                     additionalProperties: false,
                   },
+                  suggested_videos: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        search_query: { type: "string", description: "YouTube search query to find this video" },
+                        title: { type: "string", description: "Expected video title" },
+                        reason: { type: "string", description: "Why this video is relevant" },
+                      },
+                      required: ["search_query", "title", "reason"],
+                      additionalProperties: false,
+                    },
+                    description: "3-5 YouTube video search suggestions related to this workflow",
+                  },
                 },
-                required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content"],
+                required: ["title", "slug", "description", "category", "seo_title", "seo_description", "steps", "tool_ids", "seo_content", "suggested_videos"],
                 additionalProperties: false,
               },
             },
