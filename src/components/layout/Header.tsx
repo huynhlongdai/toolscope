@@ -119,6 +119,16 @@ export function Header() {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocale(locale === "vi" ? "en" : "vi")}
+            className="hidden md:flex gap-1 text-xs font-medium"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {locale === "vi" ? "EN" : "VI"}
+          </Button>
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
