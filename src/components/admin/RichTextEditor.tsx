@@ -16,9 +16,9 @@ import {
   Heading1, Heading2, Heading3, Heading4,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   ImageIcon, LinkIcon, Youtube as YoutubeIcon, Quote, Code,
-  Undo, Redo, Upload, Loader2,
+  Undo, Redo, Upload, Loader2, Palette, RemoveFormatting,
 } from "lucide-react";
-
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
