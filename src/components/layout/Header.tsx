@@ -25,8 +25,9 @@ interface MenuItem {
 
 const defaultNavItems: MenuItem[] = [
   { label: "Khám phá", url: "/tools" },
-  { label: "Danh mục", url: "/categories" },
+  { label: "Trending", url: "/trending" },
   { label: "So sánh", url: "/compare" },
+  { label: "Workflows", url: "/workflows" },
   { label: "Collections", url: "/collections" },
   { label: "Blog", url: "/blog" },
 ];
