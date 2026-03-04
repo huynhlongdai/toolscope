@@ -223,17 +223,7 @@ export default function ToolDetail() {
                 </TooltipTrigger>
                 <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({ title: "Đã copy link!" });
-                  }}>
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Chia sẻ</p></TooltipContent>
-              </Tooltip>
+              <ShareButtons title={tool.name} />
             </div>
           </div>
 
