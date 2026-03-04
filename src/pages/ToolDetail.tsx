@@ -239,6 +239,7 @@ export default function ToolDetail() {
                 </Button>
               )}
               <FollowButton targetType="tool" targetId={tool.id} showCount />
+              <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={0} tableName="tools" />
               <AddToCollectionDialog toolId={tool.id} toolName={tool.name} />
               <Tooltip>
                 <TooltipTrigger asChild>

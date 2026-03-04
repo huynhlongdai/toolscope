@@ -96,7 +96,7 @@ export default function WorkflowDetail() {
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {wf.category && <Badge variant="secondary">{wf.category}</Badge>}
-            <span className="flex items-center gap-1.5"><ThumbsUp className="h-4 w-4" /> {wf.upvotes ?? 0}</span>
+            <UpvoteButton targetId={wf.id} targetType="workflow" currentUpvotes={wf.upvotes ?? 0} tableName="workflows" />
             <span className="flex items-center gap-1.5"><Eye className="h-4 w-4" /> {wf.view_count ?? 0} lượt xem</span>
             {(wf.profiles as any)?.display_name && (
               <span>bởi {(wf.profiles as any).display_name}</span>
