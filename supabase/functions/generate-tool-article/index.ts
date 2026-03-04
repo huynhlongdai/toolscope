@@ -87,7 +87,17 @@ YÊU CẦU QUAN TRỌNG VỀ FORMAT:
 - Dùng > blockquote cho ghi chú, lưu ý
 - Dùng \`code\` cho tên phím tắt, lệnh
 - KHÔNG viết heading cấp 1 (#), chỉ dùng ## cho section headers
-- Mỗi list item phải trên 1 dòng riêng, có dấu - hoặc * ở đầu`;
+- Mỗi list item phải trên 1 dòng riêng, có dấu - hoặc * ở đầu
+
+## Câu hỏi thường gặp (FAQ)
+Tạo 5-8 câu hỏi thường gặp nhất về ${tool.name}. Format CHÍNH XÁC như sau:
+### Câu hỏi ở đây?
+Câu trả lời chi tiết 2-4 câu.
+
+### Câu hỏi tiếp theo?
+Câu trả lời chi tiết 2-4 câu.
+
+YÊU CẦU: Mỗi câu hỏi PHẢI bắt đầu bằng ### và kết thúc bằng dấu ?`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -113,10 +123,24 @@ YÊU CẦU QUAN TRỌNG VỀ FORMAT:
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "";
 
+    // Parse FAQ from markdown
+    const faqSection = content.split(/##\s*Câu hỏi thường gặp/i)[1] || "";
+    const faqRegex = /###\s*(.+?\?)\s*\n([\s\S]*?)(?=###|$)/g;
+    const faq: { question: string; answer: string }[] = [];
+    let match;
+    while ((match = faqRegex.exec(faqSection)) !== null) {
+      const question = match[1].trim();
+      const answer = match[2].trim();
+      if (question && answer) faq.push({ question, answer });
+    }
+
     // Save to DB
+    const updateData: any = { detailed_content: content };
+    if (faq.length > 0) updateData.faq = faq;
+
     const { error: updateErr } = await supabase
       .from("tools")
-      .update({ detailed_content: content })
+      .update(updateData)
       .eq("id", tool_id);
 
     if (updateErr) console.error("Failed to save content:", updateErr);

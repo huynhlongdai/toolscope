@@ -224,6 +224,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     rating_count: tool?.rating_count ?? 0,
     view_count: tool?.view_count ?? 0,
     pricing_details: tool?.pricing_details ?? [],
+    faq: (tool as any)?.faq ?? [],
   });
 
   const { data: categories = [] } = useQuery({
@@ -334,6 +335,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         pricing_type: data.pricing_type || prev.pricing_type,
         platforms: data.platforms?.length ? data.platforms : prev.platforms,
         pricing_details: Array.isArray(data.pricing_details) && data.pricing_details.length > 0 ? data.pricing_details : prev.pricing_details,
+        faq: Array.isArray(data.faq) && data.faq.length > 0 ? data.faq : prev.faq,
       }));
 
       // Try to match category
@@ -370,6 +372,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       avg_rating: form.avg_rating, rating_count: form.rating_count,
       view_count: form.view_count, pricing_details: pricingPlans,
       related_tool_ids: relatedIds,
+      faq: form.faq.length > 0 ? form.faq : null,
     };
 
     if (tool) {
@@ -453,9 +456,10 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
           <DialogTitle>{tool ? "Chỉnh sửa Tool" : "Thêm Tool mới"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="basic">Cơ bản</TabsTrigger>
             <TabsTrigger value="content">Nội dung</TabsTrigger>
+            <TabsTrigger value="faq">FAQ</TabsTrigger>
             <TabsTrigger value="stats">Fake Stats</TabsTrigger>
             <TabsTrigger value="reviews">Reviews & Q&A</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
@@ -558,6 +562,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
           {/* Tab: Content */}
           <TabsContent value="content" className="space-y-4 mt-4">
             <ContentTabWithPreview form={form} updateField={updateField} toolName={form.name} />
+          </TabsContent>
+
+          {/* Tab: FAQ */}
+          <TabsContent value="faq" className="space-y-4 mt-4">
+            <FAQTab tool={tool} form={form} updateField={updateField} />
           </TabsContent>
 
           {/* Tab: Fake Stats */}
@@ -814,6 +823,69 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
         </div>
       )}
     </div>
+  );
+}
+
+/* ── FAQ Tab ──────────────────────────────────────────────── */
+function FAQTab({ tool, form, updateField }: { tool: any; form: any; updateField: (k: string, v: any) => void }) {
+  const faqItems: { question: string; answer: string }[] = Array.isArray(form.faq) ? form.faq : [];
+  const [newQ, setNewQ] = useState("");
+  const [newA, setNewA] = useState("");
+
+  const addItem = () => {
+    if (!newQ.trim() || !newA.trim()) return;
+    updateField("faq", [...faqItems, { question: newQ.trim(), answer: newA.trim() }]);
+    setNewQ(""); setNewA("");
+  };
+
+  const removeItem = (idx: number) => {
+    updateField("faq", faqItems.filter((_, i) => i !== idx));
+  };
+
+  const updateItem = (idx: number, field: "question" | "answer", value: string) => {
+    updateField("faq", faqItems.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <MessageSquare className="h-4 w-4" /> FAQ ({faqItems.length})
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">FAQ được tạo tự động khi AI thu thập hoặc viết bài. Bạn có thể chỉnh sửa thủ công.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {faqItems.map((item, idx) => (
+          <div key={idx} className="border rounded-md p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 space-y-2">
+                <Input
+                  value={item.question}
+                  onChange={(e) => updateItem(idx, "question", e.target.value)}
+                  placeholder="Câu hỏi"
+                  className="font-medium"
+                />
+                <Textarea
+                  value={item.answer}
+                  onChange={(e) => updateItem(idx, "answer", e.target.value)}
+                  placeholder="Câu trả lời"
+                  rows={2}
+                />
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => removeItem(idx)}>
+                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        <div className="border-t pt-3 space-y-2">
+          <p className="text-sm font-medium">Thêm FAQ mới</p>
+          <Input placeholder="Câu hỏi?" value={newQ} onChange={(e) => setNewQ(e.target.value)} />
+          <Textarea placeholder="Câu trả lời..." value={newA} onChange={(e) => setNewA(e.target.value)} rows={2} />
+          <Button size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" /> Thêm</Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

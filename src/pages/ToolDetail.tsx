@@ -1,4 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -15,6 +16,7 @@ import { FollowButton } from "@/components/follow/FollowButton";
 import { AddToCollectionDialog } from "@/components/collections/AddToCollectionDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -124,6 +126,27 @@ export default function ToolDetail() {
     if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
     toast({ title: `Đã đánh giá ${score} sao!` });
   };
+
+  const faqItems: { question: string; answer: string }[] = Array.isArray((tool as any)?.faq) ? (tool as any).faq : [];
+
+  // FAQ JSON-LD Schema
+  useEffect(() => {
+    if (faqItems.length === 0) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "faq-schema";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer },
+      })),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById("faq-schema")?.remove(); };
+  }, [faqItems]);
 
   if (isLoading) {
     return (
@@ -251,6 +274,29 @@ export default function ToolDetail() {
                 detailedContent={(tool as any).detailed_content}
                 isAdmin={!!user}
               />
+
+              {/* FAQ Section */}
+              {faqItems.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5" /> Câu hỏi thường gặp ({faqItems.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      {faqItems.map((item, idx) => (
+                        <AccordionItem key={idx} value={`faq-${idx}`}>
+                          <AccordionTrigger className="text-left">{item.question}</AccordionTrigger>
+                          <AccordionContent>
+                            <p className="text-muted-foreground">{item.answer}</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Your Rating */}
               <Card>
