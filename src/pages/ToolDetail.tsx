@@ -1,0 +1,445 @@
+import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { ToolCard } from "@/components/tools/ToolCard";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Star, ExternalLink, Bookmark, BookmarkCheck, Share2,
+  ThumbsUp, ThumbsDown, MessageCircle, ArrowLeft,
+  Globe, DollarSign, Zap, Shield, BarChart3
+} from "lucide-react";
+import { useState } from "react";
+
+const pricingLabel: Record<string, string> = {
+  free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
+  open_source: "Open Source", contact: "Liên hệ",
+};
+
+export default function ToolDetail() {
+  const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [commentText, setCommentText] = useState("");
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+
+  const { data: tool, isLoading } = useQuery({
+    queryKey: ["tool", slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tools")
+        .select("*, categories(name, slug), ai_scores(*)")
+        .eq("slug", slug!)
+        .eq("status", "published")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!slug,
+  });
+
+  const { data: reviews } = useQuery({
+    queryKey: ["tool-reviews", tool?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("*, profiles:author_id(display_name, avatar_url)")
+        .eq("tool_id", tool!.id)
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tool?.id,
+  });
+
+  const { data: comments } = useQuery({
+    queryKey: ["tool-comments", tool?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("*, profiles:user_id(display_name, avatar_url)")
+        .eq("tool_id", tool!.id)
+        .is("parent_id", null)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tool?.id,
+  });
+
+  const { data: isBookmarked, refetch: refetchBookmark } = useQuery({
+    queryKey: ["bookmark", tool?.id, user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("bookmarks")
+        .select("id")
+        .eq("tool_id", tool!.id)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!tool?.id && !!user?.id,
+  });
+
+  const { data: alternatives } = useQuery({
+    queryKey: ["alternatives", tool?.category_id, tool?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tools")
+        .select("*, categories(name), ai_scores(overall_score, is_recommended)")
+        .eq("status", "published")
+        .eq("category_id", tool!.category_id!)
+        .neq("id", tool!.id)
+        .order("avg_rating", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!tool?.category_id,
+  });
+
+  const toggleBookmark = async () => {
+    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (isBookmarked) {
+      await supabase.from("bookmarks").delete().eq("tool_id", tool!.id).eq("user_id", user.id);
+    } else {
+      await supabase.from("bookmarks").insert({ tool_id: tool!.id, user_id: user.id });
+    }
+    refetchBookmark();
+  };
+
+  const submitComment = async () => {
+    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!commentText.trim()) return;
+    const { error } = await supabase.from("comments").insert({
+      tool_id: tool!.id, user_id: user.id, content: commentText.trim(),
+    });
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    setCommentText("");
+    toast({ title: "Đã gửi bình luận!" });
+  };
+
+  const submitRating = async (score: number) => {
+    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    setUserRating(score);
+    const { error } = await supabase.from("ratings").upsert(
+      { tool_id: tool!.id, user_id: user.id, score },
+      { onConflict: "tool_id,user_id" }
+    );
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    toast({ title: `Đã đánh giá ${score} sao!` });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 container py-8">
+          <Skeleton className="mb-4 h-8 w-48" />
+          <Skeleton className="mb-8 h-64 rounded-xl" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!tool) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 container py-16 text-center">
+          <p className="text-xl text-muted-foreground">Không tìm thấy công cụ này</p>
+          <Link to="/tools" className="mt-4 inline-block text-primary hover:underline">← Quay lại danh sách</Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const aiScore = tool.ai_scores as any;
+  const cat = tool.categories as any;
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1">
+        <div className="container py-8">
+          <Link to="/tools" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" /> Quay lại
+          </Link>
+
+          {/* Tool Header */}
+          <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl font-bold text-muted-foreground">
+                {tool.logo_url ? (
+                  <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-2xl object-cover" />
+                ) : tool.name.charAt(0)}
+              </div>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    {tool.name}
+                  </h1>
+                  {aiScore?.is_recommended && (
+                    <Badge className="bg-primary text-primary-foreground">⚡ AI Recommended</Badge>
+                  )}
+                </div>
+                {tool.short_description && (
+                  <p className="mt-2 text-lg text-muted-foreground">{tool.short_description}</p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  {cat?.name && (
+                    <Link to={`/category/${cat.slug}`}>
+                      <Badge variant="secondary">{cat.name}</Badge>
+                    </Link>
+                  )}
+                  <Badge variant="outline">{pricingLabel[tool.pricing_type] || tool.pricing_type}</Badge>
+                  {tool.rating_count > 0 && (
+                    <span className="flex items-center gap-1 text-sm">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      {Number(tool.avg_rating).toFixed(1)}
+                      <span className="text-muted-foreground">({tool.rating_count} đánh giá)</span>
+                    </span>
+                  )}
+                  <span className="text-sm text-muted-foreground">{tool.view_count.toLocaleString()} lượt xem</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {tool.website_url && (
+                <Button asChild>
+                  <a href={tool.website_url} target="_blank" rel="noopener noreferrer">
+                    <Globe className="h-4 w-4 mr-1.5" /> Truy cập
+                  </a>
+                </Button>
+              )}
+              <Button variant="outline" size="icon" onClick={toggleBookmark}>
+                {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast({ title: "Đã copy link!" });
+              }}>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Description */}
+              {tool.description && (
+                <Card>
+                  <CardHeader><CardTitle>Giới thiệu</CardTitle></CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Your Rating */}
+              <Card>
+                <CardHeader><CardTitle>Đánh giá của bạn</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        onMouseEnter={() => setHoverRating(s)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => submitRating(s)}
+                        className="p-0.5"
+                      >
+                        <Star className={`h-7 w-7 transition-colors ${
+                          s <= (hoverRating || userRating)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-muted-foreground/30"
+                        }`} />
+                      </button>
+                    ))}
+                    {userRating > 0 && <span className="ml-2 text-sm text-muted-foreground">Bạn đã đánh giá {userRating} sao</span>}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reviews */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {reviews && reviews.length > 0 ? (
+                    <div className="space-y-6">
+                      {reviews.map((review) => (
+                        <div key={review.id} className="border-b border-border pb-5 last:border-0 last:pb-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                              {(review.profiles as any)?.display_name?.charAt(0) || "?"}
+                            </div>
+                            <span className="text-sm font-medium">{(review.profiles as any)?.display_name || "Ẩn danh"}</span>
+                            {review.is_editor_review && <Badge variant="secondary" className="text-[10px]">Editor</Badge>}
+                            <span className="text-xs text-muted-foreground ml-auto">{new Date(review.created_at).toLocaleDateString("vi-VN")}</span>
+                          </div>
+                          <h4 className="font-medium mb-1">{review.title}</h4>
+                          <p className="text-sm text-muted-foreground">{review.content}</p>
+                          <div className="mt-2 flex gap-3">
+                            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                              <ThumbsUp className="h-3.5 w-3.5" /> {review.upvotes}
+                            </button>
+                            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                              <ThumbsDown className="h-3.5 w-3.5" /> {review.downvotes}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Chưa có review nào. Hãy là người đầu tiên!</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Comments */}
+              <Card>
+                <CardHeader><CardTitle>Bình luận ({comments?.length || 0})</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder={user ? "Viết bình luận..." : "Đăng nhập để bình luận"}
+                      className="min-h-[80px]"
+                      disabled={!user}
+                    />
+                  </div>
+                  {commentText.trim() && (
+                    <Button size="sm" onClick={submitComment}>Gửi bình luận</Button>
+                  )}
+                  {comments && comments.length > 0 && (
+                    <div className="space-y-4 pt-4 border-t border-border">
+                      {comments.map((c) => (
+                        <div key={c.id} className="flex gap-3">
+                          <div className="h-7 w-7 shrink-0 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                            {(c.profiles as any)?.display_name?.charAt(0) || "?"}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{(c.profiles as any)?.display_name || "Ẩn danh"}</span>
+                              <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString("vi-VN")}</span>
+                            </div>
+                            <p className="mt-0.5 text-sm text-muted-foreground">{c.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* AI Score Card */}
+              {aiScore && (
+                <Card className="border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-primary" /> AI Score
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="text-center">
+                      <span className="text-4xl font-bold text-primary">{Number(aiScore.overall_score).toFixed(1)}</span>
+                      <span className="text-lg text-muted-foreground">/10</span>
+                    </div>
+                    {[
+                      { label: "Dễ sử dụng", value: aiScore.ease_of_use, icon: Shield },
+                      { label: "Tính năng", value: aiScore.features, icon: Zap },
+                      { label: "Giá trị", value: aiScore.value_for_money, icon: DollarSign },
+                      { label: "Hỗ trợ", value: aiScore.support, icon: MessageCircle },
+                      { label: "Hiệu suất", value: aiScore.performance, icon: BarChart3 },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs flex-1">{item.label}</span>
+                        <div className="h-1.5 w-20 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{ width: `${((Number(item.value) || 0) / 10) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium w-6 text-right">{Number(item.value || 0).toFixed(1)}</span>
+                      </div>
+                    ))}
+                    {aiScore.pros && aiScore.pros.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Ưu điểm</p>
+                        <ul className="space-y-0.5">
+                          {aiScore.pros.map((p: string, i: number) => (
+                            <li key={i} className="text-xs text-muted-foreground">+ {p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiScore.cons && aiScore.cons.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Nhược điểm</p>
+                        <ul className="space-y-0.5">
+                          {aiScore.cons.map((c: string, i: number) => (
+                            <li key={i} className="text-xs text-muted-foreground">− {c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiScore.summary && (
+                      <p className="text-xs text-muted-foreground border-t border-border pt-3">{aiScore.summary}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Alternatives */}
+              {alternatives && alternatives.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Alternatives</CardTitle></CardHeader>
+                  <CardContent className="space-y-3">
+                    {alternatives.map((alt) => (
+                      <ToolCard
+                        key={alt.id}
+                        id={alt.id}
+                        name={alt.name}
+                        slug={alt.slug}
+                        shortDescription={alt.short_description || undefined}
+                        pricingType={alt.pricing_type}
+                        avgRating={Number(alt.avg_rating) || 0}
+                        ratingCount={alt.rating_count}
+                        categoryName={(alt.categories as any)?.name}
+                      />
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
