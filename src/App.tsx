@@ -36,8 +36,10 @@ import AdminPageEditor from "./pages/admin/AdminPageEditor";
 import AdminCollectAI from "./pages/admin/AdminCollectAI";
 import AdminWorkflows from "./pages/admin/AdminWorkflows";
 import AdminSearchAnalytics from "./pages/admin/AdminSearchAnalytics";
+import AdminDeals from "./pages/admin/AdminDeals";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import DealsPage from "./pages/DealsPage";
 
 const queryClient = new QueryClient();
 
