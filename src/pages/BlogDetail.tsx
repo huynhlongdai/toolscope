@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Eye, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { ShareButtons } from "@/components/share/ShareButtons";
 
 export default function BlogDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -103,8 +104,16 @@ export default function BlogDetail() {
             </div>
           )}
 
+          <div className="mt-4">
+            <ShareButtons title={post.title} />
+          </div>
+
           <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
-            <ReactMarkdown>{post.content}</ReactMarkdown>
+            {post.content.startsWith("<") ? (
+              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            ) : (
+              <ReactMarkdown>{post.content}</ReactMarkdown>
+            )}
           </div>
         </article>
       </main>

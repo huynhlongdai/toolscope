@@ -439,6 +439,30 @@ export type Database = {
           },
         ]
       }
+      menus: {
+        Row: {
+          id: string
+          items: Json
+          location: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          items?: Json
+          location: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          items?: Json
+          location?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -482,6 +506,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      page_templates: {
+        Row: {
+          blocks: Json
+          category: string | null
+          description: string | null
+          id: string
+          name: string
+          thumbnail_url: string | null
+        }
+        Insert: {
+          blocks?: Json
+          category?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          thumbnail_url?: string | null
+        }
+        Update: {
+          blocks?: Json
+          category?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          thumbnail_url?: string | null
+        }
+        Relationships: []
+      }
+      pages: {
+        Row: {
+          blocks: Json
+          created_at: string | null
+          id: string
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          status: Database["public"]["Enums"]["content_status"] | null
+          template: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string | null
+          id?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["content_status"] | null
+          template?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string | null
+          id?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["content_status"] | null
+          template?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       pricing_history: {
         Row: {
@@ -534,6 +624,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          is_banned: boolean | null
           reputation_score: number
           updated_at: string
           username: string | null
@@ -545,6 +636,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          is_banned?: boolean | null
           reputation_score?: number
           updated_at?: string
           username?: string | null
@@ -556,6 +648,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          is_banned?: boolean | null
           reputation_score?: number
           updated_at?: string
           username?: string | null
@@ -785,6 +878,7 @@ export type Database = {
           pricing_details: Json | null
           pricing_type: Database["public"]["Enums"]["pricing_type"]
           rating_count: number
+          related_tool_ids: string[] | null
           short_description: string | null
           slug: string
           status: Database["public"]["Enums"]["content_status"]
@@ -810,6 +904,7 @@ export type Database = {
           pricing_details?: Json | null
           pricing_type?: Database["public"]["Enums"]["pricing_type"]
           rating_count?: number
+          related_tool_ids?: string[] | null
           short_description?: string | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"]
@@ -835,6 +930,7 @@ export type Database = {
           pricing_details?: Json | null
           pricing_type?: Database["public"]["Enums"]["pricing_type"]
           rating_count?: number
+          related_tool_ids?: string[] | null
           short_description?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"]

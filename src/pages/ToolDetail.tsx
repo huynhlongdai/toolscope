@@ -20,13 +20,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Star, Bookmark, BookmarkCheck, Share2,
+  Star, Bookmark, BookmarkCheck,
   MessageCircle, ArrowLeft, GitCompareArrows,
   Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getToolLogoUrl } from "@/lib/favicon";
+import { ShareButtons } from "@/components/share/ShareButtons";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -222,17 +223,7 @@ export default function ToolDetail() {
                 </TooltipTrigger>
                 <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast({ title: "Đã copy link!" });
-                  }}>
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Chia sẻ</p></TooltipContent>
-              </Tooltip>
+              <ShareButtons title={tool.name} />
             </div>
           </div>
 
@@ -244,7 +235,11 @@ export default function ToolDetail() {
                 <Card>
                   <CardHeader><CardTitle>Giới thiệu</CardTitle></CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                    {tool.description.startsWith("<") ? (
+                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: tool.description }} />
+                    ) : (
+                      <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                    )}
                   </CardContent>
                 </Card>
               )}
