@@ -191,10 +191,9 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
               <Label>Danh mục</Label>
               <Input value={form.category} onChange={(e) => update("category", e.target.value)} placeholder="VD: Design, Marketing..." />
             </div>
-            <div className="space-y-2">
-              <Label>Cover Image URL</Label>
-              <Input value={form.cover_image_url} onChange={(e) => update("cover_image_url", e.target.value)} />
-            </div>
+          </div>
+
+          <CoverImageUpload value={form.cover_image_url} onChange={(v) => update("cover_image_url", v)} />
           </div>
 
           {/* Tools */}

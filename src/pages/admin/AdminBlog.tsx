@@ -361,7 +361,6 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
             <Label>Tags (phẩy phân cách)</Label>
             <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
           </div>
-          </div>
 
           <div className="space-y-2">
             <Label>Nội dung</Label>
