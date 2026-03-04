@@ -997,6 +997,86 @@ export type Database = {
           },
         ]
       }
+      search_logs: {
+        Row: {
+          created_at: string
+          id: string
+          normalized_query: string
+          query: string
+          results_count: number
+          session_id: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          normalized_query: string
+          query: string
+          results_count?: number
+          session_id?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          normalized_query?: string
+          query?: string
+          results_count?: number
+          session_id?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      search_rules: {
+        Row: {
+          boost_category_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean
+          keyword_pattern: string
+          match_type: string
+          pinned_tool_ids: string[] | null
+          redirect_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          boost_category_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          keyword_pattern: string
+          match_type?: string
+          pinned_tool_ids?: string[] | null
+          redirect_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          boost_category_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          keyword_pattern?: string
+          match_type?: string
+          pinned_tool_ids?: string[] | null
+          redirect_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_rules_boost_category_id_fkey"
+            columns: ["boost_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           created_at: string
