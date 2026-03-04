@@ -1,0 +1,1 @@
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS upvotes integer NOT NULL DEFAULT 0;

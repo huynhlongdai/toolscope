@@ -31,6 +31,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { ShareButtons } from "@/components/share/ShareButtons";
+import { UpvoteButton } from "@/components/UpvoteButton";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -238,6 +239,7 @@ export default function ToolDetail() {
                 </Button>
               )}
               <FollowButton targetType="tool" targetId={tool.id} showCount />
+              <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={tool.upvotes ?? 0} tableName="tools" />
               <AddToCollectionDialog toolId={tool.id} toolName={tool.name} />
               <Tooltip>
                 <TooltipTrigger asChild>
