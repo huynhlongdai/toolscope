@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useCollections } from "@/hooks/useCollections";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -26,10 +27,27 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [note, setNote] = useState("");
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 
   const handleAdd = (collectionId: string) => {
-    addToCollection({ collectionId, toolId });
+    if (!note.trim()) {
+      // Add directly without note
+      addToCollection({ collectionId, toolId });
+      setOpen(false);
+      setNote("");
+      return;
+    }
+    // Show note input
+    setSelectedCollectionId(collectionId);
+  };
+
+  const confirmAdd = () => {
+    if (!selectedCollectionId) return;
+    addToCollection({ collectionId: selectedCollectionId, toolId, note: note.trim() || undefined });
     setOpen(false);
+    setNote("");
+    setSelectedCollectionId(null);
   };
 
   const handleCreate = () => {
@@ -38,10 +56,11 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
       { name: newName.trim() },
       {
         onSuccess: (data: any) => {
-          addToCollection({ collectionId: data.id, toolId });
+          addToCollection({ collectionId: data.id, toolId, note: note.trim() || undefined });
           setNewName("");
           setShowNew(false);
           setOpen(false);
+          setNote("");
         },
       } as any
     );
@@ -65,7 +84,7 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setSelectedCollectionId(null); setNote(""); } }}>
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
@@ -80,33 +99,65 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
         <DialogHeader>
           <DialogTitle>Thêm "{toolName}" vào Collection</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {myCollections.map((c: any) => (
-            <button
-              key={c.id}
-              onClick={() => handleAdd(c.id)}
-              className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left text-sm hover:bg-muted transition-colors"
-            >
-              <span className="font-medium">{c.name}</span>
-              <Plus className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
-        </div>
-        {showNew ? (
-          <div className="flex gap-2">
-            <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Tên collection..."
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+
+        {selectedCollectionId ? (
+          <div className="space-y-3">
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ghi chú về tool này (tùy chọn)..."
+              rows={3}
               autoFocus
             />
-            <Button size="sm" onClick={handleCreate}>Tạo</Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setSelectedCollectionId(null)}>Quay lại</Button>
+              <Button size="sm" onClick={confirmAdd}>Thêm</Button>
+            </div>
           </div>
         ) : (
-          <Button variant="outline" className="w-full gap-2" onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4" /> Tạo collection mới
-          </Button>
+          <>
+            {/* Note input */}
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ghi chú (tùy chọn)..."
+              rows={2}
+              className="text-sm"
+            />
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {myCollections.map((c: any) => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    addToCollection({ collectionId: c.id, toolId, note: note.trim() || undefined });
+                    setOpen(false);
+                    setNote("");
+                  }}
+                  className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left text-sm hover:bg-muted transition-colors"
+                >
+                  <span className="font-medium">{c.name}</span>
+                  <Plus className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+            {showNew ? (
+              <div className="flex gap-2">
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Tên collection..."
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleCreate}>Tạo</Button>
+              </div>
+            ) : (
+              <Button variant="outline" className="w-full gap-2" onClick={() => setShowNew(true)}>
+                <Plus className="h-4 w-4" /> Tạo collection mới
+              </Button>
+            )}
+          </>
         )}
       </DialogContent>
     </Dialog>
