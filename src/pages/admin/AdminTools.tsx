@@ -569,11 +569,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Website URL</Label><Input value={form.website_url} onChange={(e) => updateField("website_url", e.target.value)} /></div>
-              <div className="space-y-2"><Label>Logo URL</Label><Input value={form.logo_url} onChange={(e) => updateField("logo_url", e.target.value)} /></div>
               <div className="space-y-2"><Label>Affiliate URL</Label><Input value={form.affiliate_url} onChange={(e) => updateField("affiliate_url", e.target.value)} /></div>
             </div>
+            <CoverImageUpload value={form.logo_url} onChange={(v) => updateField("logo_url", v)} label="Logo" />
             <div className="space-y-2">
               <Label>Platforms</Label>
               <div className="flex flex-wrap gap-2">
