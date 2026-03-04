@@ -1,10 +1,9 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
+import Youtube from "@tiptap/extension-youtube";
 import Youtube from "@tiptap/extension-youtube";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
