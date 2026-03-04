@@ -607,6 +607,7 @@ export type Database = {
           description: string | null
           discount_type: string | null
           discount_value: number | null
+          downvotes: number
           expires_at: string | null
           id: string
           is_active: boolean | null
@@ -617,6 +618,7 @@ export type Database = {
           title: string
           tool_id: string
           updated_at: string | null
+          upvotes: number
         }
         Insert: {
           click_count?: number | null
@@ -629,6 +631,7 @@ export type Database = {
           description?: string | null
           discount_type?: string | null
           discount_value?: number | null
+          downvotes?: number
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -639,6 +642,7 @@ export type Database = {
           title: string
           tool_id: string
           updated_at?: string | null
+          upvotes?: number
         }
         Update: {
           click_count?: number | null
@@ -651,6 +655,7 @@ export type Database = {
           description?: string | null
           discount_type?: string | null
           discount_value?: number | null
+          downvotes?: number
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -661,6 +666,7 @@ export type Database = {
           title?: string
           tool_id?: string
           updated_at?: string | null
+          upvotes?: number
         }
         Relationships: [
           {
