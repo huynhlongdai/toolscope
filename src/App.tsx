@@ -40,6 +40,8 @@ import AdminDeals from "./pages/admin/AdminDeals";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import DealsPage from "./pages/DealsPage";
+import TasksPage from "./pages/TasksPage";
+import LaunchesPage from "./pages/LaunchesPage";
 
 const queryClient = new QueryClient();
 
