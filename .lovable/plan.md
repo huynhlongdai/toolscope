@@ -256,10 +256,15 @@ Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợ
 17. ✅ AI Score Auto-Generation (Edge Function + Admin button)
 18. ✅ Task-Based Discovery (/tasks - chọn task tìm tool phù hợp)
 19. ✅ Product Launch (/launches - submit + upvote sản phẩm mới mỗi ngày)
+20. ✅ Vendor/Maker Profiles (claim tool, respond to reviews)
+21. ✅ Analytics & Tracking Scripts (GA, custom scripts, admin settings page)
+22. ✅ Newsletter Subscription (footer form + newsletter_subscribers table)
+23. ✅ SEOHead nâng cao (hreflang tags + twitter:card meta tags)
+24. ✅ Audit Logs table (tracking admin actions)
+25. ✅ Reports table (user spam/content reporting)
 
 ### 📌 BACKLOG (Chưa triển khai)
 
-- Vendor/Maker Profiles (claim tool, respond to reviews)
 - Seasonal Awards / Best Of (auto-generate top tools theo quý/năm)
 - Discussion Forum / Threads
 - AI Agents Directory
@@ -271,4 +276,3 @@ Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợ
 - Mini Tools / Interactive Demos
 - Comparison Advisor (AI chatbot chuyên so sánh)
 - Verified Reviews (badge "Verified User")
-
