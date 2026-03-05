@@ -712,48 +712,79 @@ export type Database = {
       }
       launches: {
         Row: {
+          category_id: string | null
           comment_count: number | null
           created_at: string | null
           description: string | null
+          features: string[] | null
           id: string
           launch_date: string
+          logo_url: string | null
+          maker_comment: string | null
           maker_id: string
+          pricing_type: string | null
+          product_name: string | null
           screenshots: string[] | null
           status: string
           tagline: string
           tool_id: string | null
           updated_at: string | null
           upvotes: number | null
+          video_url: string | null
+          website_url: string | null
         }
         Insert: {
+          category_id?: string | null
           comment_count?: number | null
           created_at?: string | null
           description?: string | null
+          features?: string[] | null
           id?: string
           launch_date?: string
+          logo_url?: string | null
+          maker_comment?: string | null
           maker_id: string
+          pricing_type?: string | null
+          product_name?: string | null
           screenshots?: string[] | null
           status?: string
           tagline: string
           tool_id?: string | null
           updated_at?: string | null
           upvotes?: number | null
+          video_url?: string | null
+          website_url?: string | null
         }
         Update: {
+          category_id?: string | null
           comment_count?: number | null
           created_at?: string | null
           description?: string | null
+          features?: string[] | null
           id?: string
           launch_date?: string
+          logo_url?: string | null
+          maker_comment?: string | null
           maker_id?: string
+          pricing_type?: string | null
+          product_name?: string | null
           screenshots?: string[] | null
           status?: string
           tagline?: string
           tool_id?: string | null
           updated_at?: string | null
           upvotes?: number | null
+          video_url?: string | null
+          website_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "launches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "launches_maker_id_fkey"
             columns: ["maker_id"]
