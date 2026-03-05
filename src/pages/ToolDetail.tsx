@@ -348,6 +348,7 @@ export default function ToolDetail() {
                           <div className="mt-2">
                             <VoteButtons targetId={review.id} targetType="review" upvotes={review.upvotes} downvotes={review.downvotes} userId={user?.id} />
                           </div>
+                          <VendorResponse reviewId={review.id} toolId={tool.id} />
                         </div>
                       ))}
                     </div>

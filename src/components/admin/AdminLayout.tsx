@@ -27,6 +27,8 @@ const navItems = [
   { title: "Menu Manager", url: "/admin/menus", icon: Menu },
   { title: "Page Builder", url: "/admin/pages", icon: FileStack },
   { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
+  { title: "Launches", url: "/admin/launches", icon: Rocket },
+  { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
 ];
 

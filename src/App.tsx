@@ -92,6 +92,8 @@ const App = () => (
             <Route path="/admin/workflows" element={<AdminWorkflows />} />
             <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
             <Route path="/admin/deals" element={<AdminDeals />} />
+            <Route path="/admin/launches" element={<AdminLaunches />} />
+            <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AIChatWidget />
