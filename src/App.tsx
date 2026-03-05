@@ -44,6 +44,8 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import DealsPage from "./pages/DealsPage";
 import TasksPage from "./pages/TasksPage";
 import LaunchesPage from "./pages/LaunchesPage";
+import AdminSettings from "./pages/admin/AdminSettings";
+import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 
 const queryClient = new QueryClient();
 
