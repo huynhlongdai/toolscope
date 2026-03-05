@@ -36,6 +36,8 @@ import ReactMarkdown from "react-markdown";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { UpvoteButton } from "@/components/UpvoteButton";
+import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
+import { VendorResponse } from "@/components/tool-detail/VendorResponse";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
