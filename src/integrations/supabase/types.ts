@@ -1616,6 +1616,88 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_claims: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          proof_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          tool_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tool_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          proof_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          tool_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_claims_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_responses: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          review_id: string
+          updated_at: string | null
+          vendor_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          review_id: string
+          updated_at?: string | null
+          vendor_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          review_id?: string
+          updated_at?: string | null
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_responses_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: true
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       votes: {
         Row: {
           created_at: string

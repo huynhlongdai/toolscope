@@ -36,6 +36,8 @@ import ReactMarkdown from "react-markdown";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { UpvoteButton } from "@/components/UpvoteButton";
+import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
+import { VendorResponse } from "@/components/tool-detail/VendorResponse";
 
 const pricingLabel: Record<string, string> = {
   free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
@@ -195,6 +197,7 @@ export default function ToolDetail() {
                   {aiScore?.is_recommended && (
                     <Badge className="bg-primary text-primary-foreground">⚡ AI Recommended</Badge>
                   )}
+                  <VendorClaimBadge toolId={tool.id} />
                 </div>
                 {tool.short_description && (
                   <p className="mt-2 text-lg text-muted-foreground">{tool.short_description}</p>
@@ -238,6 +241,7 @@ export default function ToolDetail() {
                 <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
               </Tooltip>
               <ShareButtons title={tool.name} />
+              <VendorClaimButton toolId={tool.id} toolName={tool.name} />
             </div>
           </div>
 
@@ -344,6 +348,7 @@ export default function ToolDetail() {
                           <div className="mt-2">
                             <VoteButtons targetId={review.id} targetType="review" upvotes={review.upvotes} downvotes={review.downvotes} userId={user?.id} />
                           </div>
+                          <VendorResponse reviewId={review.id} toolId={tool.id} />
                         </div>
                       ))}
                     </div>
