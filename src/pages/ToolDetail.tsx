@@ -241,6 +241,7 @@ export default function ToolDetail() {
                 <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
               </Tooltip>
               <ShareButtons title={tool.name} />
+              <VendorClaimButton toolId={tool.id} toolName={tool.name} />
             </div>
           </div>
 
