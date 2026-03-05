@@ -30,6 +30,7 @@ const navItems = [
   { title: "Launches", url: "/admin/launches", icon: Rocket },
   { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
+  { title: "Cài đặt", url: "/admin/settings", icon: Settings },
 ];
 
 function AdminSidebar() {

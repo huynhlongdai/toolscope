@@ -47,6 +47,42 @@ const defaultFooterColumns = [
   },
 ];
 
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    const { error } = await supabase.from("newsletter_subscribers").insert({ email });
+    setLoading(false);
+    if (error) {
+      if (error.code === "23505") toast.info("Email đã được đăng ký!");
+      else toast.error("Có lỗi xảy ra");
+    } else {
+      toast.success("Đăng ký thành công!");
+      setEmail("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubscribe} className="flex gap-2">
+      <Input
+        type="email"
+        placeholder="Email của bạn"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="h-9 text-xs"
+        required
+      />
+      <Button type="submit" size="sm" disabled={loading} className="shrink-0">
+        <Mail className="h-3 w-3" />
+      </Button>
+    </form>
+  );
+}
+
 export function Footer() {
   const { data: dbMenuItems } = useQuery({
     queryKey: ["menu-footer"],
