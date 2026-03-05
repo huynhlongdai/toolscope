@@ -7,6 +7,8 @@ interface SEOHeadProps {
   ogType?: string;
   canonical?: string;
   jsonLd?: Record<string, any>;
+  hreflangs?: { lang: string; href: string }[];
+  twitterCard?: "summary" | "summary_large_image";
 }
 
 export function SEOHead({ title, description, ogImage, ogType = "website", canonical, jsonLd }: SEOHeadProps) {
