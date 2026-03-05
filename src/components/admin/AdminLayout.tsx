@@ -12,7 +12,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings } from "lucide-react";
 
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
@@ -30,6 +30,7 @@ const navItems = [
   { title: "Launches", url: "/admin/launches", icon: Rocket },
   { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
+  { title: "Cài đặt", url: "/admin/settings", icon: Settings },
 ];
 
 function AdminSidebar() {

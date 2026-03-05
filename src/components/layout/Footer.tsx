@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Mail } from "lucide-react";
+import { toast } from "sonner";
 
 interface MenuItem {
   label: string;
@@ -41,6 +46,42 @@ const defaultFooterColumns = [
     ],
   },
 ];
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    const { error } = await supabase.from("newsletter_subscribers").insert({ email });
+    setLoading(false);
+    if (error) {
+      if (error.code === "23505") toast.info("Email đã được đăng ký!");
+      else toast.error("Có lỗi xảy ra");
+    } else {
+      toast.success("Đăng ký thành công!");
+      setEmail("");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubscribe} className="flex gap-2">
+      <Input
+        type="email"
+        placeholder="Email của bạn"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="h-9 text-xs"
+        required
+      />
+      <Button type="submit" size="sm" disabled={loading} className="shrink-0">
+        <Mail className="h-3 w-3" />
+      </Button>
+    </form>
+  );
+}
 
 export function Footer() {
   const { data: dbMenuItems } = useQuery({
@@ -94,9 +135,10 @@ export function Footer() {
               </div>
               <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ToolScope</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-4">
               Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn.
             </p>
+            <NewsletterForm />
           </div>
           {footerColumns.map((col: any) => (
             <div key={col.title}>

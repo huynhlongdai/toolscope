@@ -7,9 +7,11 @@ interface SEOHeadProps {
   ogType?: string;
   canonical?: string;
   jsonLd?: Record<string, any>;
+  hreflangs?: { lang: string; href: string }[];
+  twitterCard?: "summary" | "summary_large_image";
 }
 
-export function SEOHead({ title, description, ogImage, ogType = "website", canonical, jsonLd }: SEOHeadProps) {
+export function SEOHead({ title, description, ogImage, ogType = "website", canonical, jsonLd, hreflangs, twitterCard = "summary_large_image" }: SEOHeadProps) {
   useEffect(() => {
     if (title) document.title = title;
 
@@ -26,12 +28,18 @@ export function SEOHead({ title, description, ogImage, ogType = "website", canon
     if (description) {
       setMeta("description", description);
       setMeta("og:description", description, "property");
+      setMeta("twitter:description", description);
     }
     if (title) {
       setMeta("og:title", title, "property");
+      setMeta("twitter:title", title);
     }
-    if (ogImage) setMeta("og:image", ogImage, "property");
+    if (ogImage) {
+      setMeta("og:image", ogImage, "property");
+      setMeta("twitter:image", ogImage);
+    }
     setMeta("og:type", ogType, "property");
+    setMeta("twitter:card", twitterCard);
 
     if (canonical) {
       let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
@@ -41,6 +49,19 @@ export function SEOHead({ title, description, ogImage, ogType = "website", canon
         document.head.appendChild(link);
       }
       link.href = canonical;
+    }
+
+    // Hreflang tags
+    document.querySelectorAll('link[data-hreflang]').forEach(el => el.remove());
+    if (hreflangs) {
+      hreflangs.forEach(({ lang, href }) => {
+        const link = document.createElement("link");
+        link.rel = "alternate";
+        link.hreflang = lang;
+        link.href = href;
+        link.setAttribute("data-hreflang", "true");
+        document.head.appendChild(link);
+      });
     }
 
     // JSON-LD
@@ -54,7 +75,7 @@ export function SEOHead({ title, description, ogImage, ogType = "website", canon
       document.head.appendChild(script);
       return () => { script.remove(); };
     }
-  }, [title, description, ogImage, ogType, canonical, jsonLd]);
+  }, [title, description, ogImage, ogType, canonical, jsonLd, hreflangs, twitterCard]);
 
   return null;
 }
