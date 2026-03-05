@@ -40,6 +40,8 @@ import AdminDeals from "./pages/admin/AdminDeals";
 import DynamicPage from "./pages/DynamicPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import DealsPage from "./pages/DealsPage";
+import TasksPage from "./pages/TasksPage";
+import LaunchesPage from "./pages/LaunchesPage";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +73,8 @@ const App = () => (
             <Route path="/workflow/:slug" element={<WorkflowDetail />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/deals" element={<DealsPage />} />
+            <Route path="/tasks" element={<TasksPage />} />
+            <Route path="/launches" element={<LaunchesPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />

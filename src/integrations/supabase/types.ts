@@ -710,6 +710,66 @@ export type Database = {
           },
         ]
       }
+      launches: {
+        Row: {
+          comment_count: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          launch_date: string
+          maker_id: string
+          screenshots: string[] | null
+          status: string
+          tagline: string
+          tool_id: string | null
+          updated_at: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          comment_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          launch_date?: string
+          maker_id: string
+          screenshots?: string[] | null
+          status?: string
+          tagline: string
+          tool_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          comment_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          launch_date?: string
+          maker_id?: string
+          screenshots?: string[] | null
+          status?: string
+          tagline?: string
+          tool_id?: string | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launches_maker_id_fkey"
+            columns: ["maker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launches_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menus: {
         Row: {
           id: string
@@ -1202,6 +1262,39 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number | null
+          tool_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number | null
+          tool_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number | null
+          tool_count?: number | null
+        }
+        Relationships: []
+      }
       tool_alternatives: {
         Row: {
           alternative_id: string
@@ -1299,6 +1392,45 @@ export type Database = {
           },
           {
             foreignKeyName: "tool_tags_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tool_tasks: {
+        Row: {
+          created_at: string | null
+          id: string
+          relevance_score: number | null
+          task_id: string
+          tool_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          task_id: string
+          tool_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          relevance_score?: number | null
+          task_id?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_tasks_tool_id_fkey"
             columns: ["tool_id"]
             isOneToOne: false
             referencedRelation: "tools"
