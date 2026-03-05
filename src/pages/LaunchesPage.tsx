@@ -11,29 +11,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ThumbsUp, Rocket, Plus, Calendar, MessageSquare, Star, ExternalLink } from "lucide-react";
+import { ThumbsUp, Rocket, Plus, Calendar, Star, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { getToolLogoUrl } from "@/lib/favicon";
+import { LaunchSubmitForm } from "@/components/launches/LaunchSubmitForm";
 
 export default function LaunchesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [submitOpen, setSubmitOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ tagline: "", description: "" });
 
   const { data: launches, isLoading } = useQuery({
     queryKey: ["launches"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("launches")
-        .select("*, profiles(display_name, avatar_url), tools(name, slug, logo_url, website_url, short_description, pricing_type)")
+        .select("*, profiles:maker_id(display_name, avatar_url), tools(name, slug, logo_url, website_url, short_description, pricing_type)")
         .in("status", ["approved", "featured"])
         .order("launch_date", { ascending: false })
         .order("upvotes", { ascending: false })
@@ -43,7 +40,6 @@ export default function LaunchesPage() {
     },
   });
 
-  // Group launches by date
   const grouped = launches?.reduce((acc, launch) => {
     const date = launch.launch_date;
     if (!acc[date]) acc[date] = [];
@@ -81,31 +77,31 @@ export default function LaunchesPage() {
     } catch { toast.error("Lỗi khi vote"); }
   };
 
-  const handleSubmit = async () => {
-    if (!user) { toast.error("Vui lòng đăng nhập"); return; }
-    if (!form.tagline.trim()) { toast.error("Vui lòng nhập tagline"); return; }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.from("launches").insert({
-        maker_id: user.id,
-        tagline: form.tagline.trim(),
-        description: form.description.trim() || null,
-        status: "pending",
-      });
-      if (error) throw error;
-      toast.success("Đã gửi! Chờ duyệt bởi admin.");
-      setSubmitOpen(false);
-      setForm({ tagline: "", description: "" });
-    } catch { toast.error("Lỗi khi gửi"); }
-    setSubmitting(false);
+  const getLogoUrl = (launch: any) => {
+    const tool = launch.tools as any;
+    if (tool?.logo_url || tool?.website_url) return getToolLogoUrl(tool.logo_url, tool.website_url);
+    if (launch.logo_url) return launch.logo_url;
+    return null;
+  };
+
+  const getName = (launch: any) => {
+    const tool = launch.tools as any;
+    return tool?.name || launch.product_name || launch.tagline;
+  };
+
+  const getDescription = (launch: any) => {
+    const tool = launch.tools as any;
+    return tool?.short_description || launch.description || launch.tagline;
+  };
+
+  const getPricingType = (launch: any) => {
+    const tool = launch.tools as any;
+    return tool?.pricing_type || launch.pricing_type;
   };
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead
-        title="Product Launches - ToolScope"
-        description="Khám phá các sản phẩm mới ra mắt mỗi ngày. Upvote và thảo luận về công cụ yêu thích."
-      />
+      <SEOHead title="Product Launches - ToolScope" description="Khám phá các sản phẩm mới ra mắt mỗi ngày. Upvote và thảo luận về công cụ yêu thích." />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -115,56 +111,21 @@ export default function LaunchesPage() {
                 <Rocket className="mr-2 inline h-7 w-7 text-primary" />
                 Product Launches
               </h1>
-              <p className="mt-1 text-muted-foreground">
-                Khám phá sản phẩm mới mỗi ngày, upvote yêu thích của bạn
-              </p>
+              <p className="mt-1 text-muted-foreground">Khám phá sản phẩm mới mỗi ngày, upvote yêu thích của bạn</p>
             </div>
             <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  Launch sản phẩm
-                </Button>
+                <Button className="gap-1.5"><Plus className="h-4 w-4" />Launch sản phẩm</Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>🚀 Submit Product Launch</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Tagline *</label>
-                    <Input
-                      placeholder="Mô tả ngắn gọn sản phẩm..."
-                      value={form.tagline}
-                      onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Mô tả chi tiết</label>
-                    <Textarea
-                      placeholder="Giới thiệu sản phẩm, tính năng nổi bật..."
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      rows={4}
-                    />
-                  </div>
-                  <Button onClick={handleSubmit} disabled={submitting} className="w-full">
-                    {submitting ? "Đang gửi..." : "Gửi để duyệt"}
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Sản phẩm sẽ được admin duyệt trước khi hiển thị
-                  </p>
-                </div>
+              <DialogContent className="sm:max-w-xl">
+                <DialogHeader><DialogTitle>🚀 Submit Product Launch</DialogTitle></DialogHeader>
+                <LaunchSubmitForm onSuccess={() => { setSubmitOpen(false); queryClient.invalidateQueries({ queryKey: ["launches"] }); }} />
               </DialogContent>
             </Dialog>
           </div>
 
           {isLoading ? (
-            <div className="space-y-6">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 rounded-xl" />
-              ))}
-            </div>
+            <div className="space-y-6">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
           ) : Object.keys(grouped).length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
               <Rocket className="mx-auto h-10 w-10 text-muted-foreground/40" />
@@ -178,9 +139,7 @@ export default function LaunchesPage() {
                   <div className="mb-4 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      {isToday(parseISO(date))
-                        ? "🔥 Hôm nay"
-                        : format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: vi })}
+                      {isToday(parseISO(date)) ? "🔥 Hôm nay" : format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: vi })}
                     </h2>
                   </div>
                   <div className="space-y-3">
@@ -188,14 +147,15 @@ export default function LaunchesPage() {
                       const tool = launch.tools as any;
                       const profile = launch.profiles as any;
                       const voted = userVotes?.has(launch.id);
-                      const logoUrl = tool ? getToolLogoUrl(tool.logo_url, tool.website_url) : null;
+                      const logoUrl = getLogoUrl(launch);
+                      const pricingType = getPricingType(launch);
+                      const features = (launch as any).features as string[] | null;
+                      const websiteUrl = tool?.website_url || (launch as any).website_url;
 
                       return (
                         <Card key={launch.id} className="group transition-all hover:shadow-md">
-                          <CardContent className="flex items-center gap-4 p-4">
-                            <span className="text-lg font-bold text-muted-foreground/50 w-6 text-center">
-                              {idx + 1}
-                            </span>
+                          <CardContent className="flex items-start gap-4 p-4">
+                            <span className="text-lg font-bold text-muted-foreground/50 w-6 text-center mt-1">{idx + 1}</span>
 
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted">
                               {logoUrl ? (
@@ -206,39 +166,37 @@ export default function LaunchesPage() {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {tool ? (
-                                  <Link to={`/tool/${tool.slug}`} className="font-semibold hover:text-primary transition-colors truncate">
-                                    {tool.name}
-                                  </Link>
+                                  <Link to={`/tool/${tool.slug}`} className="font-semibold hover:text-primary transition-colors">{getName(launch)}</Link>
                                 ) : (
-                                  <span className="font-semibold truncate">{launch.tagline}</span>
+                                  <span className="font-semibold">{getName(launch)}</span>
                                 )}
                                 {launch.status === "featured" && (
-                                  <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                                    <Star className="h-2.5 w-2.5 mr-0.5" /> Featured
-                                  </Badge>
+                                  <Badge variant="default" className="text-[10px] px-1.5 py-0"><Star className="h-2.5 w-2.5 mr-0.5" /> Featured</Badge>
+                                )}
+                                {websiteUrl && (
+                                  <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary">
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">
-                                {tool?.short_description || launch.description || launch.tagline}
-                              </p>
-                              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                              <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{getDescription(launch)}</p>
+                              <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                                 <span>by {profile?.display_name || "Unknown"}</span>
-                                {tool?.pricing_type && (
-                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                    {tool.pricing_type}
-                                  </Badge>
-                                )}
+                                {pricingType && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{pricingType}</Badge>}
+                                {features && features.length > 0 && features.slice(0, 3).map((f, i) => (
+                                  <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">{f}</Badge>
+                                ))}
                               </div>
+                              {(launch as any).maker_comment && (
+                                <p className="mt-1.5 text-xs italic text-muted-foreground border-l-2 border-primary/30 pl-2 line-clamp-2">
+                                  "{(launch as any).maker_comment}"
+                                </p>
+                              )}
                             </div>
 
-                            <Button
-                              variant={voted ? "default" : "outline"}
-                              size="sm"
-                              className="flex-col h-14 w-14 gap-0.5 shrink-0"
-                              onClick={() => handleVote(launch.id, launch.upvotes || 0)}
-                            >
+                            <Button variant={voted ? "default" : "outline"} size="sm" className="flex-col h-14 w-14 gap-0.5 shrink-0" onClick={() => handleVote(launch.id, launch.upvotes || 0)}>
                               <ThumbsUp className={cn("h-4 w-4", voted && "fill-current")} />
                               <span className="text-xs font-bold">{launch.upvotes || 0}</span>
                             </Button>
