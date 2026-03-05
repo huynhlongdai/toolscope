@@ -99,9 +99,10 @@ export function Footer() {
               </div>
               <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ToolScope</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mb-4">
               Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn.
             </p>
+            <NewsletterForm />
           </div>
           {footerColumns.map((col: any) => (
             <div key={col.title}>
