@@ -232,16 +232,43 @@ Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợ
 
 ### 📋 THỨ TỰ TRIỂN KHAI
 
-1. Database schema + Auth + Roles
-2. Trang chủ + Danh sách tools + Chi tiết tool (responsive)
-3. Review, Rating, Bình luận, Q&A, Upvote/Downvote
-4. AI Search + Chatbot tư vấn
-5. AI thu thập + viết bài + đánh giá (Firecrawl)
-6. So sánh tools + Pricing tracker
-7. Collections, Bookmarks, Follow, Notifications
-8. Admin dashboard đầy đủ + Moderation
-9. Đa ngôn ngữ tự động
-10. Trending, Gamification, Personalization
-11. Use Cases, Integrations map, Blog
-12. SEO optimization + Mobile polish
+1. ✅ Database schema + Auth + Roles
+2. ✅ Trang chủ + Danh sách tools + Chi tiết tool (responsive)
+3. ✅ Review, Rating, Bình luận, Q&A, Upvote/Downvote
+4. ✅ AI Search + Chatbot tư vấn
+5. ✅ AI thu thập + viết bài + đánh giá (Firecrawl)
+6. ✅ So sánh tools + Pricing tracker
+7. ✅ Collections, Bookmarks, Follow, Notifications
+8. ✅ Admin dashboard đầy đủ + Moderation
+9. ✅ Đa ngôn ngữ tự động
+10. ✅ Trending, Gamification, Personalization
+11. ✅ Use Cases, Integrations map, Blog
+12. ✅ SEO optimization + Mobile polish
+
+---
+
+### 🆕 TÍNH NĂNG MỞ RỘNG (Học hỏi G2, Capterra, Product Hunt, AlternativeTo, TAAFT)
+
+13. ✅ Structured Review Form (đánh giá theo tiêu chí ease_of_use, value_for_money, customer_support, NPS)
+14. ✅ Alternatives Section (AI gợi ý + user vote "I switched from X to Y")
+15. ✅ G2 Grid Quadrant Chart (Satisfaction vs Market Presence trên Category page)
+16. ✅ Screenshot Gallery (slider + lightbox trên Tool Detail)
+17. ✅ AI Score Auto-Generation (Edge Function + Admin button)
+18. ✅ Task-Based Discovery (/tasks - chọn task tìm tool phù hợp)
+19. ✅ Product Launch (/launches - submit + upvote sản phẩm mới mỗi ngày)
+
+### 📌 BACKLOG (Chưa triển khai)
+
+- Vendor/Maker Profiles (claim tool, respond to reviews)
+- Seasonal Awards / Best Of (auto-generate top tools theo quý/năm)
+- Discussion Forum / Threads
+- AI Agents Directory
+- Tool Changelog / Update Timeline
+- Company Profiles
+- AI Model Directory
+- Job Impact Index
+- Fundraise Tracker
+- Mini Tools / Interactive Demos
+- Comparison Advisor (AI chatbot chuyên so sánh)
+- Verified Reviews (badge "Verified User")
 
