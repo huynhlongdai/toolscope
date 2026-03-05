@@ -197,6 +197,7 @@ export default function ToolDetail() {
                   {aiScore?.is_recommended && (
                     <Badge className="bg-primary text-primary-foreground">⚡ AI Recommended</Badge>
                   )}
+                  <VendorClaimBadge toolId={tool.id} />
                 </div>
                 {tool.short_description && (
                   <p className="mt-2 text-lg text-muted-foreground">{tool.short_description}</p>
