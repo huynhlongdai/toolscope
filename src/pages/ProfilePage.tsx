@@ -85,6 +85,67 @@ const ProfilePage = () => {
     enabled: !!profileId,
   });
 
+  const { data: comments } = useQuery({
+    queryKey: ["user-comments", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase
+        .from("comments")
+        .select("*, tools:tool_id(name, slug)")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!profileId,
+  });
+
+  const { data: bookmarks } = useQuery({
+    queryKey: ["user-bookmarks-profile", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase
+        .from("bookmarks")
+        .select("*, tools:tool_id(name, slug)")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!profileId && isOwnProfile,
+  });
+
+  const updateProfile = useMutation({
+    mutationFn: async () => {
+      if (!profileId) return;
+      const { error } = await supabase.from("profiles").update({
+        display_name: editForm.display_name,
+        username: editForm.username || null,
+        bio: editForm.bio || null,
+        website: editForm.website || null,
+      }).eq("id", profileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", profileId] });
+      toast.success("Đã cập nhật profile");
+      setEditing(false);
+    },
+    onError: (e: any) => toast.error(e.message || "Lỗi cập nhật"),
+  });
+
+  const startEditing = () => {
+    if (profile) {
+      setEditForm({
+        display_name: profile.display_name || "",
+        username: profile.username || "",
+        bio: profile.bio || "",
+        website: profile.website || "",
+      });
+      setEditing(true);
+    }
+  };
+
   if (!profileId && !user) return <Navigate to="/auth" />;
 
   return (
