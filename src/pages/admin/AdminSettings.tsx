@@ -122,6 +122,7 @@ export default function AdminSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      logAuditAction("settings_save", "site_settings", undefined, { keys: ["ga_measurement_id", "site_info"] });
       toast.success("Đã lưu cài đặt");
     },
     onError: () => toast.error("Lỗi khi lưu cài đặt"),

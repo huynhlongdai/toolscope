@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Wrench, Users, MessageSquare, Shield, FileText, Tags, BarChart3, LogOut, ChevronLeft,
+  LayoutDashboard, Wrench, Users, MessageSquare, Shield, FileText, Tags, LogOut, ChevronLeft,
 } from "lucide-react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import {
