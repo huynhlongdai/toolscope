@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { callAI } from "../_shared/ai-provider.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -17,8 +17,7 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    // LOVABLE_API_KEY checked by callAI as fallback
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -59,19 +58,12 @@ Return ONLY a valid JSON object like:
 
 Important: Preserve all HTML tags, Markdown formatting, URLs, and technical terms. Only translate human-readable text.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are a professional translator. Translate Vietnamese to English accurately while preserving all formatting." },
-          { role: "user", content: prompt },
-        ],
-      }),
+    const response = await callAI({
+      feature: "content_generation",
+      messages: [
+        { role: "system", content: "You are a professional translator. Translate Vietnamese to English accurately while preserving all formatting." },
+        { role: "user", content: prompt },
+      ],
     });
 
     if (!response.ok) {

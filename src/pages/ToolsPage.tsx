@@ -10,12 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2 } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
 
 type SortOption = "popular" | "newest" | "rating" | "name";
 type ViewMode = "grid" | "list";
+const PAGE_SIZE = 24;
 
 const pricingFilters = [
   { value: "all", label: "Tất cả" },
@@ -40,6 +41,7 @@ export default function ToolsPage() {
   const [categoryFilter, setCategoryFilter] = useState(initialCategory);
   const [showFilters, setShowFilters] = useState(false);
   const [aiMode, setAiMode] = useState(isSimilarQuery);
+  const [page, setPage] = useState(0);
 
   const aiSearch = useAISearch();
 
@@ -60,12 +62,12 @@ export default function ToolsPage() {
     },
   });
 
-  const { data: tools, isLoading } = useQuery({
-    queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter],
+  const { data: toolsResult, isLoading } = useQuery({
+    queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter, page],
     queryFn: async () => {
       let q = supabase
         .from("tools")
-        .select("*, categories(name), ai_scores(overall_score, is_recommended)")
+        .select("*, categories(name), ai_scores(overall_score, is_recommended)", { count: "exact" })
         .eq("status", "published");
 
       if (search && !aiMode) q = q.or(`name.ilike.%${search}%,short_description.ilike.%${search}%`);
@@ -77,12 +79,16 @@ export default function ToolsPage() {
       else if (sortBy === "rating") q = q.order("avg_rating", { ascending: false });
       else q = q.order("name");
 
-      const { data, error } = await q.limit(50);
+      const { data, error, count } = await q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
-      return data;
+      return { data: data ?? [], count: count ?? 0 };
     },
     enabled: !aiMode || !search,
   });
+
+  const tools = toolsResult?.data;
+  const totalCount = toolsResult?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -286,7 +292,7 @@ export default function ToolsPage() {
                 </div>
               ) : tools && tools.length > 0 ? (
                 <>
-                  <p className="mb-4 text-sm text-muted-foreground">{tools.length} công cụ</p>
+                  <p className="mb-4 text-sm text-muted-foreground">{totalCount} công cụ</p>
                   <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {tools.map((tool) => (
                       <ToolCard
@@ -307,6 +313,18 @@ export default function ToolsPage() {
                       />
                     ))}
                   </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-2">
+                      <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" /> Trước
+                      </Button>
+                      <span className="text-sm text-muted-foreground">Trang {page + 1} / {totalPages}</span>
+                      <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                        Sau <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
