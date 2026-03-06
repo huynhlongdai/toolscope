@@ -292,7 +292,7 @@ export default function ToolsPage() {
                 </div>
               ) : tools && tools.length > 0 ? (
                 <>
-                  <p className="mb-4 text-sm text-muted-foreground">{tools.length} công cụ</p>
+                  <p className="mb-4 text-sm text-muted-foreground">{totalCount} công cụ</p>
                   <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {tools.map((tool) => (
                       <ToolCard
@@ -313,6 +313,18 @@ export default function ToolsPage() {
                       />
                     ))}
                   </div>
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-2">
+                      <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="h-4 w-4" /> Trước
+                      </Button>
+                      <span className="text-sm text-muted-foreground">Trang {page + 1} / {totalPages}</span>
+                      <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                        Sau <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
