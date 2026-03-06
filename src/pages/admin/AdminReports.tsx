@@ -43,8 +43,9 @@ export default function AdminReports() {
       }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
+      logAuditAction("report_status_change", "report", vars.id, { status: vars.status });
       toast.success("Đã cập nhật trạng thái");
     },
   });

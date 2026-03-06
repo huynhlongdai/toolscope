@@ -103,8 +103,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("profiles").update({ is_banned: banned } as any).eq("id", userId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_ban_toggle", "user", vars.userId, { banned: vars.banned });
       toast.success("Đã cập nhật trạng thái");
     },
   });

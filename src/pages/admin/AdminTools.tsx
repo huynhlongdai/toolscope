@@ -47,8 +47,9 @@ export default function AdminTools() {
       const { error } = await supabase.from("tools").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      logAuditAction("tool_delete", "tool", id);
       toast.success("Đã xóa tool");
     },
   });
@@ -58,8 +59,9 @@ export default function AdminTools() {
       const { error } = await supabase.from("tools").update({ status: status as any }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      logAuditAction("tool_status_change", "tool", vars.id, { status: vars.status });
       toast.success("Đã cập nhật trạng thái");
     },
   });

@@ -34,6 +34,8 @@ const navItems = [
   { title: "Translations", url: "/admin/translations", icon: Languages },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Backup", url: "/admin/backup", icon: Database },
   { title: "Cài đặt", url: "/admin/settings", icon: Settings },
 ];
 
