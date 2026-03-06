@@ -37,9 +37,9 @@ export function FeaturedTools() {
   ];
 
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-10 md:py-12 bg-muted/30">
       <div className="container">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Công cụ hàng đầu
@@ -93,12 +93,12 @@ export function FeaturedTools() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
             <p className="text-muted-foreground">Chưa có công cụ nào. Hãy thêm tools vào hệ thống!</p>
           </div>
         )}
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <Link to="/tools" className="text-sm font-medium text-primary hover:underline">
             Xem tất cả công cụ →
           </Link>

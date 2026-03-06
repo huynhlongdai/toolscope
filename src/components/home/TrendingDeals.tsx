@@ -25,7 +25,7 @@ export function TrendingDeals() {
   if (!deals || deals.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-16 bg-muted/30" aria-label="Ưu đãi nổi bật">
+    <section className="py-8 md:py-10 bg-muted/30" aria-label="Ưu đãi nổi bật">
       <div className="container">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">

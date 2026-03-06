@@ -25,7 +25,7 @@ export function NewsletterCTA() {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10" aria-label="Đăng ký nhận tin">
+    <section className="py-10 md:py-12 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10" aria-label="Đăng ký nhận tin">
       <div className="container text-center">
         <div className="mx-auto max-w-lg">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -38,7 +38,7 @@ export function NewsletterCTA() {
           <p className="mt-2 text-sm text-muted-foreground">
             Đăng ký để nhận update hàng tuần về công cụ mới, ưu đãi và mẹo hay.
           </p>
-          <form onSubmit={handleSubscribe} className="mx-auto mt-6 flex max-w-sm gap-2">
+          <form onSubmit={handleSubscribe} className="mx-auto mt-4 flex max-w-sm gap-2">
             <Input
               type="email"
               placeholder="Email của bạn"
