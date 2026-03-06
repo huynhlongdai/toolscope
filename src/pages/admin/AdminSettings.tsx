@@ -132,6 +132,34 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderCog className="h-5 w-5" />
+              Danh mục mặc định
+            </CardTitle>
+            <CardDescription>
+              Danh mục được gán tự động cho các công cụ chưa được phân loại
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Label>Chọn danh mục mặc định</Label>
+            <Select value={defaultCategoryId || "__none"} onValueChange={(v) => setDefaultCategoryId(v === "__none" ? "" : v)}>
+              <SelectTrigger className="mt-1 max-w-md">
+                <SelectValue placeholder="Chọn danh mục..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Không đặt mặc định</SelectItem>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
           <Save className="mr-2 h-4 w-4" />
           {saveMutation.isPending ? "Đang lưu..." : "Lưu cài đặt"}
