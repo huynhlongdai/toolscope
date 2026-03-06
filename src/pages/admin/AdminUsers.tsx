@@ -58,8 +58,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole as any });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_role_change", "user", vars.userId, { role: vars.newRole });
       toast.success("Đã cập nhật role");
     },
   });
