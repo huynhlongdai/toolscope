@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { VoteButtons } from "./VoteButtons";
-import { MessageCircle, Reply } from "lucide-react";
+import { MessageCircle, Reply, Flag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface CommentSectionProps {
   toolId: string;
@@ -19,6 +22,20 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
+
+  const submitReport = async () => {
+    if (!userId || !reportTarget) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: userId, target_type: "comment", target_id: reportTarget,
+      reason: reportReason, details: reportDetails || null,
+    });
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Đã gửi báo cáo" });
+    setReportTarget(null); setReportDetails("");
+  };
 
   const { data: comments } = useQuery({
     queryKey: ["tool-comments", toolId],
@@ -109,6 +126,11 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
                         >
                           <Reply className="h-3 w-3" /> Trả lời
                         </button>
+                        {userId && (
+                          <button onClick={() => setReportTarget(c.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
+                            <Flag className="h-3 w-3" /> Báo cáo
+                          </button>
+                        )}
                       </div>
 
                       {/* Reply form */}
@@ -158,6 +180,26 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
           </div>
         )}
       </CardContent>
+
+      {/* Report Dialog */}
+      <Dialog open={!!reportTarget} onOpenChange={(v) => !v && setReportTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Báo cáo bình luận</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Select value={reportReason} onValueChange={setReportReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Quấy rối</SelectItem>
+                <SelectItem value="inappropriate">Nội dung không phù hợp</SelectItem>
+                <SelectItem value="misinformation">Thông tin sai lệch</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
+            <Button size="sm" onClick={submitReport} className="w-full">Gửi báo cáo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

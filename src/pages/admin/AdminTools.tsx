@@ -63,7 +63,23 @@ export default function AdminTools() {
     },
   });
 
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+
   const filtered = tools.filter((t: any) => t.name.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Name", "Slug", "Status", "Pricing", "Rating", "Views", "Category", "Website"];
+    const rows = filtered.map((t: any) => [t.name, t.slug, t.status, t.pricing_type, t.avg_rating || "", t.view_count, (t as any).categories?.name || "", t.website_url || ""]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "tools.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const statusColor = (s: string) => {
     switch (s) {
       case "published": return "default";
@@ -80,6 +96,7 @@ export default function AdminTools() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Tools</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Export CSV</Button>
             <BatchTranslateButton tools={filtered} />
             <Button variant="outline" onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Batch Import</Button>
             <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
@@ -122,7 +139,7 @@ export default function AdminTools() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
               ) : (
-                filtered.map((tool: any) => (
+                paged.map((tool: any) => (
                   <TableRow key={tool.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -173,6 +190,17 @@ export default function AdminTools() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{filtered.length} tools</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Trước</Button>
+              <span className="text-sm">Trang {page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Sau</Button>
+            </div>
+          </div>
+        )}
 
         {(editTool || showAdd) && (
           <ToolFormDialog

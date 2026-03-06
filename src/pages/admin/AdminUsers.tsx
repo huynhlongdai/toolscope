@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck } from "lucide-react";
+import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -120,12 +120,28 @@ export default function AdminUsers() {
     },
   });
 
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+
   const filtered = users.filter((u: any) => {
     const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (u.username ?? "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
     return matchSearch && matchRole;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Display Name", "Username", "Role", "Reputation", "Reviews", "Comments", "Banned", "Created"];
+    const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "users.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -139,7 +155,10 @@ export default function AdminUsers() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Quản lý Users</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý Users</h1>
+          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+        </div>
 
         <div className="flex flex-wrap gap-4">
           <div className="relative flex-1 max-w-sm">
@@ -192,7 +211,7 @@ export default function AdminUsers() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có user</TableCell></TableRow>
               ) : (
-                filtered.map((user: any) => (
+                paged.map((user: any) => (
                   <TableRow key={user.id} className={user.is_banned ? "opacity-50" : ""}>
                     <TableCell>
                       <Checkbox checked={selectedIds.includes(user.id)} onCheckedChange={() => toggleSelect(user.id)} />
@@ -258,6 +277,14 @@ export default function AdminUsers() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-sm text-muted-foreground">Trang {page + 1} / {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+        )}
       </div>
 
       {/* View User Dialog */}

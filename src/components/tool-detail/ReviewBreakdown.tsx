@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Star } from "lucide-react";
 
 interface Review {
   ease_of_use?: number | null;
