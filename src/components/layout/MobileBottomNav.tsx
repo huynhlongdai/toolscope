@@ -22,7 +22,7 @@ export function MobileBottomNav() {
       <div className="flex items-center justify-around py-1.5">
         {navItems.map(({ icon: Icon, label, path }) => {
           const isActive = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-          const actualPath = (path === "/bookmarks" || path === "/profile") && !user ? "/auth" : path;
+          const actualPath = path === "/profile" && !user ? "/auth" : path;
 
           return (
             <Link
