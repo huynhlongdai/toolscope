@@ -113,7 +113,7 @@ export default function AdminBlog() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chưa có bài viết</TableCell></TableRow>
               ) : (
-                filtered.map((p: any) => (
+                paged.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium max-w-[250px] truncate">{p.title}</TableCell>
                     <TableCell>{p.profiles?.display_name ?? "—"}</TableCell>
