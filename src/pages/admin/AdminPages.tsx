@@ -46,13 +46,13 @@ export default function AdminPages() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Page Builder</h1>
-          <Button onClick={createPage}><Plus className="mr-2 h-4 w-4" /> Tạo trang</Button>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Page Builder</h1>
+          <Button size="sm" onClick={createPage}><Plus className="mr-1 h-3.5 w-3.5" /> Tạo trang</Button>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

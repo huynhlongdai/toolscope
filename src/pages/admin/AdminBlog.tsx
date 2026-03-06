@@ -78,15 +78,15 @@ export default function AdminBlog() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Blog</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
-            <Button variant="outline" onClick={() => setShowAIDialog(true)}>
-              <Sparkles className="mr-2 h-4 w-4" /> Viết bằng AI
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Blog</h1>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowAIDialog(true)}>
+              <Sparkles className="mr-1 h-3.5 w-3.5" /> AI
             </Button>
-            <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Tạo bài viết</Button>
+            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Tạo</Button>
           </div>
         </div>
 
@@ -95,7 +95,7 @@ export default function AdminBlog() {
           <Input placeholder="Tìm kiếm bài viết..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

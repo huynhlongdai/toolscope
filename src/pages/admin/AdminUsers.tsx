@@ -158,19 +158,19 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Users</h1>
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Users</h1>
+          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
         </div>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm kiếm user..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Role" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
@@ -193,7 +193,7 @@ export default function AdminUsers() {
           )}
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
