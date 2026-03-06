@@ -41,6 +41,7 @@ export default function ToolsPage() {
   const [categoryFilter, setCategoryFilter] = useState(initialCategory);
   const [showFilters, setShowFilters] = useState(false);
   const [aiMode, setAiMode] = useState(isSimilarQuery);
+  const [page, setPage] = useState(0);
 
   const aiSearch = useAISearch();
 
