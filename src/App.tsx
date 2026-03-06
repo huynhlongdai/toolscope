@@ -102,6 +102,11 @@ const App = () => (
             <Route path="/admin/launches" element={<AdminLaunches />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+            <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+            <Route path="/admin/translations" element={<AdminTranslations />} />
+            <Route path="/submit" element={<SubmitToolPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AnalyticsProvider />
