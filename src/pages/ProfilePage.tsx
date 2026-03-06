@@ -29,7 +29,11 @@ const badgeLabels: Record<string, { label: string; color: string; icon: string }
 const ProfilePage = () => {
   const { user } = useAuth();
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const profileId = id || user?.id;
+  const isOwnProfile = !id || id === user?.id;
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ display_name: "", username: "", bio: "", website: "" });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", profileId],
