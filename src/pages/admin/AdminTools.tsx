@@ -96,6 +96,7 @@ export default function AdminTools() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Tools</h1>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Export CSV</Button>
             <BatchTranslateButton tools={filtered} />
             <Button variant="outline" onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Batch Import</Button>
             <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
