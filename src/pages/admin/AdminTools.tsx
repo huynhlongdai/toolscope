@@ -63,7 +63,23 @@ export default function AdminTools() {
     },
   });
 
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+
   const filtered = tools.filter((t: any) => t.name.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Name", "Slug", "Status", "Pricing", "Rating", "Views", "Category", "Website"];
+    const rows = filtered.map((t: any) => [t.name, t.slug, t.status, t.pricing_type, t.avg_rating || "", t.view_count, (t as any).categories?.name || "", t.website_url || ""]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "tools.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const statusColor = (s: string) => {
     switch (s) {
       case "published": return "default";
