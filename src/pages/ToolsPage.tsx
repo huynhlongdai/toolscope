@@ -62,12 +62,12 @@ export default function ToolsPage() {
     },
   });
 
-  const { data: tools, isLoading } = useQuery({
-    queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter],
+  const { data: toolsResult, isLoading } = useQuery({
+    queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter, page],
     queryFn: async () => {
       let q = supabase
         .from("tools")
-        .select("*, categories(name), ai_scores(overall_score, is_recommended)")
+        .select("*, categories(name), ai_scores(overall_score, is_recommended)", { count: "exact" })
         .eq("status", "published");
 
       if (search && !aiMode) q = q.or(`name.ilike.%${search}%,short_description.ilike.%${search}%`);
@@ -79,12 +79,16 @@ export default function ToolsPage() {
       else if (sortBy === "rating") q = q.order("avg_rating", { ascending: false });
       else q = q.order("name");
 
-      const { data, error, count } = await q.range(page * pageSize, (page + 1) * pageSize - 1);
+      const { data, error, count } = await q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
       return { data: data ?? [], count: count ?? 0 };
     },
     enabled: !aiMode || !search,
   });
+
+  const tools = toolsResult?.data;
+  const totalCount = toolsResult?.count ?? 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
