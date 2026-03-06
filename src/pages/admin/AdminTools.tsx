@@ -21,6 +21,7 @@ import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminTools() {
   const queryClient = useQueryClient();
