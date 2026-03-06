@@ -49,6 +49,8 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminTranslations from "./pages/admin/AdminTranslations";
+import AdminBackup from "./pages/admin/AdminBackup";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 
