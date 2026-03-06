@@ -170,8 +170,41 @@ export function Header() {
 
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background p-4 md:hidden">
-          <nav className="flex flex-col gap-3">
+          <nav className="flex flex-col gap-2">
             {navItems.map((item) => renderLink(item, () => setMobileMenuOpen(false)))}
+            <div className="my-2 h-px bg-border" />
+            <button
+              onClick={() => {
+                setLocale(locale === "vi" ? "en" : "vi");
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Globe className="h-4 w-4" />
+              {locale === "vi" ? "English" : "Tiếng Việt"}
+            </button>
+            {user && (
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  Đã lưu & Collections
+                </Link>
+                {isAdminOrEditor && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
+              </>
+            )}
           </nav>
         </div>
       )}
