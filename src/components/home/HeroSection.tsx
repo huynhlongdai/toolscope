@@ -6,12 +6,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAISearch } from "@/hooks/useAISearch";
 import { usePopularKeywords } from "@/hooks/usePopularKeywords";
 import { Badge } from "@/components/ui/badge";
+import { useI18n } from "@/lib/i18n";
 
 export function HeroSection() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const { results, summary, loading, search, clear } = useAISearch();
   const { data: popularKeywords } = usePopularKeywords();
+  const { t } = useI18n();
   const fallbackTags = ["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"];
 
   const handleSearch = (e: React.FormEvent) => {
@@ -23,7 +25,6 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden py-12 md:py-20">
-      {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute right-0 top-1/3 h-[300px] w-[400px] rounded-full bg-accent/5 blur-3xl" />
@@ -32,17 +33,17 @@ export function HeroSection() {
       <div className="container text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-4">
           <Sparkles className="h-3.5 w-3.5" />
-          Tìm kiếm thông minh bằng AI
+          {t("hero.badge")}
         </div>
         
         <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-6xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          Khám phá công cụ{" "}
-          <span className="text-primary">hoàn hảo</span>{" "}
-          cho công việc của bạn
+          {t("hero.title")}{" "}
+          <span className="text-primary">{t("hero.titleHighlight")}</span>{" "}
+          {t("hero.titleEnd")}
         </h1>
         
         <p className="mx-auto mt-3 max-w-xl text-lg text-muted-foreground">
-          Tổng hợp, review và so sánh hàng ngàn công cụ. Được hỗ trợ bởi AI để giúp bạn chọn đúng tool.
+          {t("hero.subtitle")}
         </p>
 
         <form onSubmit={handleSearch} className="mx-auto mt-6 max-w-xl">
@@ -52,31 +53,29 @@ export function HeroSection() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Mô tả nhu cầu của bạn..."
+                placeholder={t("hero.placeholder")}
                 className="h-12 pl-10 text-base rounded-xl border-border/60 bg-card shadow-sm"
               />
             </div>
             <Button type="submit" size="lg" className="h-12 rounded-xl px-6">
               <Search className="h-4 w-4 mr-2" />
-              Tìm kiếm
+              {t("hero.search")}
             </Button>
           </div>
-          {/* Search examples */}
           <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span className="font-medium">Thử tìm:</span>
-            <span className="italic">"tool thiết kế miễn phí cho startup"</span>
+            <span className="font-medium">{t("hero.trySearch")}</span>
+            <span className="italic">"{t("hero.example1")}"</span>
             <span>•</span>
-            <span className="italic">"AI viết content marketing"</span>
+            <span className="italic">"{t("hero.example2")}"</span>
             <span>•</span>
-            <span className="italic">"quản lý dự án cho team nhỏ"</span>
+            <span className="italic">"{t("hero.example3")}"</span>
           </div>
         </form>
 
-        {/* AI Search Results */}
         {loading && (
           <div className="mx-auto mt-6 flex max-w-xl items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>AI đang tìm kiếm...</span>
+            <span>{t("hero.aiSearching")}</span>
           </div>
         )}
 
@@ -112,22 +111,22 @@ export function HeroSection() {
               ))}
             </div>
             <button onClick={clear} className="mt-3 text-xs text-muted-foreground hover:text-foreground">
-              Đóng kết quả
+              {t("hero.closeResults")}
             </button>
           </div>
         )}
 
         {results && results.length === 0 && !loading && (
           <div className="mx-auto mt-6 max-w-xl text-center">
-            <p className="text-sm text-muted-foreground">Không tìm thấy công cụ phù hợp. Thử mô tả chi tiết hơn!</p>
-            <button onClick={clear} className="mt-2 text-xs text-muted-foreground hover:text-foreground">Đóng</button>
+            <p className="text-sm text-muted-foreground">{t("hero.noResults")}</p>
+            <button onClick={clear} className="mt-2 text-xs text-muted-foreground hover:text-foreground">{t("hero.close")}</button>
           </div>
         )}
 
         {!results && (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
             <TrendingUp className="h-3.5 w-3.5" />
-            <span>Phổ biến:</span>
+            <span>{t("hero.popular")}</span>
             {(popularKeywords && popularKeywords.length > 0
               ? popularKeywords.map(k => k.keyword)
               : fallbackTags

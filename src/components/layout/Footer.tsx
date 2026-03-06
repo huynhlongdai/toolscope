@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 interface MenuItem {
   label: string;
@@ -19,37 +20,10 @@ interface FooterColumn {
   children?: MenuItem[];
 }
 
-const defaultFooterColumns = [
-  {
-    title: "Khám phá",
-    items: [
-      { label: "Tất cả tools", url: "/tools" },
-      { label: "Danh mục", url: "/categories" },
-      { label: "Trending", url: "/trending" },
-      { label: "So sánh", url: "/compare" },
-    ],
-  },
-  {
-    title: "Cộng đồng",
-    items: [
-      { label: "Blog", url: "/blog" },
-      { label: "Collections", url: "/collections" },
-      { label: "Gửi tool", url: "/submit" },
-    ],
-  },
-  {
-    title: "Về chúng tôi",
-    items: [
-      { label: "Giới thiệu", url: "/about" },
-      { label: "Liên hệ", url: "/contact" },
-      { label: "Chính sách", url: "/privacy" },
-    ],
-  },
-];
-
 function NewsletterForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,40 +32,57 @@ function NewsletterForm() {
     const { error } = await supabase.from("newsletter_subscribers").insert({ email });
     setLoading(false);
     if (error) {
-      if (error.code === "23505") toast.info("Email đã được đăng ký!");
-      else toast.error("Có lỗi xảy ra");
+      if (error.code === "23505") toast.info(t("newsletter.alreadySubscribed"));
+      else toast.error(t("newsletter.error"));
     } else {
-      toast.success("Đăng ký thành công!");
+      toast.success(t("newsletter.success"));
       setEmail("");
     }
   };
 
   return (
     <form onSubmit={handleSubscribe} className="flex gap-2">
-      <Input
-        type="email"
-        placeholder="Email của bạn"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="h-9 text-xs"
-        required
-      />
-      <Button type="submit" size="sm" disabled={loading} className="shrink-0">
-        <Mail className="h-3 w-3" />
-      </Button>
+      <Input type="email" placeholder={t("newsletter.placeholder")} value={email} onChange={(e) => setEmail(e.target.value)} className="h-9 text-xs" required />
+      <Button type="submit" size="sm" disabled={loading} className="shrink-0"><Mail className="h-3 w-3" /></Button>
     </form>
   );
 }
 
 export function Footer() {
+  const { t } = useI18n();
+
+  const defaultFooterColumns = [
+    {
+      title: t("footer.explore"),
+      items: [
+        { label: t("footer.allTools"), url: "/tools" },
+        { label: t("footer.categories"), url: "/categories" },
+        { label: t("footer.trending"), url: "/trending" },
+        { label: t("footer.compare"), url: "/compare" },
+      ],
+    },
+    {
+      title: t("footer.community"),
+      items: [
+        { label: t("footer.blog"), url: "/blog" },
+        { label: t("footer.collections"), url: "/collections" },
+        { label: t("footer.submitTool"), url: "/submit" },
+      ],
+    },
+    {
+      title: t("footer.about"),
+      items: [
+        { label: t("footer.intro"), url: "/about" },
+        { label: t("footer.contact"), url: "/contact" },
+        { label: t("footer.privacy"), url: "/privacy" },
+      ],
+    },
+  ];
+
   const { data: dbMenuItems } = useQuery({
     queryKey: ["menu-footer"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("menus")
-        .select("items")
-        .eq("location", "footer")
-        .maybeSingle();
+      const { data } = await supabase.from("menus").select("items").eq("location", "footer").maybeSingle();
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
         return data.items as unknown as FooterColumn[];
       }
@@ -100,28 +91,16 @@ export function Footer() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // If DB has footer menu, use grouped structure: each top-level item = column header with children
   const footerColumns = dbMenuItems
-    ? dbMenuItems.map((col: any) => ({
-        title: col.label,
-        items: col.children ?? [],
-      }))
+    ? dbMenuItems.map((col: any) => ({ title: col.label, items: col.children ?? [] }))
     : defaultFooterColumns;
 
   const renderLink = (item: MenuItem) => {
     const isExternal = item.url.startsWith("http");
     if (isExternal || item.open_new_tab) {
-      return (
-        <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">
-          {item.label}
-        </a>
-      );
+      return <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">{item.label}</a>;
     }
-    return (
-      <Link key={item.label} to={item.url} className="text-sm text-muted-foreground hover:text-foreground">
-        {item.label}
-      </Link>
-    );
+    return <Link key={item.label} to={item.url} className="text-sm text-muted-foreground hover:text-foreground">{item.label}</Link>;
   };
 
   return (
@@ -135,23 +114,17 @@ export function Footer() {
               </div>
               <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ToolScope</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn.
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{t("footer.description")}</p>
             <NewsletterForm />
           </div>
           {footerColumns.map((col: any) => (
             <div key={col.title}>
               <h4 className="mb-3 text-sm font-semibold">{col.title}</h4>
-              <div className="flex flex-col gap-2">
-                {col.items.map((item: MenuItem) => renderLink(item))}
-              </div>
+              <div className="flex flex-col gap-2">{col.items.map((item: MenuItem) => renderLink(item))}</div>
             </div>
           ))}
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
-          © 2026 ToolScope. All rights reserved.
-        </div>
+        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">© 2026 ToolScope. All rights reserved.</div>
       </div>
     </footer>
   );

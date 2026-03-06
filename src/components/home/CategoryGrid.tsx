@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export function CategoryGrid() {
+  const { t } = useI18n();
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["home-categories"],
     queryFn: async () => {
@@ -23,17 +25,14 @@ export function CategoryGrid() {
   const visibleCategories = categories.slice(0, 8);
 
   return (
-    <section className="py-8 md:py-12" aria-label="Danh mục công cụ">
+    <section className="py-8 md:py-12" aria-label={t("categories.title")}>
       <div className="container">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold md:text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Danh mục công cụ
+            {t("categories.title")}
           </h2>
-          <Link
-            to="/categories"
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Tất cả <ChevronRight className="h-3.5 w-3.5" />
+          <Link to="/categories" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            {t("categories.all")} <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
@@ -44,15 +43,10 @@ export function CategoryGrid() {
             ))}
           </div>
         ) : (
-          <nav role="navigation" aria-label="Danh mục">
-            {/* Mobile: horizontal scroll */}
+          <nav role="navigation" aria-label={t("categories.title")}>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:hidden -mx-4 px-4">
               {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  to={`/category/${cat.slug}`}
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                >
+                <Link key={cat.id} to={`/category/${cat.slug}`} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs font-medium transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary">
                   <span>{cat.icon || defaultIcon}</span>
                   <span>{cat.name}</span>
                   {(cat as any).tools?.[0]?.count > 0 && (
@@ -61,14 +55,9 @@ export function CategoryGrid() {
                 </Link>
               ))}
             </div>
-            {/* Desktop: compact wrap */}
             <div className="hidden md:flex md:flex-wrap md:gap-2">
               {visibleCategories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  to={`/category/${cat.slug}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3.5 py-2 text-sm font-medium transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary hover:shadow-sm"
-                >
+                <Link key={cat.id} to={`/category/${cat.slug}`} className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card px-3.5 py-2 text-sm font-medium transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary hover:shadow-sm">
                   <span className="text-sm">{cat.icon || defaultIcon}</span>
                   <span>{cat.name}</span>
                   {(cat as any).tools?.[0]?.count > 0 && (
@@ -77,11 +66,8 @@ export function CategoryGrid() {
                 </Link>
               ))}
               {categories.length > 8 && (
-                <Link
-                  to="/categories"
-                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-border/60 px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-                >
-                  +{categories.length - 8} khác
+                <Link to="/categories" className="inline-flex items-center gap-1 rounded-full border border-dashed border-border/60 px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary">
+                  +{categories.length - 8} {t("categories.more")}
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Link>
               )}

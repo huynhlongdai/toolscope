@@ -2,19 +2,20 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Search, User, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-
-const navItems = [
-  { icon: Home, label: "Trang chủ", path: "/" },
-  { icon: Search, label: "Khám phá", path: "/tools" },
-  { icon: TrendingUp, label: "Trending", path: "/trending" },
-  { icon: User, label: "Tài khoản", path: "/profile" },
-];
+import { useI18n } from "@/lib/i18n";
 
 export function MobileBottomNav() {
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useI18n();
 
-  // Hide on admin pages
+  const navItems = [
+    { icon: Home, label: t("nav.home"), path: "/" },
+    { icon: Search, label: t("nav.explore"), path: "/tools" },
+    { icon: TrendingUp, label: t("nav.trending"), path: "/trending" },
+    { icon: User, label: t("nav.account"), path: "/profile" },
+  ];
+
   if (location.pathname.startsWith("/admin")) return null;
 
   return (

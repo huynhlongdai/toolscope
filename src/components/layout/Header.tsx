@@ -37,7 +37,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
 
   const { data: dbMenuItems } = useQuery({
@@ -139,26 +139,26 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <User className="mr-2 h-4 w-4" /> Hồ sơ
+                  <User className="mr-2 h-4 w-4" /> {t("header.profile")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <Bookmark className="mr-2 h-4 w-4" /> Đã lưu & Collections
+                  <Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdminOrEditor && (
                   <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <Shield className="mr-2 h-4 w-4" /> Admin Dashboard
+                    <Shield className="mr-2 h-4 w-4" /> {t("header.admin")}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
+                  <LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button size="sm" onClick={() => navigate("/auth")}>
-              Đăng nhập
+              {t("header.login")}
             </Button>
           )}
 
@@ -191,7 +191,7 @@ export function Header() {
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Bookmark className="h-4 w-4" />
-                  Đã lưu & Collections
+                  {t("header.saved")}
                 </Link>
                 {isAdminOrEditor && (
                   <Link
