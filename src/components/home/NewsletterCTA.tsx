@@ -25,7 +25,7 @@ export function NewsletterCTA() {
   };
 
   return (
-    <section className="py-16 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10" aria-label="Đăng ký nhận tin">
+    <section className="py-10 md:py-12 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10" aria-label="Đăng ký nhận tin">
       <div className="container text-center">
         <div className="mx-auto max-w-lg">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
