@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Search, Bookmark, User, TrendingUp } from "lucide-react";
+import { Home, Search, User, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
@@ -7,7 +7,6 @@ const navItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
   { icon: Search, label: "Khám phá", path: "/tools" },
   { icon: TrendingUp, label: "Trending", path: "/trending" },
-  { icon: Bookmark, label: "Đã lưu", path: "/bookmarks" },
   { icon: User, label: "Tài khoản", path: "/profile" },
 ];
 
@@ -23,7 +22,7 @@ export function MobileBottomNav() {
       <div className="flex items-center justify-around py-1.5">
         {navItems.map(({ icon: Icon, label, path }) => {
           const isActive = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-          const actualPath = (path === "/bookmarks" || path === "/profile") && !user ? "/auth" : path;
+          const actualPath = path === "/profile" && !user ? "/auth" : path;
 
           return (
             <Link
