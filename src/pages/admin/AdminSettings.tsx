@@ -5,16 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Globe, Code } from "lucide-react";
+import { Save, Globe, Code, FolderCog } from "lucide-react";
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
   const [gaId, setGaId] = useState("");
   const [headScripts, setHeadScripts] = useState("");
   const [bodyScripts, setBodyScripts] = useState("");
+  const [defaultCategoryId, setDefaultCategoryId] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories-list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("id, name, icon").is("parent_id", null).order("sort_order");
+      return data ?? [];
+    },
+  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-site-settings"],
@@ -31,6 +41,7 @@ export default function AdminSettings() {
       setGaId(settings.ga_measurement_id || "");
       setHeadScripts(settings.custom_head_scripts || "");
       setBodyScripts(settings.custom_body_scripts || "");
+      setDefaultCategoryId(settings.default_category_id || "");
     }
   }, [settings]);
 
@@ -40,6 +51,7 @@ export default function AdminSettings() {
         { key: "ga_measurement_id", value: gaId },
         { key: "custom_head_scripts", value: headScripts },
         { key: "custom_body_scripts", value: bodyScripts },
+        { key: "default_category_id", value: defaultCategoryId },
       ];
       for (const entry of entries) {
         await supabase.from("site_settings").upsert(
@@ -117,6 +129,34 @@ export default function AdminSettings() {
                 className="mt-1 font-mono text-xs"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FolderCog className="h-5 w-5" />
+              Danh mục mặc định
+            </CardTitle>
+            <CardDescription>
+              Danh mục được gán tự động cho các công cụ chưa được phân loại
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Label>Chọn danh mục mặc định</Label>
+            <Select value={defaultCategoryId || "__none"} onValueChange={(v) => setDefaultCategoryId(v === "__none" ? "" : v)}>
+              <SelectTrigger className="mt-1 max-w-md">
+                <SelectValue placeholder="Chọn danh mục..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Không đặt mặc định</SelectItem>
+                {categories.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
