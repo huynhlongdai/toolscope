@@ -132,15 +132,15 @@ export function AIChatWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+          className="fixed bottom-20 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95 md:bottom-6 md:right-6 md:h-14 md:w-14"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 md:h-6 md:w-6" />
         </button>
       )}
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden border-border bg-background shadow-2xl md:bottom-6 md:left-auto md:right-6 md:h-[520px] md:w-[380px] md:rounded-2xl md:border">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3">
             <div className="flex items-center gap-2">
