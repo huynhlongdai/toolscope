@@ -52,14 +52,14 @@ export default function AdminLaunches() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Rocket className="h-6 w-6" /> Quản lý Launches</h1>
-            <p className="text-sm text-muted-foreground mt-1">Duyệt, từ chối hoặc feature các sản phẩm submit</p>
+            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><Rocket className="h-5 w-5 md:h-6 md:w-6" /> Quản lý Launches</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Duyệt, từ chối hoặc feature các sản phẩm submit</p>
           </div>
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="pending">Chờ duyệt</SelectItem>
@@ -73,7 +73,7 @@ export default function AdminLaunches() {
         {isLoading ? (
           <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

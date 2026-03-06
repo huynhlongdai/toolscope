@@ -95,24 +95,24 @@ export default function AdminTools() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Tools</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Export CSV</Button>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Tools</h1>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-1 h-3.5 w-3.5" /> CSV</Button>
             <BatchTranslateButton tools={filtered} />
-            <Button variant="outline" onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Batch Import</Button>
-            <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Thêm Tool</Button>
+            <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
+            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="published">Published</SelectItem>
@@ -123,7 +123,7 @@ export default function AdminTools() {
           </Select>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

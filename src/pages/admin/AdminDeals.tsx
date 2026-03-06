@@ -69,37 +69,37 @@ export default function AdminDeals() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Ưu đãi</h1>
-          <Button onClick={() => setShowAdd(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Thêm Deal
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Ưu đãi</h1>
+          <Button size="sm" onClick={() => setShowAdd(true)}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> Thêm Deal
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
           <Card><CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{deals.length}</p>
+            <p className="text-xl md:text-2xl font-bold">{deals.length}</p>
             <p className="text-xs text-muted-foreground">Tổng deals</p>
           </CardContent></Card>
           <Card><CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold text-primary">{activeCount}</p>
+            <p className="text-xl md:text-2xl font-bold text-primary">{activeCount}</p>
             <p className="text-xs text-muted-foreground">Đang hoạt động</p>
           </CardContent></Card>
           <Card><CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{totalClicks}</p>
+            <p className="text-xl md:text-2xl font-bold">{totalClicks}</p>
             <p className="text-xs text-muted-foreground">Tổng clicks</p>
           </CardContent></Card>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="active">Đang hoạt động</SelectItem>
@@ -108,7 +108,7 @@ export default function AdminDeals() {
           </Select>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
