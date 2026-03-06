@@ -141,11 +141,8 @@ export function Header() {
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
                   <User className="mr-2 h-4 w-4" /> Hồ sơ
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/bookmarks")}>
-                  <Bookmark className="mr-2 h-4 w-4" /> Đã lưu
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/collections")}>
-                  <Layers className="mr-2 h-4 w-4" /> Collections
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <Bookmark className="mr-2 h-4 w-4" /> Đã lưu & Collections
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdminOrEditor && (

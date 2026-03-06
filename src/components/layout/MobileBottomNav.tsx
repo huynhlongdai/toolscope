@@ -7,7 +7,6 @@ const navItems = [
   { icon: Home, label: "Trang chủ", path: "/" },
   { icon: Search, label: "Khám phá", path: "/tools" },
   { icon: TrendingUp, label: "Trending", path: "/trending" },
-  { icon: Bookmark, label: "Đã lưu", path: "/bookmarks" },
   { icon: User, label: "Tài khoản", path: "/profile" },
 ];
 
