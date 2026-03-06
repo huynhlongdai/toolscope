@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { logAuditAction } from "@/hooks/useAuditLog";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
@@ -22,6 +23,9 @@ export default function AdminBlog() {
   const [editPost, setEditPost] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
+
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["admin-blog"],
@@ -39,7 +43,11 @@ export default function AdminBlog() {
       const { error } = await supabase.from("blog_posts").update(update).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blog"] }); toast.success("Đã cập nhật"); },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+      logAuditAction("blog_status_change", "blog_post", vars.id, { status: vars.status });
+      toast.success("Đã cập nhật");
+    },
   });
 
   const deletePost = useMutation({
@@ -47,10 +55,26 @@ export default function AdminBlog() {
       const { error } = await supabase.from("blog_posts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blog"] }); toast.success("Đã xóa"); },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+      logAuditAction("blog_delete", "blog_post", id);
+      toast.success("Đã xóa");
+    },
   });
 
   const filtered = posts.filter((p: any) => p.title.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Title", "Slug", "Author", "Status", "Views", "Created"];
+    const rows = filtered.map((p: any) => [p.title, p.slug, p.profiles?.display_name ?? "", p.status, p.view_count, new Date(p.created_at).toLocaleDateString()]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "blog-posts.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <AdminLayout>
@@ -58,6 +82,7 @@ export default function AdminBlog() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Quản lý Blog</h1>
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
             <Button variant="outline" onClick={() => setShowAIDialog(true)}>
               <Sparkles className="mr-2 h-4 w-4" /> Viết bằng AI
             </Button>
@@ -88,7 +113,7 @@ export default function AdminBlog() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Chưa có bài viết</TableCell></TableRow>
               ) : (
-                filtered.map((p: any) => (
+                paged.map((p: any) => (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium max-w-[250px] truncate">{p.title}</TableCell>
                     <TableCell>{p.profiles?.display_name ?? "—"}</TableCell>
@@ -120,6 +145,14 @@ export default function AdminBlog() {
             </TableBody>
           </Table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-sm text-muted-foreground">Trang {page + 1} / {totalPages} ({filtered.length} posts)</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+        )}
 
         {(editPost || showAdd) && (
           <BlogFormDialog post={editPost} open={!!editPost || showAdd} onClose={() => { setEditPost(null); setShowAdd(false); }} userId={user?.id} />

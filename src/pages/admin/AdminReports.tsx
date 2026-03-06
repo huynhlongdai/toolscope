@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Search, CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminReports() {
   const queryClient = useQueryClient();
@@ -42,8 +43,9 @@ export default function AdminReports() {
       }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
+      logAuditAction("report_status_change", "report", vars.id, { status: vars.status });
       toast.success("Đã cập nhật trạng thái");
     },
   });

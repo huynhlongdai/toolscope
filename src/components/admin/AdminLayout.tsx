@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Wrench, Users, MessageSquare, Shield, FileText, Tags, BarChart3, LogOut, ChevronLeft,
+  LayoutDashboard, Wrench, Users, MessageSquare, Shield, FileText, Tags, LogOut, ChevronLeft,
 } from "lucide-react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import {
@@ -12,7 +12,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3 } from "lucide-react";
 
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
@@ -34,6 +34,8 @@ const navItems = [
   { title: "Translations", url: "/admin/translations", icon: Languages },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Backup", url: "/admin/backup", icon: Database },
   { title: "Cài đặt", url: "/admin/settings", icon: Settings },
 ];
 

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -57,8 +58,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole as any });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_role_change", "user", vars.userId, { role: vars.newRole });
       toast.success("Đã cập nhật role");
     },
   });
@@ -89,8 +91,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("profiles").delete().eq("id", userId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_delete", "user", userId);
       toast.success("Đã xóa user");
     },
   });
@@ -100,8 +103,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("profiles").update({ is_banned: banned } as any).eq("id", userId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_ban_toggle", "user", vars.userId, { banned: vars.banned });
       toast.success("Đã cập nhật trạng thái");
     },
   });

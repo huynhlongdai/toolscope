@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2 } from "lucide-react";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 const AI_PROVIDERS = [
   { id: "openai", name: "OpenAI", keyField: "openai_api_key", placeholder: "sk-..." },
@@ -121,6 +122,7 @@ export default function AdminSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      logAuditAction("settings_save", "site_settings", undefined, { keys: ["ga_measurement_id", "site_info"] });
       toast.success("Đã lưu cài đặt");
     },
     onError: () => toast.error("Lỗi khi lưu cài đặt"),
