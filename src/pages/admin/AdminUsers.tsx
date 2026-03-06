@@ -120,12 +120,28 @@ export default function AdminUsers() {
     },
   });
 
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+
   const filtered = users.filter((u: any) => {
     const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (u.username ?? "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
     return matchSearch && matchRole;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Display Name", "Username", "Role", "Reputation", "Reviews", "Comments", "Banned", "Created"];
+    const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = url; a.download = "users.csv"; a.click();
+    const url = URL.createObjectURL(blob);
+    URL.revokeObjectURL(url);
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
