@@ -45,6 +45,11 @@ import DealsPage from "./pages/DealsPage";
 import TasksPage from "./pages/TasksPage";
 import LaunchesPage from "./pages/LaunchesPage";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminTranslations from "./pages/admin/AdminTranslations";
+import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 
 const queryClient = new QueryClient();
