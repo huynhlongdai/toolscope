@@ -158,7 +158,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <Button size="sm" onClick={() => navigate("/auth")}>
-              Đăng nhập
+              {t("header.login")}
             </Button>
           )}
 
