@@ -41,7 +41,7 @@ export function HeroSection() {
           cho công việc của bạn
         </h1>
         
-        <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
+        <p className="mx-auto mt-3 max-w-xl text-lg text-muted-foreground">
           Tổng hợp, review và so sánh hàng ngàn công cụ. Được hỗ trợ bởi AI để giúp bạn chọn đúng tool.
         </p>
 
