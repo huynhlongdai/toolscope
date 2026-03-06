@@ -51,6 +51,7 @@ export default function AdminSettings() {
         { key: "ga_measurement_id", value: gaId },
         { key: "custom_head_scripts", value: headScripts },
         { key: "custom_body_scripts", value: bodyScripts },
+        { key: "default_category_id", value: defaultCategoryId },
       ];
       for (const entry of entries) {
         await supabase.from("site_settings").upsert(
