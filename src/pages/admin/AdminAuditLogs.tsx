@@ -45,21 +45,21 @@ export default function AdminAuditLogs() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <History className="h-7 w-7" /> Audit Logs
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <History className="h-6 w-6 md:h-7 md:w-7" /> Audit Logs
           </h1>
-          <p className="text-muted-foreground">Theo dõi các thao tác quản trị trên hệ thống</p>
+          <p className="text-xs md:text-sm text-muted-foreground">Theo dõi các thao tác quản trị trên hệ thống</p>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm theo action, entity..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Action" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Action" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả actions</SelectItem>
               {uniqueActions.map((a) => (
@@ -69,7 +69,7 @@ export default function AdminAuditLogs() {
           </Select>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

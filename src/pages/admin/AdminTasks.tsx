@@ -123,16 +123,16 @@ export default function AdminTasks() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ListChecks className="h-6 w-6" /> Quản lý Tasks
+            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <ListChecks className="h-5 w-5 md:h-6 md:w-6" /> Quản lý Tasks
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">CRUD tasks và gán tools vào từng task</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">CRUD tasks và gán tools vào từng task</p>
           </div>
-          <Button onClick={openCreate} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Thêm Task
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> Thêm Task
           </Button>
         </div>
 
@@ -141,7 +141,7 @@ export default function AdminTasks() {
             {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -310,16 +310,16 @@ export default function AdminCollectAI() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">CollectAI</h1>
-          <p className="text-muted-foreground">Thu thập, quản lý và import công cụ AI tự động</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">CollectAI</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Thu thập, quản lý và import công cụ AI tự động</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="search" className="gap-1"><Search className="h-4 w-4" /> Tìm kiếm</TabsTrigger>
-            <TabsTrigger value="staging" className="gap-1"><Download className="h-4 w-4" /> Staging ({pendingItems.length + approvedItems.length})</TabsTrigger>
-            <TabsTrigger value="schedules" className="gap-1"><Clock className="h-4 w-4" /> Lịch trình ({schedules.length})</TabsTrigger>
-            <TabsTrigger value="history" className="gap-1"><History className="h-4 w-4" /> Lịch sử</TabsTrigger>
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="search" className="gap-1 text-xs md:text-sm"><Search className="h-3.5 w-3.5" /> Tìm kiếm</TabsTrigger>
+            <TabsTrigger value="staging" className="gap-1 text-xs md:text-sm"><Download className="h-3.5 w-3.5" /> Staging ({pendingItems.length + approvedItems.length})</TabsTrigger>
+            <TabsTrigger value="schedules" className="gap-1 text-xs md:text-sm"><Clock className="h-3.5 w-3.5" /> Lịch trình ({schedules.length})</TabsTrigger>
+            <TabsTrigger value="history" className="gap-1 text-xs md:text-sm"><History className="h-3.5 w-3.5" /> Lịch sử</TabsTrigger>
           </TabsList>
 
           {/* === SEARCH TAB === */}
@@ -386,16 +386,16 @@ export default function AdminCollectAI() {
             <Card>
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Select value={searchType} onValueChange={(v: "keyword" | "url") => setSearchType(v)}>
-                    <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="keyword"><Search className="inline h-3 w-3 mr-1" />Theo keyword</SelectItem>
                       <SelectItem value="url"><Globe className="inline h-3 w-3 mr-1" />Theo URL</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder={searchType === "keyword" ? "VD: AI writing tools, project management..." : "VD: https://www.producthunt.com/topics/artificial-intelligence"}
+                    placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
                     className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
                   <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
                     {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}

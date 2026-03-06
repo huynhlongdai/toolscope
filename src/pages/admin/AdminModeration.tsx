@@ -84,9 +84,9 @@ export default function AdminModeration() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">Moderation Queue</h1>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Moderation Queue</h1>
           {totalPending > 0 && <Badge variant="destructive">{totalPending} chờ duyệt</Badge>}
         </div>
 

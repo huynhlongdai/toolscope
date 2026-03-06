@@ -73,8 +73,8 @@ export default function AdminCategories() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Categories & Tags</h1>
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Categories & Tags</h1>
 
         <Tabs defaultValue="categories">
           <TabsList>
@@ -83,8 +83,8 @@ export default function AdminCategories() {
           </TabsList>
 
           <TabsContent value="categories" className="mt-4 space-y-4">
-            <Button onClick={() => { setEditCat(null); setShowAddCat(true); }}><Plus className="mr-2 h-4 w-4" /> Thêm danh mục</Button>
-            <div className="rounded-md border">
+            <Button size="sm" onClick={() => { setEditCat(null); setShowAddCat(true); }}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm danh mục</Button>
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

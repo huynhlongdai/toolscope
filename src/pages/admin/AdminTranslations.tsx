@@ -83,16 +83,14 @@ export default function AdminTranslations() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Languages className="h-7 w-7" /> Quản lý bản dịch
-            </h1>
-            <p className="text-muted-foreground">
-              {translatedToolIds.size} tools đã dịch · {untranslatedTools.length} chưa dịch
-            </p>
-          </div>
+      <div className="space-y-4 md:space-y-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Languages className="h-6 w-6 md:h-7 md:w-7" /> Quản lý bản dịch
+          </h1>
+          <p className="text-xs md:text-sm text-muted-foreground">
+            {translatedToolIds.size} tools đã dịch · {untranslatedTools.length} chưa dịch
+          </p>
         </div>
 
         {/* Untranslated tools section */}
