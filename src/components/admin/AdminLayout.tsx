@@ -80,20 +80,29 @@ function AdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/admin"}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {navGroups.map((group) => (
+                <div key={group.label} className="mb-2">
+                  {!collapsed && (
+                    <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      {group.label}
+                    </p>
+                  )}
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          end={item.url === "/admin"}
+                          className="hover:bg-sidebar-accent"
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        >
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </div>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
