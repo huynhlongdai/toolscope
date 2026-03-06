@@ -211,7 +211,7 @@ export default function AdminUsers() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có user</TableCell></TableRow>
               ) : (
-                filtered.map((user: any) => (
+                paged.map((user: any) => (
                   <TableRow key={user.id} className={user.is_banned ? "opacity-50" : ""}>
                     <TableCell>
                       <Checkbox checked={selectedIds.includes(user.id)} onCheckedChange={() => toggleSelect(user.id)} />
