@@ -16,6 +16,15 @@ export default function AdminSettings() {
   const [gaId, setGaId] = useState("");
   const [headScripts, setHeadScripts] = useState("");
   const [bodyScripts, setBodyScripts] = useState("");
+  const [defaultCategoryId, setDefaultCategoryId] = useState("");
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories-list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("id, name, icon").is("parent_id", null).order("sort_order");
+      return data ?? [];
+    },
+  });
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["admin-site-settings"],
