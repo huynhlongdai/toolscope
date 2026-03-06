@@ -135,18 +135,18 @@ export default function AdminPageEditor() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Page Editor</h1>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Page Editor</h1>
           <div className="flex gap-2">
-            <Button variant="outline" asChild><a href={`/p/${slug}`} target="_blank"><Eye className="mr-2 h-4 w-4" /> Preview</a></Button>
-            <Button onClick={save} disabled={saving}><Save className="mr-2 h-4 w-4" /> {saving ? "Đang lưu..." : "Lưu"}</Button>
+            <Button variant="outline" size="sm" asChild><a href={`/p/${slug}`} target="_blank"><Eye className="mr-1 h-3.5 w-3.5" /> Preview</a></Button>
+            <Button size="sm" onClick={save} disabled={saving}><Save className="mr-1 h-3.5 w-3.5" /> {saving ? "Lưu..." : "Lưu"}</Button>
           </div>
         </div>
 
         <Card>
           <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2"><Label>Tiêu đề</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
               <div className="space-y-2"><Label>Slug</Label><Input value={slug} onChange={(e) => setSlug(e.target.value)} /></div>
               <div className="space-y-2">

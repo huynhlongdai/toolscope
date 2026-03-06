@@ -109,15 +109,15 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground">Thống kê tổng quan và xu hướng</p>
+            <h1 className="text-xl md:text-2xl font-bold">Analytics</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Thống kê tổng quan và xu hướng</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={range} onValueChange={setRange}>
-              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="7">7 ngày</SelectItem>
                 <SelectItem value="30">30 ngày</SelectItem>
@@ -125,9 +125,9 @@ export default function AdminAnalytics() {
                 <SelectItem value="all">Tất cả</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={exportReport}><Download className="mr-2 h-4 w-4" /> Export</Button>
+            <Button variant="outline" size="sm" onClick={exportReport}><Download className="mr-1 h-3.5 w-3.5" /> Export</Button>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/search-analytics"><BarChart3 className="mr-2 h-4 w-4" /> Search Analytics</Link>
+              <Link to="/admin/search-analytics"><BarChart3 className="mr-1 h-3.5 w-3.5" /> Search</Link>
             </Button>
           </div>
         </div>

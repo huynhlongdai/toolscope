@@ -184,18 +184,18 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Cài đặt Website</h1>
-          <p className="text-muted-foreground">Cấu hình AI providers, analytics, site info</p>
+          <h1 className="text-xl md:text-2xl font-bold">Cài đặt Website</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Cấu hình AI providers, analytics, site info</p>
         </div>
 
         <Tabs defaultValue="ai" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="ai" className="gap-1.5"><Brain className="h-4 w-4" /> AI Providers</TabsTrigger>
-            <TabsTrigger value="site" className="gap-1.5"><Settings2 className="h-4 w-4" /> Site Info</TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-1.5"><Globe className="h-4 w-4" /> Analytics</TabsTrigger>
-            <TabsTrigger value="scripts" className="gap-1.5"><Code className="h-4 w-4" /> Scripts</TabsTrigger>
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="ai" className="gap-1.5 text-xs md:text-sm"><Brain className="h-3.5 w-3.5" /> AI</TabsTrigger>
+            <TabsTrigger value="site" className="gap-1.5 text-xs md:text-sm"><Settings2 className="h-3.5 w-3.5" /> Site</TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
+            <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
           </TabsList>
 
           {/* AI PROVIDERS TAB */}

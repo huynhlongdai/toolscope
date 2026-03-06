@@ -75,14 +75,14 @@ export default function AdminNewsletter() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Newsletter</h1>
-            <p className="text-muted-foreground">Quản lý danh sách đăng ký nhận tin</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Newsletter</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Quản lý danh sách đăng ký nhận tin</p>
           </div>
-          <Button variant="outline" onClick={exportCSV}>
-            <Download className="mr-2 h-4 w-4" /> Export CSV
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download className="mr-1 h-3.5 w-3.5" /> CSV
           </Button>
         </div>
 

@@ -137,10 +137,10 @@ export default function AdminBackup() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Backup & Restore</h1>
-          <p className="text-muted-foreground">Export dữ liệu và import khôi phục cài đặt</p>
+          <h1 className="text-xl md:text-2xl font-bold">Backup & Restore</h1>
+          <p className="text-xs md:text-sm text-muted-foreground">Export dữ liệu và import khôi phục cài đặt</p>
         </div>
 
         {lastBackup && (

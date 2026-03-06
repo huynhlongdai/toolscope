@@ -71,16 +71,16 @@ export default function AdminMenus() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Menu Manager</h1>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            <Save className="mr-2 h-4 w-4" /> Lưu menu
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Menu Manager</h1>
+          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Save className="mr-1 h-3.5 w-3.5" /> Lưu menu
           </Button>
         </div>
 
         <Select value={location} onValueChange={handleLocationChange}>
-          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="header">Header</SelectItem>
             <SelectItem value="footer">Footer</SelectItem>
@@ -89,7 +89,7 @@ export default function AdminMenus() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-base">Menu Items ({location})</CardTitle>
               <Button size="sm" variant="outline" onClick={addItem}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm item</Button>
             </div>
@@ -97,9 +97,9 @@ export default function AdminMenus() {
           <CardContent className="space-y-3">
             {items.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Chưa có menu item</p>}
             {items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3 border rounded-md p-3">
-                <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 grid grid-cols-3 gap-2">
+              <div key={idx} className="flex items-start gap-2 border rounded-md p-3">
+                <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 mt-2.5" />
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Input placeholder="Label" value={item.label} onChange={(e) => updateItem(idx, "label", e.target.value)} />
                   <Input placeholder="URL" value={item.url} onChange={(e) => updateItem(idx, "url", e.target.value)} />
                   <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export default function AdminMenus() {
                     <Label className="text-xs">New tab</Label>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeItem(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="shrink-0"><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </div>
             ))}
           </CardContent>

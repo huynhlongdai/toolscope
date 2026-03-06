@@ -386,16 +386,16 @@ export default function AdminCollectAI() {
             <Card>
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Select value={searchType} onValueChange={(v: "keyword" | "url") => setSearchType(v)}>
-                    <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="keyword"><Search className="inline h-3 w-3 mr-1" />Theo keyword</SelectItem>
                       <SelectItem value="url"><Globe className="inline h-3 w-3 mr-1" />Theo URL</SelectItem>
                     </SelectContent>
                   </Select>
                   <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder={searchType === "keyword" ? "VD: AI writing tools, project management..." : "VD: https://www.producthunt.com/topics/artificial-intelligence"}
+                    placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
                     className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
                   <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
                     {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
