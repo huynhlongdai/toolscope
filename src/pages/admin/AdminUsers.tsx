@@ -91,8 +91,9 @@ export default function AdminUsers() {
       const { error } = await supabase.from("profiles").delete().eq("id", userId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_delete", "user", userId);
       toast.success("Đã xóa user");
     },
   });
