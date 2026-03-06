@@ -77,9 +77,9 @@ export default function ToolsPage() {
       else if (sortBy === "rating") q = q.order("avg_rating", { ascending: false });
       else q = q.order("name");
 
-      const { data, error } = await q.limit(50);
+      const { data, error, count } = await q.range(page * pageSize, (page + 1) * pageSize - 1);
       if (error) throw error;
-      return data;
+      return { data: data ?? [], count: count ?? 0 };
     },
     enabled: !aiMode || !search,
   });

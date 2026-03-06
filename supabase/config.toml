@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-workflow]
 verify_jwt = false
+
+[functions.manage-ai-keys]
+verify_jwt = false
