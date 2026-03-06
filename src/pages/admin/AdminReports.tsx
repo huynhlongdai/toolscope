@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Search, CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminReports() {
   const queryClient = useQueryClient();
