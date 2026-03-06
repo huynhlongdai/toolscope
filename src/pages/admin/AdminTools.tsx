@@ -139,7 +139,7 @@ export default function AdminTools() {
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
               ) : (
-                filtered.map((tool: any) => (
+                paged.map((tool: any) => (
                   <TableRow key={tool.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
