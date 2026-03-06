@@ -22,6 +22,20 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
+
+  const submitReport = async () => {
+    if (!userId || !reportTarget) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: userId, target_type: "comment", target_id: reportTarget,
+      reason: reportReason, details: reportDetails || null,
+    });
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Đã gửi báo cáo" });
+    setReportTarget(null); setReportDetails("");
+  };
 
   const { data: comments } = useQuery({
     queryKey: ["tool-comments", toolId],
