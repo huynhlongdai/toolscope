@@ -22,7 +22,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden py-20 md:py-28">
+    <section className="relative overflow-hidden py-12 md:py-20">
       {/* Background decoration */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-primary/5 blur-3xl" />
