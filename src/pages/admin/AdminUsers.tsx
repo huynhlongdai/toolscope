@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
