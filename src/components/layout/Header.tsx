@@ -139,20 +139,20 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <User className="mr-2 h-4 w-4" /> Hồ sơ
+                  <User className="mr-2 h-4 w-4" /> {t("header.profile")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <Bookmark className="mr-2 h-4 w-4" /> Đã lưu & Collections
+                  <Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdminOrEditor && (
                   <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <Shield className="mr-2 h-4 w-4" /> Admin Dashboard
+                    <Shield className="mr-2 h-4 w-4" /> {t("header.admin")}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> Đăng xuất
+                  <LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
