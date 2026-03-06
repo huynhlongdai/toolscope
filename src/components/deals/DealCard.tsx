@@ -4,11 +4,11 @@ import { useAuth } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShareButtons } from "@/components/share/ShareButtons";
-import { Copy, Check, ExternalLink, Clock, Shield, Sparkles, Tag, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Tag, ThumbsUp, ThumbsDown, Sparkles, Shield, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { DealDetailModal } from "./DealDetailModal";
 
 interface Deal {
   id: string;
@@ -54,14 +54,13 @@ function useCountdown(expiresAt: string | null | undefined) {
 }
 
 export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: string; toolSlug?: string }) {
-  const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const countdown = useCountdown(deal.expires_at);
   const [localUpvotes, setLocalUpvotes] = useState(deal.upvotes ?? 0);
   const [localDownvotes, setLocalDownvotes] = useState(deal.downvotes ?? 0);
   const [userVote, setUserVote] = useState<"up" | "down" | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  // Check user's existing vote
   useEffect(() => {
     if (!user) return;
     supabase
@@ -79,21 +78,16 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
   const handleVote = async (voteType: "up" | "down") => {
     if (!user) { toast.error("Vui lòng đăng nhập để bình chọn"); return; }
 
-    // Optimistic update
     if (userVote === voteType) {
-      // Remove vote
       setUserVote(null);
       if (voteType === "up") setLocalUpvotes(v => v - 1);
       else setLocalDownvotes(v => v - 1);
-
       await supabase.from("votes").delete().eq("target_type", "deal").eq("target_id", deal.id).eq("user_id", user.id);
       await (supabase.from("deals") as any).update({
         [voteType === "up" ? "upvotes" : "downvotes"]: voteType === "up" ? localUpvotes - 1 : localDownvotes - 1,
       }).eq("id", deal.id);
     } else {
-      // Switch or new vote
       if (userVote) {
-        // Remove old vote count
         if (userVote === "up") setLocalUpvotes(v => v - 1);
         else setLocalDownvotes(v => v - 1);
         await supabase.from("votes").delete().eq("target_type", "deal").eq("target_id", deal.id).eq("user_id", user.id);
@@ -103,7 +97,7 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
       else setLocalDownvotes(v => v + 1);
 
       await supabase.from("votes").insert({ target_type: "deal", target_id: deal.id, user_id: user.id, vote: voteType });
-      
+
       const updates: any = {};
       if (voteType === "up") {
         updates.upvotes = localUpvotes + (userVote === "up" ? 0 : 1);
@@ -116,15 +110,7 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
     }
   };
 
-  const copyCode = async () => {
-    if (!deal.coupon_code) return;
-    await navigator.clipboard.writeText(deal.coupon_code);
-    setCopied(true);
-    toast.success("Đã copy mã giảm giá!");
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleClick = async () => {
+  const handleClickDeal = async () => {
     try { await supabase.rpc("increment_deal_click" as any, { deal_id: deal.id }); } catch {}
   };
 
@@ -137,123 +123,106 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
     : null;
 
   const isExpiringSoon = deal.expires_at && new Date(deal.expires_at).getTime() - Date.now() < 3 * 86400000;
-
   const shareUrl = toolSlug ? `${window.location.origin}/tool/${toolSlug}` : window.location.href;
 
   return (
-    <Card className={cn(
-      "overflow-hidden transition-all hover:shadow-md",
-      deal.is_exclusive && "border-primary/40 bg-primary/[0.02]",
-    )}>
-      <CardContent className="p-4 space-y-3">
-        {/* Badges */}
-        <div className="flex flex-wrap gap-1.5">
-          {discountLabel && (
-            <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              <Tag className="h-3 w-3 mr-1" /> {discountLabel}
-            </Badge>
-          )}
-          {deal.is_exclusive && (
-            <Badge variant="outline" className="border-primary/50 text-primary">
-              <Sparkles className="h-3 w-3 mr-1" /> Độc quyền
-            </Badge>
-          )}
-          {deal.is_verified && (
-            <Badge variant="secondary">
-              <Shield className="h-3 w-3 mr-1" /> Đã xác minh
-            </Badge>
-          )}
-          {isExpiringSoon && countdown && countdown !== "Hết hạn" && (
-            <Badge variant="destructive" className="animate-pulse">
-              <Clock className="h-3 w-3 mr-1" /> {countdown}
-            </Badge>
-          )}
-        </div>
-
-        {/* Title & Description */}
-        <div>
-          <h4 className="font-semibold text-sm">{deal.title}</h4>
-          {deal.description && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{deal.description}</p>
-          )}
-        </div>
-
-        {/* Pricing */}
-        {(deal.original_price != null || deal.deal_price != null) && (
-          <div className="flex items-baseline gap-2">
-            {deal.original_price != null && (
-              <span className="text-sm text-muted-foreground line-through">
-                {deal.original_price} {deal.currency}
-              </span>
+    <>
+      <Card
+        className={cn(
+          "overflow-hidden transition-all hover:shadow-md cursor-pointer",
+          deal.is_exclusive && "border-primary/40 bg-primary/[0.02]",
+        )}
+        onClick={() => setModalOpen(true)}
+      >
+        <CardContent className="p-4 space-y-3">
+          {/* Badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {discountLabel && (
+              <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <Tag className="h-3 w-3 mr-1" /> {discountLabel}
+              </Badge>
             )}
-            {deal.deal_price != null && (
-              <span className="text-lg font-bold text-primary">
-                {deal.deal_price} {deal.currency}
-              </span>
+            {deal.is_exclusive && (
+              <Badge variant="outline" className="border-primary/50 text-primary">
+                <Sparkles className="h-3 w-3 mr-1" /> Độc quyền
+              </Badge>
+            )}
+            {deal.is_verified && (
+              <Badge variant="secondary">
+                <Shield className="h-3 w-3 mr-1" /> Đã xác minh
+              </Badge>
+            )}
+            {isExpiringSoon && countdown && countdown !== "Hết hạn" && (
+              <Badge variant="destructive" className="animate-pulse">
+                <Clock className="h-3 w-3 mr-1" /> {countdown}
+              </Badge>
             )}
           </div>
-        )}
 
-        {/* Coupon Code */}
-        {deal.coupon_code && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={copyCode}
-                className={cn(
-                  "w-full flex items-center justify-between rounded-lg border-2 border-dashed px-3 py-2 text-sm font-mono transition-colors",
-                  copied
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-primary/30 bg-primary/5 text-foreground hover:border-primary/60"
-                )}
+          {/* Title & Description */}
+          <div>
+            <h4 className="font-semibold text-sm">{deal.title}</h4>
+            {deal.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{deal.description}</p>
+            )}
+          </div>
+
+          {/* Pricing */}
+          {(deal.original_price != null || deal.deal_price != null) && (
+            <div className="flex items-baseline gap-2">
+              {deal.original_price != null && (
+                <span className="text-sm text-muted-foreground line-through">
+                  {deal.original_price} {deal.currency}
+                </span>
+              )}
+              {deal.deal_price != null && (
+                <span className="text-lg font-bold text-primary">
+                  {deal.deal_price} {deal.currency}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Voting + Share row */}
+          <div className="flex items-center justify-between pt-1 border-t" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-7 px-2 gap-1 text-xs", userVote === "up" && "text-primary bg-primary/10")}
+                onClick={() => handleVote("up")}
               >
-                <span>{deal.coupon_code}</span>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Click để copy mã</TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* CTA */}
-        {deal.deal_url && (
-          <Button asChild size="sm" className="w-full gap-2" onClick={handleClick}>
-            <a href={deal.deal_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" /> Nhận ưu đãi
-            </a>
-          </Button>
-        )}
-
-        {/* Voting + Share row */}
-        <div className="flex items-center justify-between pt-1 border-t">
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn("h-7 px-2 gap-1 text-xs", userVote === "up" && "text-primary bg-primary/10")}
-              onClick={() => handleVote("up")}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" /> {localUpvotes}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn("h-7 px-2 gap-1 text-xs", userVote === "down" && "text-destructive bg-destructive/10")}
-              onClick={() => handleVote("down")}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" /> {localDownvotes}
-            </Button>
+                <ThumbsUp className="h-3.5 w-3.5" /> {localUpvotes}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn("h-7 px-2 gap-1 text-xs", userVote === "down" && "text-destructive bg-destructive/10")}
+                onClick={() => handleVote("down")}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" /> {localDownvotes}
+              </Button>
+            </div>
+            <ShareButtons url={shareUrl} title={`${deal.title}${toolName ? ` - ${toolName}` : ""}`} />
           </div>
-          <ShareButtons url={shareUrl} title={`${deal.title}${toolName ? ` - ${toolName}` : ""}`} />
-        </div>
 
-        {/* Expiry info */}
-        {deal.expires_at && !isExpiringSoon && countdown && (
-          <p className="text-[11px] text-muted-foreground text-center">
-            <Clock className="inline h-3 w-3 mr-1" /> Còn {countdown}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          {/* Expiry info */}
+          {deal.expires_at && !isExpiringSoon && countdown && (
+            <p className="text-[11px] text-muted-foreground text-center">
+              <Clock className="inline h-3 w-3 mr-1" /> Còn {countdown}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <DealDetailModal
+        deal={deal}
+        toolName={toolName}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        countdown={countdown}
+        onClickDeal={handleClickDeal}
+      />
+    </>
   );
 }
