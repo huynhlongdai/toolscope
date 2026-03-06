@@ -37,7 +37,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
 
   const { data: dbMenuItems } = useQuery({
