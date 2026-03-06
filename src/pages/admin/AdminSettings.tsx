@@ -41,6 +41,7 @@ export default function AdminSettings() {
       setGaId(settings.ga_measurement_id || "");
       setHeadScripts(settings.custom_head_scripts || "");
       setBodyScripts(settings.custom_body_scripts || "");
+      setDefaultCategoryId(settings.default_category_id || "");
     }
   }, [settings]);
 
