@@ -75,19 +75,12 @@ Yêu cầu bài viết:
 
 Viết chuyên nghiệp, khách quan, có chiều sâu. Dùng markdown formatting (headers, bold, lists, blockquotes).`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "Bạn là chuyên gia review công cụ công nghệ. Viết bài review chuyên sâu, khách quan." },
-          { role: "user", content: prompt },
-        ],
-      }),
+    const response = await callAI({
+      feature: "content_generation",
+      messages: [
+        { role: "system", content: "Bạn là chuyên gia review công cụ công nghệ. Viết bài review chuyên sâu, khách quan." },
+        { role: "user", content: prompt },
+      ],
     });
 
     if (!response.ok) {
