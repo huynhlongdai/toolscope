@@ -126,6 +126,11 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
                         >
                           <Reply className="h-3 w-3" /> Trả lời
                         </button>
+                        {userId && (
+                          <button onClick={() => setReportTarget(c.id)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive">
+                            <Flag className="h-3 w-3" /> Báo cáo
+                          </button>
+                        )}
                       </div>
 
                       {/* Reply form */}
