@@ -24,6 +24,9 @@ export default function AdminBlog() {
   const [showAdd, setShowAdd] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
 
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["admin-blog"],
     queryFn: async () => {
@@ -40,7 +43,11 @@ export default function AdminBlog() {
       const { error } = await supabase.from("blog_posts").update(update).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blog"] }); toast.success("Đã cập nhật"); },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+      logAuditAction("blog_status_change", "blog_post", vars.id, { status: vars.status });
+      toast.success("Đã cập nhật");
+    },
   });
 
   const deletePost = useMutation({
@@ -48,10 +55,26 @@ export default function AdminBlog() {
       const { error } = await supabase.from("blog_posts").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-blog"] }); toast.success("Đã xóa"); },
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+      logAuditAction("blog_delete", "blog_post", id);
+      toast.success("Đã xóa");
+    },
   });
 
   const filtered = posts.filter((p: any) => p.title.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  const exportCSV = () => {
+    const headers = ["Title", "Slug", "Author", "Status", "Views", "Created"];
+    const rows = filtered.map((p: any) => [p.title, p.slug, p.profiles?.display_name ?? "", p.status, p.view_count, new Date(p.created_at).toLocaleDateString()]);
+    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "blog-posts.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <AdminLayout>
