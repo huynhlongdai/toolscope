@@ -22,7 +22,8 @@ export function AnalyticsProvider() {
 
   // Inject GA script
   useEffect(() => {
-    const gaId = settings?.ga_measurement_id;
+    const rawGaId = settings?.ga_measurement_id;
+    const gaId = typeof rawGaId === 'string' ? rawGaId.replace(/^"|"$/g, '') : rawGaId;
     if (!gaId) return;
 
     // Check if already loaded
