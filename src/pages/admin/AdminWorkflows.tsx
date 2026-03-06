@@ -45,10 +45,10 @@ export default function AdminWorkflows() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Quản lý Workflows</h1>
-          <Button onClick={() => setShowAdd(true)}><Plus className="mr-2 h-4 w-4" /> Tạo Workflow</Button>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Workflows</h1>
+          <Button onClick={() => setShowAdd(true)} size="sm"><Plus className="mr-2 h-4 w-4" /> Tạo Workflow</Button>
         </div>
 
         <div className="relative max-w-sm">
@@ -56,7 +56,7 @@ export default function AdminWorkflows() {
           <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
