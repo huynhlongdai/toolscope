@@ -155,7 +155,10 @@ export default function AdminUsers() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Quản lý Users</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý Users</h1>
+          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+        </div>
 
         <div className="flex flex-wrap gap-4">
           <div className="relative flex-1 max-w-sm">
