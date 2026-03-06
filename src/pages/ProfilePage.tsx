@@ -274,8 +274,37 @@ const ProfilePage = () => {
                     <p className="text-muted-foreground text-center py-8">Chưa có review nào.</p>
                   )}
                 </TabsContent>
-                <TabsContent value="activity">
-                  <p className="text-muted-foreground text-center py-8">Sắp ra mắt.</p>
+                <TabsContent value="activity" className="space-y-3 mt-4">
+                  {comments && comments.length > 0 ? (
+                    <>
+                      <h3 className="text-sm font-medium text-muted-foreground">Bình luận gần đây</h3>
+                      {comments.map((c: any) => (
+                        <Card key={c.id}>
+                          <CardContent className="p-4">
+                            <p className="text-sm">{c.content.slice(0, 150)}{c.content.length > 150 ? "..." : ""}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tool: <span className="text-foreground">{(c.tools as any)?.name || "—"}</span> · {new Date(c.created_at).toLocaleDateString("vi-VN")}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">Chưa có hoạt động nào.</p>
+                  )}
+                  {isOwnProfile && bookmarks && bookmarks.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-medium text-muted-foreground mt-4">Đã bookmark</h3>
+                      {bookmarks.map((b: any) => (
+                        <Card key={b.id}>
+                          <CardContent className="p-3">
+                            <p className="text-sm font-medium">{(b.tools as any)?.name || "—"}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString("vi-VN")}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
                 </TabsContent>
               </Tabs>
             </>
