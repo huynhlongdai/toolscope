@@ -58,19 +58,12 @@ Return ONLY a valid JSON object like:
 
 Important: Preserve all HTML tags, Markdown formatting, URLs, and technical terms. Only translate human-readable text.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are a professional translator. Translate Vietnamese to English accurately while preserving all formatting." },
-          { role: "user", content: prompt },
-        ],
-      }),
+    const response = await callAI({
+      feature: "content_generation",
+      messages: [
+        { role: "system", content: "You are a professional translator. Translate Vietnamese to English accurately while preserving all formatting." },
+        { role: "user", content: prompt },
+      ],
     });
 
     if (!response.ok) {
