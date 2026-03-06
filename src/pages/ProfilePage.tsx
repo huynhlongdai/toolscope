@@ -1,17 +1,23 @@
+import { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { useAuth } from "@/lib/auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate, useParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, MessageSquare, Award, BookOpen, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Star, MessageSquare, Award, BookOpen, Calendar, Pencil, Save } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const badgeLabels: Record<string, { label: string; color: string; icon: string }> = {
   top_reviewer: { label: "Top Reviewer", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: "⭐" },
@@ -23,7 +29,11 @@ const badgeLabels: Record<string, { label: string; color: string; icon: string }
 const ProfilePage = () => {
   const { user } = useAuth();
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const profileId = id || user?.id;
+  const isOwnProfile = !id || id === user?.id;
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ display_name: "", username: "", bio: "", website: "" });
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", profileId],
@@ -74,6 +84,67 @@ const ProfilePage = () => {
     },
     enabled: !!profileId,
   });
+
+  const { data: comments } = useQuery({
+    queryKey: ["user-comments", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase
+        .from("comments")
+        .select("*, tools:tool_id(name, slug)")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!profileId,
+  });
+
+  const { data: bookmarks } = useQuery({
+    queryKey: ["user-bookmarks-profile", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase
+        .from("bookmarks")
+        .select("*, tools:tool_id(name, slug)")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: !!profileId && isOwnProfile,
+  });
+
+  const updateProfile = useMutation({
+    mutationFn: async () => {
+      if (!profileId) return;
+      const { error } = await supabase.from("profiles").update({
+        display_name: editForm.display_name,
+        username: editForm.username || null,
+        bio: editForm.bio || null,
+        website: editForm.website || null,
+      }).eq("id", profileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", profileId] });
+      toast.success("Đã cập nhật profile");
+      setEditing(false);
+    },
+    onError: (e: any) => toast.error(e.message || "Lỗi cập nhật"),
+  });
+
+  const startEditing = () => {
+    if (profile) {
+      setEditForm({
+        display_name: profile.display_name || "",
+        username: profile.username || "",
+        bio: profile.bio || "",
+        website: profile.website || "",
+      });
+      setEditing(true);
+    }
+  };
 
   if (!profileId && !user) return <Navigate to="/auth" />;
 
@@ -127,7 +198,42 @@ const ProfilePage = () => {
                         </div>
                       )}
                     </div>
+                    {isOwnProfile && !editing && (
+                      <Button variant="outline" size="sm" onClick={startEditing}>
+                        <Pencil className="mr-1 h-3 w-3" /> Chỉnh sửa
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Edit Form */}
+                  {editing && isOwnProfile && (
+                    <div className="mt-4 border-t pt-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Tên hiển thị</Label>
+                          <Input value={editForm.display_name} onChange={(e) => setEditForm(p => ({ ...p, display_name: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Username</Label>
+                          <Input value={editForm.username} onChange={(e) => setEditForm(p => ({ ...p, username: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Bio</Label>
+                        <Textarea value={editForm.bio} onChange={(e) => setEditForm(p => ({ ...p, bio: e.target.value }))} rows={2} maxLength={500} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Website</Label>
+                        <Input value={editForm.website} onChange={(e) => setEditForm(p => ({ ...p, website: e.target.value }))} placeholder="https://..." />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+                          <Save className="mr-1 h-3 w-3" /> Lưu
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -168,8 +274,37 @@ const ProfilePage = () => {
                     <p className="text-muted-foreground text-center py-8">Chưa có review nào.</p>
                   )}
                 </TabsContent>
-                <TabsContent value="activity">
-                  <p className="text-muted-foreground text-center py-8">Sắp ra mắt.</p>
+                <TabsContent value="activity" className="space-y-3 mt-4">
+                  {comments && comments.length > 0 ? (
+                    <>
+                      <h3 className="text-sm font-medium text-muted-foreground">Bình luận gần đây</h3>
+                      {comments.map((c: any) => (
+                        <Card key={c.id}>
+                          <CardContent className="p-4">
+                            <p className="text-sm">{c.content.slice(0, 150)}{c.content.length > 150 ? "..." : ""}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tool: <span className="text-foreground">{(c.tools as any)?.name || "—"}</span> · {new Date(c.created_at).toLocaleDateString("vi-VN")}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">Chưa có hoạt động nào.</p>
+                  )}
+                  {isOwnProfile && bookmarks && bookmarks.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-medium text-muted-foreground mt-4">Đã bookmark</h3>
+                      {bookmarks.map((b: any) => (
+                        <Card key={b.id}>
+                          <CardContent className="p-3">
+                            <p className="text-sm font-medium">{(b.tools as any)?.name || "—"}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleDateString("vi-VN")}</p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </>
+                  )}
                 </TabsContent>
               </Tabs>
             </>

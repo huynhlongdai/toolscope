@@ -12,7 +12,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages } from "lucide-react";
 
 const navItems = [
   { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
@@ -20,6 +20,7 @@ const navItems = [
   { title: "CollectAI", url: "/admin/collect", icon: BrainCircuit },
   { title: "Quản lý Users", url: "/admin/users", icon: Users },
   { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
+  { title: "Reports", url: "/admin/reports", icon: AlertTriangle },
   { title: "Moderation", url: "/admin/moderation", icon: Shield },
   { title: "Blog Posts", url: "/admin/blog", icon: FileText },
   { title: "Workflows", url: "/admin/workflows", icon: Workflow },
@@ -29,6 +30,9 @@ const navItems = [
   { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
   { title: "Launches", url: "/admin/launches", icon: Rocket },
   { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
+  { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
+  { title: "Translations", url: "/admin/translations", icon: Languages },
+  { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
   { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
   { title: "Cài đặt", url: "/admin/settings", icon: Settings },
 ];

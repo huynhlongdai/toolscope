@@ -45,6 +45,11 @@ import DealsPage from "./pages/DealsPage";
 import TasksPage from "./pages/TasksPage";
 import LaunchesPage from "./pages/LaunchesPage";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminTranslations from "./pages/admin/AdminTranslations";
+import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 
 const queryClient = new QueryClient();
@@ -97,6 +102,11 @@ const App = () => (
             <Route path="/admin/launches" element={<AdminLaunches />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+            <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+            <Route path="/admin/translations" element={<AdminTranslations />} />
+            <Route path="/submit" element={<SubmitToolPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <AnalyticsProvider />
