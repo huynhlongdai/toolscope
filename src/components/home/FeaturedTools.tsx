@@ -93,7 +93,7 @@ export function FeaturedTools() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
             <p className="text-muted-foreground">Chưa có công cụ nào. Hãy thêm tools vào hệ thống!</p>
           </div>
         )}
