@@ -10,12 +10,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2 } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
 
 type SortOption = "popular" | "newest" | "rating" | "name";
 type ViewMode = "grid" | "list";
+const PAGE_SIZE = 24;
 
 const pricingFilters = [
   { value: "all", label: "Tất cả" },
