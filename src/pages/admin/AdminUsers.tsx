@@ -138,8 +138,8 @@ export default function AdminUsers() {
     const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
     const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = url; a.download = "users.csv"; a.click();
     const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "users.csv"; a.click();
     URL.revokeObjectURL(url);
   };
 
