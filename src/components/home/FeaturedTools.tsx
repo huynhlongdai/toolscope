@@ -37,7 +37,7 @@ export function FeaturedTools() {
   ];
 
   return (
-    <section className="py-16 bg-muted/30">
+    <section className="py-10 md:py-12 bg-muted/30">
       <div className="container">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
