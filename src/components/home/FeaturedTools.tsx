@@ -39,7 +39,7 @@ export function FeaturedTools() {
   return (
     <section className="py-10 md:py-12 bg-muted/30">
       <div className="container">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Công cụ hàng đầu
