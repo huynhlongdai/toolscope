@@ -14,29 +14,49 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3 } from "lucide-react";
 
-const navItems = [
-  { title: "Tổng quan", url: "/admin", icon: LayoutDashboard },
-  { title: "Quản lý Tools", url: "/admin/tools", icon: Wrench },
-  { title: "CollectAI", url: "/admin/collect", icon: BrainCircuit },
-  { title: "Quản lý Users", url: "/admin/users", icon: Users },
-  { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
-  { title: "Reports", url: "/admin/reports", icon: AlertTriangle },
-  { title: "Moderation", url: "/admin/moderation", icon: Shield },
-  { title: "Blog Posts", url: "/admin/blog", icon: FileText },
-  { title: "Workflows", url: "/admin/workflows", icon: Workflow },
-  { title: "Categories & Tags", url: "/admin/categories", icon: Tags },
-  { title: "Menu Manager", url: "/admin/menus", icon: Menu },
-  { title: "Page Builder", url: "/admin/pages", icon: FileStack },
-  { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
-  { title: "Launches", url: "/admin/launches", icon: Rocket },
-  { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
-  { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
-  { title: "Translations", url: "/admin/translations", icon: Languages },
-  { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
-  { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "Backup", url: "/admin/backup", icon: Database },
-  { title: "Cài đặt", url: "/admin/settings", icon: Settings },
+const navGroups = [
+  {
+    label: "Tổng quan",
+    items: [
+      { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+      { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Nội dung",
+    items: [
+      { title: "Tools", url: "/admin/tools", icon: Wrench },
+      { title: "CollectAI", url: "/admin/collect", icon: BrainCircuit },
+      { title: "Blog Posts", url: "/admin/blog", icon: FileText },
+      { title: "Workflows", url: "/admin/workflows", icon: Workflow },
+      { title: "Categories & Tags", url: "/admin/categories", icon: Tags },
+      { title: "Pages", url: "/admin/pages", icon: FileStack },
+      { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
+      { title: "Launches", url: "/admin/launches", icon: Rocket },
+      { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
+    ],
+  },
+  {
+    label: "Cộng đồng",
+    items: [
+      { title: "Users", url: "/admin/users", icon: Users },
+      { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
+      { title: "Reports", url: "/admin/reports", icon: AlertTriangle },
+      { title: "Moderation", url: "/admin/moderation", icon: Shield },
+    ],
+  },
+  {
+    label: "Hệ thống",
+    items: [
+      { title: "Menu Manager", url: "/admin/menus", icon: Menu },
+      { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
+      { title: "Translations", url: "/admin/translations", icon: Languages },
+      { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
+      { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
+      { title: "Backup", url: "/admin/backup", icon: Database },
+      { title: "Cài đặt", url: "/admin/settings", icon: Settings },
+    ],
+  },
 ];
 
 function AdminSidebar() {
