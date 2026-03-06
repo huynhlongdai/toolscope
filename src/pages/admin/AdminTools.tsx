@@ -191,6 +191,17 @@ export default function AdminTools() {
           </Table>
         </div>
 
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{filtered.length} tools</span>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Trước</Button>
+              <span className="text-sm">Trang {page + 1} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Sau</Button>
+            </div>
+          </div>
+        )}
+
         {(editTool || showAdd) && (
           <ToolFormDialog
             tool={editTool}

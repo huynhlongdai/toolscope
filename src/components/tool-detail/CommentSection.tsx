@@ -180,6 +180,26 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
           </div>
         )}
       </CardContent>
+
+      {/* Report Dialog */}
+      <Dialog open={!!reportTarget} onOpenChange={(v) => !v && setReportTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Báo cáo bình luận</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Select value={reportReason} onValueChange={setReportReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Quấy rối</SelectItem>
+                <SelectItem value="inappropriate">Nội dung không phù hợp</SelectItem>
+                <SelectItem value="misinformation">Thông tin sai lệch</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
+            <Button size="sm" onClick={submitReport} className="w-full">Gửi báo cáo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
