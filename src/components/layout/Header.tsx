@@ -191,7 +191,7 @@ export function Header() {
                   className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <Bookmark className="h-4 w-4" />
-                  Đã lưu & Collections
+                  {t("header.saved")}
                 </Link>
                 {isAdminOrEditor && (
                   <Link
