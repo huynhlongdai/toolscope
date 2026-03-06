@@ -45,7 +45,7 @@ export function HeroSection() {
           Tổng hợp, review và so sánh hàng ngàn công cụ. Được hỗ trợ bởi AI để giúp bạn chọn đúng tool.
         </p>
 
-        <form onSubmit={handleSearch} className="mx-auto mt-8 max-w-xl">
+        <form onSubmit={handleSearch} className="mx-auto mt-6 max-w-xl">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

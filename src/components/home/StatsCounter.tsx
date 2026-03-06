@@ -39,7 +39,7 @@ export function StatsCounter() {
   ];
 
   return (
-    <section className="py-12 bg-primary/5" aria-label="Thống kê nền tảng">
+    <section className="py-8 md:py-10 bg-primary/5" aria-label="Thống kê nền tảng">
       <div className="container">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {stats.map((s) => (

@@ -24,7 +24,7 @@ export function BlogPreview() {
   if (!posts || posts.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-16" aria-label="Bài viết mới">
+    <section className="py-8 md:py-10" aria-label="Bài viết mới">
       <div className="container">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold md:text-2xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

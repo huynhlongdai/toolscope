@@ -38,7 +38,7 @@ export function NewsletterCTA() {
           <p className="mt-2 text-sm text-muted-foreground">
             Đăng ký để nhận update hàng tuần về công cụ mới, ưu đãi và mẹo hay.
           </p>
-          <form onSubmit={handleSubscribe} className="mx-auto mt-6 flex max-w-sm gap-2">
+          <form onSubmit={handleSubscribe} className="mx-auto mt-4 flex max-w-sm gap-2">
             <Input
               type="email"
               placeholder="Email của bạn"

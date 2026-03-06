@@ -98,7 +98,7 @@ export function FeaturedTools() {
           </div>
         )}
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <Link to="/tools" className="text-sm font-medium text-primary hover:underline">
             Xem tất cả công cụ →
           </Link>
