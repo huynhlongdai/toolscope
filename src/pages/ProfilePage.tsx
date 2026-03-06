@@ -198,7 +198,42 @@ const ProfilePage = () => {
                         </div>
                       )}
                     </div>
+                    {isOwnProfile && !editing && (
+                      <Button variant="outline" size="sm" onClick={startEditing}>
+                        <Pencil className="mr-1 h-3 w-3" /> Chỉnh sửa
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Edit Form */}
+                  {editing && isOwnProfile && (
+                    <div className="mt-4 border-t pt-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Tên hiển thị</Label>
+                          <Input value={editForm.display_name} onChange={(e) => setEditForm(p => ({ ...p, display_name: e.target.value }))} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Username</Label>
+                          <Input value={editForm.username} onChange={(e) => setEditForm(p => ({ ...p, username: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Bio</Label>
+                        <Textarea value={editForm.bio} onChange={(e) => setEditForm(p => ({ ...p, bio: e.target.value }))} rows={2} maxLength={500} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Website</Label>
+                        <Input value={editForm.website} onChange={(e) => setEditForm(p => ({ ...p, website: e.target.value }))} placeholder="https://..." />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+                          <Save className="mr-1 h-3 w-3" /> Lưu
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Hủy</Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
