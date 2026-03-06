@@ -30,7 +30,7 @@ export function HeroSection() {
       </div>
 
       <div className="container text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-4">
           <Sparkles className="h-3.5 w-3.5" />
           Tìm kiếm thông minh bằng AI
         </div>
