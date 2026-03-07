@@ -688,7 +688,7 @@ export default function ComparePage() {
 
               {/* TAB: Tools */}
               <TabsContent value="tools" className="space-y-6">
-                <ProductivityScore tools={tools} />
+                <ProductivityScore tools={tools} t={t} />
               </TabsContent>
             </Tabs>
           )}
