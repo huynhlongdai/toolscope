@@ -223,7 +223,14 @@ export default function AdminCollectAI() {
   // Import
   const importMutation = useMutation({
     mutationFn: async (itemIds: string[]) => {
-      const { data, error } = await supabase.functions.invoke("collect-ai", { body: { action: "import", item_ids: itemIds, target_category_id: importCategory || undefined } });
+      const { data, error } = await supabase.functions.invoke("collect-ai", { 
+        body: { 
+          action: "import", 
+          item_ids: itemIds, 
+          target_category_id: importCategory || undefined,
+          item_category_overrides: itemCategoryOverrides,
+        } 
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
