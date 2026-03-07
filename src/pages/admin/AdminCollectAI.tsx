@@ -74,6 +74,7 @@ export default function AdminCollectAI() {
   const [contentText, setContentText] = useState("");
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [itemCategoryOverrides, setItemCategoryOverrides] = useState<Record<string, string>>({});
 
   // Schedule form state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
