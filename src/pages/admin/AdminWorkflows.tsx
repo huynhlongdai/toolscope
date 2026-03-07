@@ -362,11 +362,14 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
         </Card>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Cơ bản</TabsTrigger>
             <TabsTrigger value="steps">Steps & Tools</TabsTrigger>
             <TabsTrigger value="seo-content">Nội dung SEO</TabsTrigger>
             <TabsTrigger value="seo-meta">SEO & Media</TabsTrigger>
+            <TabsTrigger value="translations" className="flex items-center gap-1" disabled={isNew}>
+              <Languages className="h-3.5 w-3.5" /> Dịch
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab: Basic */}
