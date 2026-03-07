@@ -252,6 +252,7 @@ export default function AdminTools() {
                 <TableHead>Danh mục</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Pricing</TableHead>
+                <TableHead>Ngôn ngữ</TableHead>
                 <TableHead>Rating</TableHead>
                 <TableHead>Views</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
