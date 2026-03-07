@@ -267,7 +267,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
                   <div className="space-y-2">
                     <div>
                       <p className="text-3xl font-bold text-primary">${totalCost!.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">tổng {months} tháng</p>
+                      <p className="text-xs text-muted-foreground">{t("compare.totalMonths")} {months} {t("compare.timeLabel")}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="rounded-md bg-muted/50 p-2">
