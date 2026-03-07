@@ -383,9 +383,9 @@ function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: str
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-warning" /> Productivity Score
+          <Zap className="h-5 w-5 text-warning" /> {t("compare.productivityTitle")}
         </CardTitle>
-        <CardDescription>Ước tính mức tăng năng suất dựa trên AI Score</CardDescription>
+        <CardDescription>{t("compare.productivityDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
