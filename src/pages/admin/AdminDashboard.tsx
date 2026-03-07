@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, ArrowRight } from "lucide-react";
+import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, ArrowRight, HeartPulse } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
 
