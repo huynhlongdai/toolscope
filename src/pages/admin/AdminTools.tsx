@@ -969,6 +969,21 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Tab: Translations */}
+          <TabsContent value="translations" className="mt-4">
+            <EntityTranslationEditor
+              entityType="tool"
+              entityId={tool?.id}
+              fields={[
+                { key: "name", label: "Tên", type: "input", originalValue: form.name },
+                { key: "short_description", label: "Mô tả ngắn", type: "input", originalValue: form.short_description },
+                { key: "description", label: "Mô tả", type: "richtext", originalValue: form.description },
+                { key: "detailed_content", label: "Nội dung chi tiết", type: "richtext", originalValue: form.detailed_content },
+              ]}
+              translateFunctionName="translate-tool"
+            />
+          </TabsContent>
         </Tabs>
 
         <div className="flex justify-end gap-2 mt-4 border-t pt-4">
