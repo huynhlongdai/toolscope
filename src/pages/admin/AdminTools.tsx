@@ -244,6 +244,19 @@ export default function AdminTools() {
           </SelectContent>
         </Select>
       </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Health</Label>
+        <Select value={healthFilter} onValueChange={(v) => { setHealthFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Health" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả health</SelectItem>
+            <SelectItem value="active">🟢 Active</SelectItem>
+            <SelectItem value="warning">🟡 Warning</SelectItem>
+            <SelectItem value="dead">🔴 Dead</SelectItem>
+            <SelectItem value="unknown">⚪ Chưa kiểm tra</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
