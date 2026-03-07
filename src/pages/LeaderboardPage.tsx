@@ -2,14 +2,13 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Crown, Star, MessageCircle, FileText, TrendingUp } from "lucide-react";
+import { Trophy, Medal, Crown, TrendingUp, MessageCircle, FileText } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function getRankIcon(idx: number) {
@@ -27,6 +26,8 @@ function getRankBg(idx: number) {
 }
 
 export default function LeaderboardPage() {
+  const { t } = useI18n();
+
   const { data: topUsers, isLoading } = useQuery({
     queryKey: ["leaderboard-all"],
     queryFn: async () => {
@@ -46,18 +47,13 @@ export default function LeaderboardPage() {
         .from("reviews")
         .select("author_id, profiles:author_id(id, display_name, avatar_url, reputation_score)")
         .eq("status", "published");
-
-      // Count reviews per user
       const counts: Record<string, { profile: any; count: number }> = {};
       (data || []).forEach((r: any) => {
         const uid = r.author_id;
         if (!counts[uid]) counts[uid] = { profile: r.profiles, count: 0 };
         counts[uid].count++;
       });
-
-      return Object.values(counts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 20);
     },
   });
 
@@ -67,17 +63,13 @@ export default function LeaderboardPage() {
       const { data } = await supabase
         .from("comments")
         .select("user_id, profiles:user_id(id, display_name, avatar_url, reputation_score)");
-
       const counts: Record<string, { profile: any; count: number }> = {};
       (data || []).forEach((c: any) => {
         const uid = c.user_id;
         if (!counts[uid]) counts[uid] = { profile: c.profiles, count: 0 };
         counts[uid].count++;
       });
-
-      return Object.values(counts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 20);
+      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 20);
     },
   });
 
@@ -95,11 +87,7 @@ export default function LeaderboardPage() {
   });
 
   const badgeEmoji: Record<string, string> = {
-    early_adopter: "🌟",
-    top_reviewer: "✍️",
-    helpful: "🤝",
-    power_user: "⚡",
-    curator: "📚",
+    early_adopter: "🌟", top_reviewer: "✍️", helpful: "🤝", power_user: "⚡", curator: "📚",
   };
 
   const renderUserRow = (profile: any, idx: number, stat?: { label: string; value: number }) => (
@@ -114,7 +102,7 @@ export default function LeaderboardPage() {
           <AvatarFallback>{(profile.display_name || "?").charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <p className="font-semibold truncate">{profile.display_name || "Ẩn danh"}</p>
+          <p className="font-semibold truncate">{profile.display_name || t("leaderboard.anonymous")}</p>
           <div className="flex items-center gap-1.5 flex-wrap">
             {(userBadges?.[profile.id] || []).map((b: string) => (
               <span key={b} className="text-xs" title={b}>{badgeEmoji[b] || "🏅"}</span>
@@ -131,7 +119,7 @@ export default function LeaderboardPage() {
         ) : (
           <div>
             <p className="text-lg font-bold text-primary">{profile.reputation_score}</p>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">điểm</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t("leaderboard.points")}</p>
           </div>
         )}
       </div>
@@ -140,10 +128,7 @@ export default function LeaderboardPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead
-        title="Bảng xếp hạng Contributors - ToolScope"
-        description="Top contributors được xếp hạng theo điểm reputation, reviews và hoạt động cộng đồng."
-      />
+      <SEOHead title={t("leaderboard.seoTitle")} description={t("leaderboard.seoDesc")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8 max-w-3xl">
@@ -153,22 +138,22 @@ export default function LeaderboardPage() {
                 <Trophy className="h-5 w-5 text-primary" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Bảng xếp hạng
+                {t("leaderboard.title")}
               </h1>
             </div>
-            <p className="text-muted-foreground">Top contributors theo reputation, reviews và hoạt động.</p>
+            <p className="text-muted-foreground">{t("leaderboard.subtitle")}</p>
           </div>
 
           <Tabs defaultValue="reputation" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="reputation" className="gap-1.5">
-                <TrendingUp className="h-4 w-4" /> Reputation
+                <TrendingUp className="h-4 w-4" /> {t("leaderboard.tabReputation")}
               </TabsTrigger>
               <TabsTrigger value="reviews" className="gap-1.5">
-                <FileText className="h-4 w-4" /> Reviews
+                <FileText className="h-4 w-4" /> {t("leaderboard.tabReviews")}
               </TabsTrigger>
               <TabsTrigger value="comments" className="gap-1.5">
-                <MessageCircle className="h-4 w-4" /> Bình luận
+                <MessageCircle className="h-4 w-4" /> {t("leaderboard.tabComments")}
               </TabsTrigger>
             </TabsList>
 
@@ -179,7 +164,7 @@ export default function LeaderboardPage() {
                 ) : topUsers?.length ? (
                   topUsers.map((u: any, idx: number) => renderUserRow(u, idx))
                 ) : (
-                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                  <p className="text-center text-muted-foreground py-12">{t("leaderboard.noData")}</p>
                 )}
               </div>
             </TabsContent>
@@ -191,7 +176,7 @@ export default function LeaderboardPage() {
                     renderUserRow(item.profile, idx, { label: "reviews", value: item.count })
                   )
                 ) : (
-                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                  <p className="text-center text-muted-foreground py-12">{t("leaderboard.noData")}</p>
                 )}
               </div>
             </TabsContent>
@@ -200,10 +185,10 @@ export default function LeaderboardPage() {
               <div className="space-y-2">
                 {topCommenters?.length ? (
                   topCommenters.map((item: any, idx: number) =>
-                    renderUserRow(item.profile, idx, { label: "bình luận", value: item.count })
+                    renderUserRow(item.profile, idx, { label: t("leaderboard.comments"), value: item.count })
                   )
                 ) : (
-                  <p className="text-center text-muted-foreground py-12">Chưa có dữ liệu.</p>
+                  <p className="text-center text-muted-foreground py-12">{t("leaderboard.noData")}</p>
                 )}
               </div>
             </TabsContent>

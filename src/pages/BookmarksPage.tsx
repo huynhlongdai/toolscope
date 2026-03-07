@@ -4,6 +4,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Navigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const BookmarksPage = () => {
   const { user } = useAuth();
+  const { t } = useI18n();
 
   const { data: bookmarks, isLoading } = useQuery({
     queryKey: ["bookmarks", user?.id],
@@ -31,7 +33,7 @@ const BookmarksPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title="Đã lưu - ToolScope" />
+      <SEOHead title={t("bookmarks.seoTitle")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -40,7 +42,7 @@ const BookmarksPage = () => {
               <Bookmark className="h-5 w-5 text-primary" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Đã lưu
+              {t("bookmarks.title")}
             </h1>
           </div>
 
@@ -72,8 +74,8 @@ const BookmarksPage = () => {
           ) : (
             <div className="text-center py-16">
               <Bookmark className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Chưa lưu tool nào</h3>
-              <p className="text-muted-foreground">Bookmark các tool yêu thích để xem lại nhanh.</p>
+              <h3 className="text-lg font-semibold mb-2">{t("bookmarks.empty")}</h3>
+              <p className="text-muted-foreground">{t("bookmarks.emptyHint")}</p>
             </div>
           )}
         </div>

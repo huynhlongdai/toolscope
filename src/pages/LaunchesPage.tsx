@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, isToday } from "date-fns";
-import { vi } from "date-fns/locale";
+import { vi as viLocale } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -22,6 +23,7 @@ import { LaunchSubmitForm } from "@/components/launches/LaunchSubmitForm";
 
 export default function LaunchesPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [submitOpen, setSubmitOpen] = useState(false);
 
@@ -62,7 +64,7 @@ export default function LaunchesPage() {
   });
 
   const handleVote = async (launchId: string, currentUpvotes: number) => {
-    if (!user) { toast.error("Vui lòng đăng nhập"); return; }
+    if (!user) { toast.error(t("launches.loginToVote")); return; }
     const hasVoted = userVotes?.has(launchId);
     try {
       if (hasVoted) {
@@ -74,7 +76,7 @@ export default function LaunchesPage() {
       }
       queryClient.invalidateQueries({ queryKey: ["launches"] });
       queryClient.invalidateQueries({ queryKey: ["launch-votes"] });
-    } catch { toast.error("Lỗi khi vote"); }
+    } catch { toast.error(t("launches.voteError")); }
   };
 
   const getLogoUrl = (launch: any) => {
@@ -101,7 +103,7 @@ export default function LaunchesPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title="Product Launches - ToolScope" description="Khám phá các sản phẩm mới ra mắt mỗi ngày. Upvote và thảo luận về công cụ yêu thích." />
+      <SEOHead title={`${t("launches.title")} - ToolScope`} description={t("launches.seoDesc")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -109,16 +111,16 @@ export default function LaunchesPage() {
             <div>
               <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 <Rocket className="mr-2 inline h-7 w-7 text-primary" />
-                Product Launches
+                {t("launches.title")}
               </h1>
-              <p className="mt-1 text-muted-foreground">Khám phá sản phẩm mới mỗi ngày, upvote yêu thích của bạn</p>
+              <p className="mt-1 text-muted-foreground">{t("launches.subtitle")}</p>
             </div>
             <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-1.5"><Plus className="h-4 w-4" />Launch sản phẩm</Button>
+                <Button className="gap-1.5"><Plus className="h-4 w-4" />{t("launches.submit")}</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-xl">
-                <DialogHeader><DialogTitle>🚀 Submit Product Launch</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("launches.submitTitle")}</DialogTitle></DialogHeader>
                 <LaunchSubmitForm onSuccess={() => { setSubmitOpen(false); queryClient.invalidateQueries({ queryKey: ["launches"] }); }} />
               </DialogContent>
             </Dialog>
@@ -129,8 +131,8 @@ export default function LaunchesPage() {
           ) : Object.keys(grouped).length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
               <Rocket className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-lg font-medium">Chưa có sản phẩm nào</p>
-              <p className="mt-1 text-sm text-muted-foreground">Hãy là người đầu tiên launch sản phẩm!</p>
+              <p className="mt-3 text-lg font-medium">{t("launches.noLaunches")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("launches.beFirst")}</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -139,7 +141,7 @@ export default function LaunchesPage() {
                   <div className="mb-4 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      {isToday(parseISO(date)) ? "🔥 Hôm nay" : format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: vi })}
+                      {isToday(parseISO(date)) ? t("launches.today") : format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: viLocale })}
                     </h2>
                   </div>
                   <div className="space-y-3">
@@ -156,7 +158,6 @@ export default function LaunchesPage() {
                         <Card key={launch.id} className="group transition-all hover:shadow-md">
                           <CardContent className="flex items-start gap-4 p-4">
                             <span className="text-lg font-bold text-muted-foreground/50 w-6 text-center mt-1">{idx + 1}</span>
-
                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted">
                               {logoUrl ? (
                                 <img src={logoUrl} alt="" className="h-full w-full rounded-xl object-cover" />
@@ -164,7 +165,6 @@ export default function LaunchesPage() {
                                 <Rocket className="h-5 w-5 text-muted-foreground" />
                               )}
                             </div>
-
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 {tool ? (
@@ -195,7 +195,6 @@ export default function LaunchesPage() {
                                 </p>
                               )}
                             </div>
-
                             <Button variant={voted ? "default" : "outline"} size="sm" className="flex-col h-14 w-14 gap-0.5 shrink-0" onClick={() => handleVote(launch.id, launch.upvotes || 0)}>
                               <ThumbsUp className={cn("h-4 w-4", voted && "fill-current")} />
                               <span className="text-xs font-bold">{launch.upvotes || 0}</span>
