@@ -148,7 +148,46 @@ export default function AdminTools() {
   };
 
   // Count active filters (excluding "all")
-  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter].filter(f => f !== "all").length;
+  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter].filter(f => f !== "all").length;
+
+  const healthBadge = (status: string) => {
+    switch (status) {
+      case "active": return <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400" title="Active">🟢</span>;
+      case "warning": return <span className="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400" title="Warning">🟡</span>;
+      case "dead": return <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400" title="Dead">🔴</span>;
+      default: return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Unknown">⚪</span>;
+    }
+  };
+
+  const checkSingleHealth = async (toolId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-tool-health", { body: { tool_id: toolId } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      const result = data?.results?.[0];
+      if (result) {
+        toast.success(`${result.name}: ${result.health_status} - ${result.health_details}`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Health check failed");
+    }
+  };
+
+  const checkAllHealth = async () => {
+    setCheckingHealthAll(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-tool-health", { body: { batch: true } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      const dead = data?.results?.filter((r: any) => r.health_status === "dead").length ?? 0;
+      const warning = data?.results?.filter((r: any) => r.health_status === "warning").length ?? 0;
+      toast.success(`Đã kiểm tra ${data?.checked} tools. ${dead} dead, ${warning} warning`);
+    } catch (e: any) {
+      toast.error(e.message || "Batch health check failed");
+    } finally {
+      setCheckingHealthAll(false);
+    }
+  };
 
   const filterContent = (
     <div className="space-y-3">
