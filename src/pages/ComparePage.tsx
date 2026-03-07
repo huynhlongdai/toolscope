@@ -231,9 +231,9 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Calculator className="h-5 w-5 text-primary" /> ROI Calculator
+          <Calculator className="h-5 w-5 text-primary" /> {t("compare.roiTitle")}
         </CardTitle>
-        <CardDescription>Tính toán chi phí dựa trên quy mô đội ngũ</CardDescription>
+        <CardDescription>{t("compare.roiDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-4 flex flex-wrap items-center gap-4">
