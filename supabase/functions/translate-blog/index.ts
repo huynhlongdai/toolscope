@@ -17,35 +17,52 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { blog_id, locale = "en" } = await req.json();
-    if (!blog_id) return new Response(JSON.stringify({ error: "blog_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { blog_id, workflow_id, locale = "en" } = await req.json();
+    const entityId = blog_id || workflow_id;
+    const entityType = workflow_id ? "workflow" : "blog";
+    const tableName = workflow_id ? "workflows" : "blog_posts";
+
+    if (!entityId) return new Response(JSON.stringify({ error: "blog_id or workflow_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const targetLang = LOCALE_NAMES[locale];
     if (!targetLang) return new Response(JSON.stringify({ error: `Unsupported locale: ${locale}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: blog, error: blogErr } = await supabase
-      .from("blog_posts")
-      .select("id, title, excerpt, content")
-      .eq("id", blog_id)
+    const selectFields = entityType === "workflow"
+      ? "id, title, description, seo_title, seo_description"
+      : "id, title, excerpt, content";
+
+    const { data: entity, error: entityErr } = await supabase
+      .from(tableName)
+      .select(selectFields)
+      .eq("id", entityId)
       .maybeSingle();
 
-    if (blogErr || !blog) return new Response(JSON.stringify({ error: "Blog not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (entityErr || !entity) return new Response(JSON.stringify({ error: `${entityType} not found` }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const fields = [
-      { field: "title", text: blog.title },
-      { field: "excerpt", text: blog.excerpt },
-      { field: "content", text: blog.content?.substring(0, 8000) },
-    ].filter(f => f.text);
+    const fieldEntries = entityType === "workflow"
+      ? [
+          { field: "title", text: (entity as any).title },
+          { field: "description", text: (entity as any).description },
+          { field: "seo_title", text: (entity as any).seo_title },
+          { field: "seo_description", text: (entity as any).seo_description },
+        ]
+      : [
+          { field: "title", text: (entity as any).title },
+          { field: "excerpt", text: (entity as any).excerpt },
+          { field: "content", text: (entity as any).content?.substring(0, 8000) },
+        ];
 
-    const prompt = `Translate the following Vietnamese blog content to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
+    const fields = fieldEntries.filter(f => f.text);
+
+    const prompt = `Translate the following Vietnamese ${entityType} content to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
 
 Fields to translate:
 ${fields.map(f => `- ${f.field}: """${f.text}"""`).join("\n\n")}
 
 Return ONLY a valid JSON object like:
-{ "title": "...", "excerpt": "...", "content": "..." }
+{ ${fields.map(f => `"${f.field}": "..."`).join(", ")} }
 
 Important: Preserve all HTML tags, Markdown formatting, URLs. Only translate human-readable text.`;
 
@@ -73,7 +90,7 @@ Important: Preserve all HTML tags, Markdown formatting, URLs. Only translate hum
 
     const upserts = Object.entries(translations)
       .filter(([_, v]) => v)
-      .map(([field, text]) => ({ entity_type: "blog", entity_id: blog_id, field_name: field, locale, translated_text: text, is_auto: true }));
+      .map(([field, text]) => ({ entity_type: entityType, entity_id: entityId, field_name: field, locale, translated_text: text, is_auto: true }));
 
     if (upserts.length > 0) {
       await supabase.from("translations").delete().eq("entity_type", "blog").eq("entity_id", blog_id).eq("locale", locale).eq("is_auto", true);
