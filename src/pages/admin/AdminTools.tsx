@@ -290,6 +290,20 @@ export default function AdminTools() {
                       </Select>
                     </TableCell>
                     <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
+                    <TableCell>
+                      {(() => {
+                        const locales = toolTranslationMap.get(tool.id);
+                        if (!locales || locales.size === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                        const flags = TARGET_LOCALES
+                          .filter(([code]) => locales.has(code))
+                          .map(([code, meta]) => meta.flag);
+                        return (
+                          <span className="text-xs" title={`${locales.size}/${TARGET_LOCALES.length} ngôn ngữ`}>
+                            {flags.length <= 5 ? flags.join("") : `${flags.slice(0, 4).join("")} +${flags.length - 4}`}
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>{tool.avg_rating ? `${Number(tool.avg_rating).toFixed(1)} ⭐` : "—"}</TableCell>
                     <TableCell>{tool.view_count}</TableCell>
                     <TableCell className="text-right">
