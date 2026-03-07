@@ -416,6 +416,57 @@ export default function AdminSettings() {
               <Save className="mr-2 h-4 w-4" /> Lưu
             </Button>
           </TabsContent>
+
+          {/* MODULES TAB */}
+          <TabsContent value="modules" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Blocks className="h-5 w-5" /> Quản lý Module</CardTitle>
+                <CardDescription>Bật/tắt các tính năng của website. Module tắt sẽ ẩn khỏi menu và giao diện.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {Object.entries(MODULE_CATEGORIES).map(([catKey, catLabel]) => {
+                  const modules = MODULE_DEFINITIONS.filter((m) => m.category === catKey);
+                  if (modules.length === 0) return null;
+                  return (
+                    <div key={catKey} className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{catLabel}</h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {modules.map((mod) => (
+                          <div
+                            key={mod.id}
+                            className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${localModules[mod.id] ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}
+                          >
+                            <span className="text-xl mt-0.5">{mod.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="font-medium text-sm">{mod.label}</Label>
+                                <Switch
+                                  checked={localModules[mod.id] ?? false}
+                                  onCheckedChange={(v) => setLocalModules((prev) => ({ ...prev, [mod.id]: v }))}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{mod.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            <Button
+              onClick={() => {
+                saveModulesMutation.mutate(localModules);
+                logAuditAction("modules_save", "site_settings", undefined, { modules: localModules });
+                toast.success("Đã lưu cấu hình module");
+              }}
+              disabled={saveModulesMutation.isPending}
+            >
+              <Save className="mr-2 h-4 w-4" /> {saveModulesMutation.isPending ? "Đang lưu..." : "Lưu cấu hình Module"}
+            </Button>
+          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>
