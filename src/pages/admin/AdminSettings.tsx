@@ -97,6 +97,10 @@ export default function AdminSettings() {
   }, [settings]);
 
   useEffect(() => {
+    setLocalModules(modulesConfig);
+  }, [modulesConfig]);
+
+  useEffect(() => {
     if (aiKeyData) {
       setKeyConfigured(aiKeyData.ai_keys_configured || {});
       if (aiKeyData.ai_provider_config) setProviderConfig(aiKeyData.ai_provider_config);
