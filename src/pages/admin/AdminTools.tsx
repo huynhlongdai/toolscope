@@ -475,9 +475,9 @@ export default function AdminTools() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8">Đang tải...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
                 ) : (
                   paged.map((tool: any) => (
                     <TableRow key={tool.id}>
