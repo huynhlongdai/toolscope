@@ -643,7 +643,7 @@ export default function ComparePage() {
                       <CardContent className="space-y-3">
                         {tool.ai_scores?.pros && tool.ai_scores.pros.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-accent mb-1">✅ Ưu điểm</p>
+                            <p className="text-xs font-semibold text-accent mb-1">✅ {t("compare.pros")}</p>
                             <ul className="space-y-1">
                               {tool.ai_scores.pros.map((p, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
