@@ -432,21 +432,57 @@ export default function AdminCollectAI() {
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Select value={searchType} onValueChange={(v: "keyword" | "url") => setSearchType(v)}>
-                    <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+                  <Select value={searchType} onValueChange={(v: "keyword" | "url" | "text") => setSearchType(v)}>
+                    <SelectTrigger className="w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="keyword"><Search className="inline h-3 w-3 mr-1" />Theo keyword</SelectItem>
                       <SelectItem value="url"><Globe className="inline h-3 w-3 mr-1" />Theo URL</SelectItem>
+                      <SelectItem value="text"><FileText className="inline h-3 w-3 mr-1" />Từ văn bản/file</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
-                    className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
-                  <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
-                    {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
-                    Thu thập
-                  </Button>
+                  {searchType !== "text" && (
+                    <>
+                      <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                        placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
+                        className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
+                      <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
+                        {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+                        Thu thập
+                      </Button>
+                    </>
+                  )}
                 </div>
+
+                {searchType === "text" && (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={contentText}
+                      onChange={e => setContentText(e.target.value)}
+                      placeholder="Paste nội dung chứa danh sách công cụ AI vào đây... (VD: danh sách từ blog, báo cáo, tài liệu...)"
+                      className="min-h-[160px]"
+                    />
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Button onClick={() => searchMutation.mutate()} disabled={!contentText.trim() || searchMutation.isPending}>
+                        {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                        Phân tích văn bản
+                      </Button>
+                      <span className="text-sm text-muted-foreground">hoặc</span>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept=".pdf,.xlsx,.xls,.csv,.md,.txt,.markdown"
+                        className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
+                      />
+                      <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}>
+                        {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                        Upload file
+                      </Button>
+                      <span className="text-xs text-muted-foreground">PDF, Excel, CSV, Markdown, TXT</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 items-center">
                   <span className="text-sm text-muted-foreground">Danh mục:</span>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -457,10 +493,10 @@ export default function AdminCollectAI() {
                     </SelectContent>
                   </Select>
                 </div>
-                {searchMutation.isPending && (
+                {(searchMutation.isPending || uploadingFile) && (
                   <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="text-sm">Đang tìm kiếm và phân tích dữ liệu với AI...</span>
+                    <span className="text-sm">Đang phân tích dữ liệu với AI...</span>
                   </div>
                 )}
               </CardContent>
