@@ -31,14 +31,48 @@ export default function AdminMenus() {
     },
   });
 
+  const defaultHeaderItems: MenuItem[] = [
+    { label: "Khám phá", url: "/tools", open_new_tab: false },
+    { label: "Trending", url: "/trending", open_new_tab: false },
+    { label: "Tasks", url: "/tasks", open_new_tab: false },
+    { label: "Launches", url: "/launches", open_new_tab: false },
+    { label: "Workflows", url: "/workflows", open_new_tab: false },
+    { label: "Ưu đãi", url: "/deals", open_new_tab: false },
+    { label: "Blog", url: "/blog", open_new_tab: false },
+  ];
+
+  const defaultFooterItems: MenuItem[] = [
+    { label: "Khám phá", url: "#", open_new_tab: false, children: [
+      { label: "Tất cả công cụ", url: "/tools", open_new_tab: false },
+      { label: "Danh mục", url: "/categories", open_new_tab: false },
+      { label: "Trending", url: "/trending", open_new_tab: false },
+      { label: "So sánh", url: "/compare", open_new_tab: false },
+    ]},
+    { label: "Cộng đồng", url: "#", open_new_tab: false, children: [
+      { label: "Blog", url: "/blog", open_new_tab: false },
+      { label: "Bộ sưu tập", url: "/collections", open_new_tab: false },
+      { label: "Gửi công cụ", url: "/submit", open_new_tab: false },
+    ]},
+    { label: "Thông tin", url: "#", open_new_tab: false, children: [
+      { label: "Giới thiệu", url: "/about", open_new_tab: false },
+      { label: "Liên hệ", url: "/contact", open_new_tab: false },
+      { label: "Chính sách", url: "/privacy", open_new_tab: false },
+    ]},
+  ];
+
   const [items, setItems] = useState<MenuItem[]>([]);
 
-  // Sync items from DB whenever menu data changes
+  // Sync items from DB whenever menu data changes, fallback to defaults
   useEffect(() => {
     if (isSuccess) {
-      setItems((menu?.items as any) ?? []);
+      const dbItems = (menu?.items as any) as MenuItem[] | undefined;
+      if (dbItems && dbItems.length > 0) {
+        setItems(dbItems);
+      } else {
+        setItems(location === "header" ? defaultHeaderItems : defaultFooterItems);
+      }
     }
-  }, [menu, isSuccess]);
+  }, [menu, isSuccess, location]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
