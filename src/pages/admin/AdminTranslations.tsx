@@ -1,8 +1,9 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Languages, Globe, FileText } from "lucide-react";
+import { Languages, Globe, FileText, Menu } from "lucide-react";
 import { ContentTranslationsTab } from "@/components/admin/translations/ContentTranslationsTab";
 import { SystemTranslationsTab } from "@/components/admin/translations/SystemTranslationsTab";
+import { MenuTranslationsTab } from "@/components/admin/translations/MenuTranslationsTab";
 
 export default function AdminTranslations() {
   return (
@@ -18,10 +19,14 @@ export default function AdminTranslations() {
         </div>
 
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="content" className="flex items-center gap-1.5">
               <FileText className="h-4 w-4" />
               Dịch nội dung
+            </TabsTrigger>
+            <TabsTrigger value="menu" className="flex items-center gap-1.5">
+              <Menu className="h-4 w-4" />
+              Dịch menu
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-1.5">
               <Globe className="h-4 w-4" />
@@ -31,6 +36,10 @@ export default function AdminTranslations() {
 
           <TabsContent value="content" className="mt-4">
             <ContentTranslationsTab />
+          </TabsContent>
+
+          <TabsContent value="menu" className="mt-4">
+            <MenuTranslationsTab />
           </TabsContent>
 
           <TabsContent value="system" className="mt-4">
