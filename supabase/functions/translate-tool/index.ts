@@ -1,9 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-provider.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const LOCALE_NAMES: Record<string, string> = {
+  en: "English",
+  zh: "Chinese (Simplified)",
+  ja: "Japanese",
+  ko: "Korean",
+  th: "Thai",
+  id: "Indonesian (Bahasa Indonesia)",
+  es: "Spanish",
+  fr: "French",
+  pt: "Portuguese (Brazilian)",
+  de: "German",
 };
 
 serve(async (req) => {
@@ -17,7 +31,12 @@ serve(async (req) => {
       });
     }
 
-    // LOVABLE_API_KEY checked by callAI as fallback
+    const targetLang = LOCALE_NAMES[locale];
+    if (!targetLang) {
+      return new Response(JSON.stringify({ error: `Unsupported locale: ${locale}` }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -43,7 +62,7 @@ serve(async (req) => {
       { field: "detailed_content", text: tool.detailed_content },
     ].filter(f => f.text);
 
-    const prompt = `Translate the following Vietnamese content about a tool called "${tool.name}" to English. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
+    const prompt = `Translate the following Vietnamese content about a tool called "${tool.name}" to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
 
 Fields to translate:
 ${fields.map(f => `- ${f.field}: """${(f.text || "").substring(0, 3000)}"""`).join("\n\n")}
@@ -61,7 +80,7 @@ Important: Preserve all HTML tags, Markdown formatting, URLs, and technical term
     const response = await callAI({
       feature: "content_generation",
       messages: [
-        { role: "system", content: "You are a professional translator. Translate Vietnamese to English accurately while preserving all formatting." },
+        { role: "system", content: `You are a professional translator. Translate Vietnamese to ${targetLang} accurately while preserving all formatting.` },
         { role: "user", content: prompt },
       ],
     });
@@ -75,7 +94,6 @@ Important: Preserve all HTML tags, Markdown formatting, URLs, and technical term
     const aiData = await response.json();
     const rawContent = aiData.choices?.[0]?.message?.content || "";
 
-    // Extract JSON from response
     let translations: Record<string, string> = {};
     try {
       const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
@@ -84,7 +102,6 @@ Important: Preserve all HTML tags, Markdown formatting, URLs, and technical term
       throw new Error("Failed to parse AI translation response");
     }
 
-    // Upsert translations into translations table
     const upserts = Object.entries(translations)
       .filter(([_, v]) => v)
       .map(([field, text]) => ({
@@ -97,7 +114,6 @@ Important: Preserve all HTML tags, Markdown formatting, URLs, and technical term
       }));
 
     if (upserts.length > 0) {
-      // Delete existing auto translations for this tool+locale
       await supabase
         .from("translations")
         .delete()

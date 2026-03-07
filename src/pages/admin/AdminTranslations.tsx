@@ -12,11 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Search, Languages, RefreshCw } from "lucide-react";
+import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+
+const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
 export default function AdminTranslations() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [entityFilter, setEntityFilter] = useState("all");
+  const [targetLocale, setTargetLocale] = useState<Locale>("en");
   const [editItem, setEditItem] = useState<any>(null);
   const [diffItem, setDiffItem] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -38,9 +42,9 @@ export default function AdminTranslations() {
   });
 
   const { data: translations = [], isLoading } = useQuery({
-    queryKey: ["admin-translations", entityFilter],
+    queryKey: ["admin-translations", entityFilter, targetLocale],
     queryFn: async () => {
-      let q = supabase.from("translations").select("*").order("updated_at", { ascending: false });
+      let q = supabase.from("translations").select("*").eq("locale", targetLocale).order("updated_at", { ascending: false });
       if (entityFilter !== "all") q = q.eq("entity_type", entityFilter);
       const { data, error } = await q.limit(500);
       if (error) throw error;
@@ -48,7 +52,6 @@ export default function AdminTranslations() {
     },
   });
 
-  // Stats
   const translatedToolIds = new Set(translations.filter((t: any) => t.entity_type === "tool").map((t: any) => t.entity_id));
   const translatedBlogIds = new Set(translations.filter((t: any) => t.entity_type === "blog").map((t: any) => t.entity_id));
   const untranslatedTools = tools.filter((t: any) => !translatedToolIds.has(t.id));
@@ -59,11 +62,10 @@ export default function AdminTranslations() {
   const autoCount = translations.filter((t: any) => t.is_auto).length;
   const manualCount = translations.filter((t: any) => !t.is_auto).length;
 
-  // Single translate
   const translateMutation = useMutation({
     mutationFn: async (toolId: string) => {
       const { data, error } = await supabase.functions.invoke("translate-tool", {
-        body: { tool_id: toolId, locale: "en" },
+        body: { tool_id: toolId, locale: targetLocale },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -71,23 +73,21 @@ export default function AdminTranslations() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
-      toast.success(`Đã dịch ${data.saved} trường`);
+      toast.success(`Đã dịch ${data.saved} trường sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
     },
     onError: (e: any) => toast.error(e.message || "Lỗi dịch"),
   });
 
-  // Bulk translate
   const bulkTranslateMutation = useMutation({
     mutationFn: async (toolIds: string[]) => {
       let successCount = 0;
       for (const id of toolIds) {
         try {
           const { data, error } = await supabase.functions.invoke("translate-tool", {
-            body: { tool_id: id, locale: "en" },
+            body: { tool_id: id, locale: targetLocale },
           });
           if (!error && !data?.error) successCount++;
         } catch { /* skip */ }
-        // Small delay to avoid rate limits
         await new Promise(r => setTimeout(r, 1500));
       }
       return successCount;
@@ -95,12 +95,11 @@ export default function AdminTranslations() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
       setSelectedIds(new Set());
-      toast.success(`Đã dịch ${count} tools thành công`);
+      toast.success(`Đã dịch ${count} tools sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
     },
     onError: () => toast.error("Lỗi dịch hàng loạt"),
   });
 
-  // Update translation
   const updateTranslation = useMutation({
     mutationFn: async ({ id, translated_text }: { id: string; translated_text: string }) => {
       const { error } = await supabase.from("translations").update({
@@ -117,7 +116,6 @@ export default function AdminTranslations() {
     },
   });
 
-  // Filter
   const filtered = translations.filter((t: any) => {
     const entityName = t.entity_type === "tool"
       ? tools.find((tool: any) => tool.id === t.entity_id)?.name || ""
@@ -127,7 +125,6 @@ export default function AdminTranslations() {
       t.translated_text.toLowerCase().includes(search.toLowerCase());
   });
 
-  // Get original text for diff
   const getOriginalText = (item: any) => {
     if (item.entity_type === "tool") {
       const tool = tools.find((t: any) => t.id === item.entity_id);
@@ -150,7 +147,6 @@ export default function AdminTranslations() {
 
   const handleBulkTranslate = () => {
     if (selectedIds.size === 0) {
-      // Translate all untranslated (max 10)
       const ids = untranslatedTools.slice(0, 10).map((t: any) => t.id);
       if (ids.length === 0) return toast.info("Tất cả tools đã được dịch");
       bulkTranslateMutation.mutate(ids);
@@ -162,7 +158,7 @@ export default function AdminTranslations() {
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
               <Languages className="h-6 w-6 md:h-7 md:w-7" /> Quản lý bản dịch
@@ -171,17 +167,31 @@ export default function AdminTranslations() {
               {translations.length} bản dịch · {autoCount} AI · {manualCount} thủ công
             </p>
           </div>
-          <Button
-            onClick={handleBulkTranslate}
-            disabled={bulkTranslateMutation.isPending}
-            size="sm"
-          >
-            {bulkTranslateMutation.isPending ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <Languages className="mr-1 h-4 w-4" />}
-            {selectedIds.size > 0 ? `Dịch ${selectedIds.size} đã chọn` : `Dịch hàng loạt (${Math.min(untranslatedTools.length, 10)})`}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Target Locale Selector */}
+            <Select value={targetLocale} onValueChange={(v) => setTargetLocale(v as Locale)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TARGET_LOCALES.map(([code, meta]) => (
+                  <SelectItem key={code} value={code}>
+                    {meta.flag} {meta.nativeName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleBulkTranslate}
+              disabled={bulkTranslateMutation.isPending}
+              size="sm"
+            >
+              {bulkTranslateMutation.isPending ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <Languages className="mr-1 h-4 w-4" />}
+              {selectedIds.size > 0 ? `Dịch ${selectedIds.size} đã chọn` : `Dịch hàng loạt (${Math.min(untranslatedTools.length, 10)})`}
+            </Button>
+          </div>
         </div>
 
-        {/* Stats cards */}
         <TranslationStats
           toolPercent={toolPercent}
           blogPercent={blogPercent}
@@ -193,7 +203,6 @@ export default function AdminTranslations() {
           manualCount={manualCount}
         />
 
-        {/* Untranslated tools */}
         <UntranslatedSection
           untranslatedTools={untranslatedTools}
           untranslatedBlogs={untranslatedBlogs}
@@ -207,9 +216,9 @@ export default function AdminTranslations() {
               return next;
             });
           }}
+          targetLocale={targetLocale}
         />
 
-        {/* Filters */}
         <div className="flex gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -225,7 +234,6 @@ export default function AdminTranslations() {
           </Select>
         </div>
 
-        {/* Table */}
         <TranslationTable
           translations={filtered}
           isLoading={isLoading}
