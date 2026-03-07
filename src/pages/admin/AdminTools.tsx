@@ -465,6 +465,7 @@ export default function AdminTools() {
                   <TableHead>Tên</TableHead>
                   <TableHead>Danh mục</TableHead>
                   <TableHead>Trạng thái</TableHead>
+                  <TableHead>Health</TableHead>
                   <TableHead>Pricing</TableHead>
                   <TableHead>Ngôn ngữ</TableHead>
                   <TableHead>Rating</TableHead>
