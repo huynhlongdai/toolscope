@@ -366,7 +366,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
 }
 
 /* ─── Productivity Score ─── */
-function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
+function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const data = tools.map((t) => {
     const ai = t.ai_scores;
     const ease = Number(ai?.ease_of_use) || 5;
