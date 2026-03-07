@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap, Database, PackageCheck, Hourglass, BarChart3 } from "lucide-react";
+import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap, Database, PackageCheck, Hourglass, BarChart3, FileText, Upload } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type CollectItem = {
   id: string;

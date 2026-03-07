@@ -17,11 +17,9 @@ function extractDomain(url: string): string {
 }
 
 // Search tools by keyword using Firecrawl search, with AI fallback
-// Returns { results, source } to track data origin
 async function searchByKeyword(keyword: string, limit = 20): Promise<{ results: any[]; source: string }> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
   
-  // Try Firecrawl first
   if (apiKey) {
     try {
       const response = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -40,12 +38,11 @@ async function searchByKeyword(keyword: string, limit = 20): Promise<{ results: 
     }
   }
 
-  // Fallback: use AI to generate search-like results
   const results = await searchByAI(keyword, limit);
   return { results, source: "ai_fallback" };
 }
 
-// AI-based fallback search when Firecrawl is unavailable
+// AI-based fallback search
 async function searchByAI(keyword: string, limit = 20): Promise<any[]> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -85,7 +82,7 @@ Only include real, existing tools. No fictional products.`;
   }
 }
 
-// Scrape a listing URL to extract tools, with graceful fallback
+// Scrape a listing URL to extract tools
 async function scrapeListingUrl(url: string): Promise<string> {
   const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
   
@@ -107,17 +104,17 @@ async function scrapeListingUrl(url: string): Promise<string> {
     }
   }
 
-  // Fallback: return URL info for AI to work with
   return `Unable to scrape. URL: ${url}. Please use your knowledge about this website to extract tool information.`;
 }
 
-// Use AI to parse search results or scraped content into tool items
+// Use AI to parse content into tool items
 async function parseToolsWithAI(content: string, searchType: string, query: string, categoryHint?: string): Promise<any[]> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-  const prompt = searchType === "keyword"
-    ? `From these search results about "${query}", extract a list of distinct software tools/apps/SaaS products found.
+  let prompt: string;
+  if (searchType === "keyword") {
+    prompt = `From these search results about "${query}", extract a list of distinct software tools/apps/SaaS products found.
 ${categoryHint ? `Category context: ${categoryHint}` : ""}
 
 Search results:
@@ -133,8 +130,27 @@ Return ONLY a JSON array of tools. Each tool object:
   "source_url": "URL where this was found"
 }
 
-Deduplicate by domain. Only include actual software tools, not blog posts or articles. Max 30 items.`
-    : `From this scraped page content of "${query}", extract all software tools/apps listed.
+Deduplicate by domain. Only include actual software tools, not blog posts or articles. Max 30 items.`;
+  } else if (searchType === "content") {
+    prompt = `From this text content, extract ALL software tools/apps/SaaS products mentioned.
+${categoryHint ? `Category context: ${categoryHint}` : ""}
+
+Content:
+${content.slice(0, 12000)}
+
+Return ONLY a JSON array of tools. Each tool object:
+{
+  "name": "Tool name",
+  "website_url": "https://... (if mentioned, otherwise null)",
+  "description": "Brief description in Vietnamese based on what's mentioned",
+  "pricing_type": "free|freemium|paid|open_source|contact",
+  "category_name": "suggested category in Vietnamese",
+  "source_url": null
+}
+
+Only include actual software tools/apps/SaaS. Max 50 items.`;
+  } else {
+    prompt = `From this scraped page content of "${query}", extract all software tools/apps listed.
 ${categoryHint ? `Category context: ${categoryHint}` : ""}
 
 Page content:
@@ -151,6 +167,7 @@ Return ONLY a JSON array of tools. Each tool object:
 }
 
 Only include actual software tools. Max 50 items.`;
+  }
 
   const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -183,11 +200,60 @@ Only include actual software tools. Max 50 items.`;
   }
 }
 
+// Read file content from storage bucket
+async function readFileFromStorage(supabase: any, filePath: string, fileType: string): Promise<string> {
+  const { data, error } = await supabase.storage.from("collect-uploads").download(filePath);
+  if (error) throw new Error(`File download error: ${error.message}`);
+
+  const ext = fileType?.toLowerCase() || filePath.split(".").pop()?.toLowerCase() || "";
+
+  if (["txt", "md", "csv", "markdown"].includes(ext)) {
+    return await data.text();
+  }
+
+  if (ext === "pdf") {
+    // For PDF: convert to base64 and use Gemini vision to extract text
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const arrayBuffer = await data.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: "Extract all text content from this PDF document. Return the raw text content only." },
+          { role: "user", content: [
+            { type: "text", text: "Extract all text from this PDF document:" },
+            { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+          ]},
+        ],
+      }),
+    });
+
+    if (!aiResp.ok) throw new Error(`PDF extraction failed: ${aiResp.status}`);
+    const aiData = await aiResp.json();
+    return aiData.choices?.[0]?.message?.content || "";
+  }
+
+  if (["xlsx", "xls"].includes(ext)) {
+    // For Excel: read as text (limited support - best effort)
+    const text = await data.text();
+    return text || "Excel file content - please extract tool names from tabular data";
+  }
+
+  return await data.text();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, query, search_type, category_id, category_name, session_id, item_ids, item_id, target_category_id } = await req.json();
+    const body = await req.json();
+    const { action, query, search_type, category_id, category_name, session_id, item_ids, item_id, target_category_id, content_text, file_path, file_type } = body;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -204,7 +270,6 @@ serve(async (req) => {
     }
 
     if (action === "search") {
-      // === SEARCH / COLLECT ===
       if (!query) throw new Error("query is required");
       const type = search_type || "keyword";
 
@@ -221,7 +286,6 @@ serve(async (req) => {
 
       const tools = await parseToolsWithAI(content, type, query, category_name);
 
-      // Create session
       const { data: session, error: sessionErr } = await supabase
         .from("collect_sessions")
         .insert({
@@ -238,7 +302,6 @@ serve(async (req) => {
 
       if (sessionErr) throw new Error(`Session save error: ${sessionErr.message}`);
 
-      // Save items to staging
       if (tools.length > 0) {
         const items = tools.map((t: any) => ({
           session_id: session.id,
@@ -260,14 +323,83 @@ serve(async (req) => {
         session_id: session.id, 
         tools_count: tools.length,
         data_source: dataSource,
-        tools: tools.slice(0, 5), // preview
+        tools: tools.slice(0, 5),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "parse-content") {
+      // === PARSE TEXT CONTENT OR UPLOADED FILE ===
+      let textContent = "";
+
+      if (content_text) {
+        textContent = content_text;
+      } else if (file_path) {
+        textContent = await readFileFromStorage(supabase, file_path, file_type);
+      } else {
+        throw new Error("content_text or file_path is required");
+      }
+
+      if (!textContent || textContent.trim().length < 10) {
+        throw new Error("Content too short to analyze");
+      }
+
+      const tools = await parseToolsWithAI(textContent, "content", "text/file input", category_name);
+
+      const queryLabel = content_text 
+        ? `[Text] ${content_text.slice(0, 80)}...` 
+        : `[File] ${file_path}`;
+
+      const { data: session, error: sessionErr } = await supabase
+        .from("collect_sessions")
+        .insert({
+          search_type: "content",
+          query: queryLabel,
+          category_id: category_id || null,
+          results_count: tools.length,
+          status: "completed",
+          created_by: userId || "00000000-0000-0000-0000-000000000000",
+          metadata: { category_name, data_source: "content_parse", file_type: file_type || "text" },
+        })
+        .select("id")
+        .single();
+
+      if (sessionErr) throw new Error(`Session save error: ${sessionErr.message}`);
+
+      if (tools.length > 0) {
+        const items = tools.map((t: any) => ({
+          session_id: session.id,
+          name: t.name || "Unknown",
+          website_url: t.website_url || null,
+          description: t.description || null,
+          pricing_type: t.pricing_type || "contact",
+          category_name: t.category_name || category_name || null,
+          source_url: t.source_url || null,
+          collected_data: { ...t, data_source: "content_parse" },
+          status: "pending",
+        }));
+
+        const { error: itemsErr } = await supabase.from("collect_items").insert(items);
+        if (itemsErr) console.error("Items insert error:", itemsErr);
+      }
+
+      // Clean up uploaded file if exists
+      if (file_path) {
+        await supabase.storage.from("collect-uploads").remove([file_path]).catch(() => {});
+      }
+
+      return new Response(JSON.stringify({ 
+        session_id: session.id, 
+        tools_count: tools.length,
+        data_source: "content_parse",
+        tools: tools.slice(0, 5),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "import") {
-      // === IMPORT APPROVED ITEMS TO TOOLS ===
       if (!item_ids?.length) throw new Error("item_ids required");
 
       const { data: items, error: fetchErr } = await supabase
@@ -282,7 +414,6 @@ serve(async (req) => {
       const results: any[] = [];
 
       for (const item of items) {
-        // Check duplicate by slug
         const slug = (item.name || "").toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 100);
         
         const { data: existing } = await supabase
@@ -332,22 +463,17 @@ serve(async (req) => {
     }
 
     if (action === "enrich") {
-      // === ENRICH a single item with detailed data via collect-tool-data ===
       if (!item_id) throw new Error("item_id required");
 
       const { data: item } = await supabase.from("collect_items").select("*").eq("id", item_id).single();
       if (!item) throw new Error("Item not found");
 
-      // Call existing collect-tool-data function logic inline
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
       let scrapeContent = "";
       if (item.website_url) {
-        try {
-          const md = await scrapeListingUrl(item.website_url);
-          scrapeContent = md.slice(0, 5000);
-        } catch { scrapeContent = ""; }
+        try { scrapeContent = (await scrapeListingUrl(item.website_url)).slice(0, 5000); } catch { scrapeContent = ""; }
       }
 
       const enrichPrompt = `Analyze this tool and provide enriched data:
@@ -385,7 +511,6 @@ Return ONLY valid JSON:
       let enriched: any = {};
       try { enriched = JSON.parse(raw); } catch {}
 
-      // Update item
       await supabase.from("collect_items").update({
         description: enriched.description || item.description,
         logo_url: enriched.logo_url || item.logo_url,
@@ -400,8 +525,7 @@ Return ONLY valid JSON:
     }
 
     if (action === "batch-enrich") {
-      // === BATCH ENRICH all pending items ===
-      const limit = 20; // process max 20 at a time to avoid timeout
+      const limit = 20;
       const { data: pendingItems, error: fetchErr } = await supabase
         .from("collect_items")
         .select("id, name, website_url, description")
@@ -463,7 +587,6 @@ Return ONLY valid JSON:
           }).eq("id", item.id);
 
           enrichedCount++;
-          // Small delay to avoid rate limits
           await new Promise(r => setTimeout(r, 500));
         } catch (e: any) {
           errors.push(`${item.name}: ${e.message}`);
@@ -481,8 +604,7 @@ Return ONLY valid JSON:
     }
 
     if (action === "run-schedule") {
-      // === RUN A SPECIFIC SCHEDULE ===
-      const { schedule_id } = await req.json().catch(() => ({}));
+      const schedule_id = body.schedule_id;
       
       const { data: schedule } = await supabase
         .from("collect_schedules")
@@ -492,7 +614,6 @@ Return ONLY valid JSON:
 
       if (!schedule) throw new Error("Schedule not found");
 
-      // Reuse search logic
       const type = schedule.search_type || "keyword";
       let content = "";
       let dataSource = "firecrawl";
@@ -505,7 +626,6 @@ Return ONLY valid JSON:
         dataSource = content.startsWith("Unable to scrape") ? "ai_fallback" : "firecrawl";
       }
 
-      // Get category name
       let catName = "";
       if (schedule.category_id) {
         const { data: cat } = await supabase.from("categories").select("name").eq("id", schedule.category_id).single();
@@ -543,7 +663,6 @@ Return ONLY valid JSON:
         await supabase.from("collect_items").insert(items);
       }
 
-      // Update schedule
       await supabase.from("collect_schedules").update({
         last_run_at: new Date().toISOString(),
         last_session_id: session?.id || null,
