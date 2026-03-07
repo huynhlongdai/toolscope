@@ -117,9 +117,18 @@ export default function AdminDashboard() {
           <StatCard title="Chờ duyệt" value={stats?.pendingCount ?? 0} icon={Shield} description="Tools pending review" href="/admin/tools" />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Báo cáo chờ xử lý" value={stats?.reportsCount ?? 0} icon={Flag} href="/admin/reports" />
           <StatCard title="Newsletter" value={stats?.newsletterCount ?? 0} icon={Newspaper} description="Subscribers active" href="/admin/newsletter" />
+          <StatCard title="Deals đang hoạt động" value={stats?.dealsCount ?? 0} icon={Star} href="/admin/deals" />
+          <StatCard 
+            title="Tool Health" 
+            value={`🟢${healthStats?.active ?? 0} 🟡${healthStats?.warning ?? 0} 🔴${healthStats?.dead ?? 0}`} 
+            icon={HeartPulse} 
+            description={`${healthStats?.unknown ?? 0} chưa kiểm tra`}
+            href="/admin/tools" 
+          />
+        </div>
           <StatCard title="Deals đang hoạt động" value={stats?.dealsCount ?? 0} icon={Star} href="/admin/deals" />
         </div>
 
