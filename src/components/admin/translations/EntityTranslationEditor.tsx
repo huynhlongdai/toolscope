@@ -21,7 +21,7 @@ interface TranslationField {
 }
 
 interface EntityTranslationEditorProps {
-  entityType: "blog" | "workflow";
+  entityType: "blog" | "workflow" | "tool";
   entityId: string | undefined;
   fields: TranslationField[];
   translateFunctionName: string;
@@ -66,6 +66,7 @@ export function EntityTranslationEditor({
       const body: any = { locale, ...translateBodyExtra };
       if (entityType === "blog") body.blog_id = entityId;
       if (entityType === "workflow") body.workflow_id = entityId;
+      if (entityType === "tool") body.tool_id = entityId;
 
       const { data, error } = await supabase.functions.invoke(translateFunctionName, { body });
       if (error) throw error;

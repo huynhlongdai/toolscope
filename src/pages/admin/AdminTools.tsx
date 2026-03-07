@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
 import { logAuditAction } from "@/hooks/useAuditLog";
@@ -27,9 +28,20 @@ export default function AdminTools() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [pricingFilter, setPricingFilter] = useState("all");
+  const [translationFilter, setTranslationFilter] = useState("all");
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories-list-filter"],
+    queryFn: async () => {
+      const { data } = await supabase.from("categories").select("id, name").order("name");
+      return data ?? [];
+    },
+  });
 
   const { data: tools = [], isLoading } = useQuery({
     queryKey: ["admin-tools", statusFilter],
@@ -40,6 +52,23 @@ export default function AdminTools() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Pending submissions
+  const pendingTools = tools.filter((t: any) => t.status === "pending_review");
+
+  // Translation status per tool
+  const { data: translatedToolIds = new Set<string>() } = useQuery({
+    queryKey: ["admin-tools-translation-ids", translationFilter],
+    queryFn: async () => {
+      if (translationFilter === "all") return new Set<string>();
+      const locale = translationFilter === "untranslated" || translationFilter === "translated" ? undefined : translationFilter;
+      let q = supabase.from("translations").select("entity_id").eq("entity_type", "tool");
+      if (locale) q = q.eq("locale", locale);
+      const { data } = await q;
+      return new Set((data ?? []).map((t: any) => t.entity_id));
+    },
+    select: (data) => data,
   });
 
   const deleteMutation = useMutation({
@@ -69,7 +98,17 @@ export default function AdminTools() {
   const [page, setPage] = useState(0);
   const pageSize = 50;
 
-  const filtered = tools.filter((t: any) => t.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = tools.filter((t: any) => {
+    if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
+    if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
+    if (translationFilter === "translated" && !translatedToolIds.has(t.id)) return false;
+    if (translationFilter === "untranslated" && translatedToolIds.has(t.id)) return false;
+    if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
+      // Specific locale filter - show tools that have/don't have translation for that locale
+    }
+    return true;
+  });
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
@@ -106,19 +145,87 @@ export default function AdminTools() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+        {/* Pending Submissions */}
+        {pendingTools.length > 0 && (
+          <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-900/10">
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-600" />
+                Tool đề xuất chờ duyệt ({pendingTools.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 pb-3 px-4">
+              <div className="space-y-2">
+                {pendingTools.slice(0, 10).map((tool: any) => (
+                  <div key={tool.id} className="flex items-center justify-between gap-3 rounded-md border bg-background p-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {tool.logo_url && <img src={tool.logo_url} alt="" className="h-8 w-8 rounded-md object-cover shrink-0" />}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{tool.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{tool.short_description || tool.website_url}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" onClick={() => setEditTool(tool)} className="text-xs">
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Xem
+                      </Button>
+                      <Button variant="default" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "published" })} className="text-xs">
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Duyệt
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "archived" })} className="text-xs">
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Từ chối
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {pendingTools.length > 10 && (
+                  <p className="text-xs text-muted-foreground text-center">+{pendingTools.length - 10} tool khác đang chờ duyệt</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="all">Tất cả TT</SelectItem>
               <SelectItem value="published">Published</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending_review">Pending</SelectItem>
               <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Danh mục" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả DM</SelectItem>
+              {categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={pricingFilter} onValueChange={(v) => { setPricingFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Pricing" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả giá</SelectItem>
+              <SelectItem value="free">Free</SelectItem>
+              <SelectItem value="freemium">Freemium</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="open_source">Open Source</SelectItem>
+              <SelectItem value="contact">Contact</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Dịch thuật" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả dịch</SelectItem>
+              <SelectItem value="translated">✅ Đã dịch</SelectItem>
+              <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -527,14 +634,15 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
           <DialogTitle>{tool ? "Chỉnh sửa Tool" : "Thêm Tool mới"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="basic">Cơ bản</TabsTrigger>
             <TabsTrigger value="content">Nội dung</TabsTrigger>
             <TabsTrigger value="faq">FAQ</TabsTrigger>
             <TabsTrigger value="stats">Fake Stats</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews & Q&A</TabsTrigger>
+            <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
-            <TabsTrigger value="seo">Gợi ý & SEO</TabsTrigger>
+            <TabsTrigger value="seo">SEO</TabsTrigger>
+            <TabsTrigger value="translations" disabled={!tool?.id}>Dịch</TabsTrigger>
           </TabsList>
 
           {/* Tab: Basic */}
@@ -860,6 +968,21 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 <p><span className="text-muted-foreground">LinkedIn:</span> <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${window.location.origin}/tool/${form.slug}`)}`} target="_blank" rel="noopener" className="text-primary hover:underline">Post</a></p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Tab: Translations */}
+          <TabsContent value="translations" className="mt-4">
+            <EntityTranslationEditor
+              entityType="tool"
+              entityId={tool?.id}
+              fields={[
+                { key: "name", label: "Tên", type: "input", originalValue: form.name },
+                { key: "short_description", label: "Mô tả ngắn", type: "input", originalValue: form.short_description },
+                { key: "description", label: "Mô tả", type: "richtext", originalValue: form.description },
+                { key: "detailed_content", label: "Nội dung chi tiết", type: "richtext", originalValue: form.detailed_content },
+              ]}
+              translateFunctionName="translate-tool"
+            />
           </TabsContent>
         </Tabs>
 
