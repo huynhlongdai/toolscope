@@ -242,7 +242,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
             <label className="text-sm font-medium">Team:</label>
             <Input type="number" min={1} max={1000} value={teamSize}
               onChange={(e) => setTeamSize(Number(e.target.value) || 1)} className="h-8 w-20" />
-            <span className="text-xs text-muted-foreground">người</span>
+            <span className="text-xs text-muted-foreground">{t("compare.teamLabel")}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
