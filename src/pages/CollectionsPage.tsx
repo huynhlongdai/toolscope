@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
 import { useCollections } from "@/hooks/useCollections";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -14,11 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -26,13 +23,13 @@ import { Plus, Globe, Lock, Trash2, FolderOpen, Layers } from "lucide-react";
 
 export default function CollectionsPage() {
   const { user } = useAuth();
+  const { t } = useI18n();
   const { myCollections, isLoading: myLoading, createCollection, deleteCollection } = useCollections();
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
-  // Public collections from everyone
   const { data: publicCollections, isLoading: publicLoading } = useQuery({
     queryKey: ["public-collections"],
     queryFn: async () => {
@@ -52,11 +49,7 @@ export default function CollectionsPage() {
     createCollection(
       { name: name.trim(), description: description.trim() || undefined, isPublic },
       {
-        onSuccess: () => {
-          setName("");
-          setDescription("");
-          setCreateOpen(false);
-        },
+        onSuccess: () => { setName(""); setDescription(""); setCreateOpen(false); },
       } as any
     );
   };
@@ -68,52 +61,45 @@ export default function CollectionsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Collections
+              {t("collections.title")}
             </h1>
-            <p className="mt-1 text-muted-foreground">Tạo và khám phá bộ sưu tập công cụ</p>
+            <p className="mt-1 text-muted-foreground">{t("collections.subtitle")}</p>
           </div>
           {user && (
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" /> Tạo Collection
-                </Button>
+                <Button className="gap-2"><Plus className="h-4 w-4" /> {t("collections.create")}</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Tạo Collection mới</DialogTitle>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>{t("collections.createNew")}</DialogTitle></DialogHeader>
                 <div className="space-y-4">
-                  <Input placeholder="Tên collection" value={name} onChange={(e) => setName(e.target.value)} />
-                  <Textarea placeholder="Mô tả (tùy chọn)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+                  <Input placeholder={t("collections.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+                  <Textarea placeholder={t("collections.descPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
                   <div className="flex items-center gap-3">
                     <Switch id="public" checked={isPublic} onCheckedChange={setIsPublic} />
                     <Label htmlFor="public" className="flex items-center gap-1.5">
                       {isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                      {isPublic ? "Công khai" : "Riêng tư"}
+                      {isPublic ? t("collections.public") : t("collections.private")}
                     </Label>
                   </div>
-                  <Button className="w-full" onClick={handleCreate}>Tạo</Button>
+                  <Button className="w-full" onClick={handleCreate}>{t("collections.createButton")}</Button>
                 </div>
               </DialogContent>
             </Dialog>
           )}
         </div>
 
-        {/* My Collections */}
         {user && (
           <section className="mb-12">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Layers className="h-5 w-5" /> Collections của bạn
+              <Layers className="h-5 w-5" /> {t("collections.yours")}
             </h2>
             {myLoading ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
               </div>
             ) : myCollections.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground">
-                Bạn chưa tạo collection nào
-              </CardContent></Card>
+              <Card><CardContent className="py-8 text-center text-muted-foreground">{t("collections.noOwn")}</CardContent></Card>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {myCollections.map((c: any) => (
@@ -126,14 +112,9 @@ export default function CollectionsPage() {
                         <div className="flex items-center gap-1">
                           <Badge variant="outline" className="text-[10px]">
                             {c.is_public ? <Globe className="h-2.5 w-2.5 mr-0.5" /> : <Lock className="h-2.5 w-2.5 mr-0.5" />}
-                            {c.is_public ? "Public" : "Private"}
+                            {c.is_public ? t("collections.public") : t("collections.private")}
                           </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100"
-                            onClick={() => deleteCollection(c.id)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100" onClick={() => deleteCollection(c.id)}>
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
                         </div>
@@ -141,9 +122,7 @@ export default function CollectionsPage() {
                     </CardHeader>
                     <CardContent>
                       {c.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{c.description}</p>}
-                      <span className="text-xs text-muted-foreground">
-                        {(c.collection_items as any)?.[0]?.count || 0} tools
-                      </span>
+                      <span className="text-xs text-muted-foreground">{(c.collection_items as any)?.[0]?.count || 0} tools</span>
                     </CardContent>
                   </Card>
                 ))}
@@ -152,19 +131,16 @@ export default function CollectionsPage() {
           </section>
         )}
 
-        {/* Public Collections */}
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <FolderOpen className="h-5 w-5" /> Collections phổ biến
+            <FolderOpen className="h-5 w-5" /> {t("collections.popular")}
           </h2>
           {publicLoading ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
             </div>
           ) : !publicCollections?.length ? (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">
-              Chưa có collection nào được tạo
-            </CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-muted-foreground">{t("collections.noPublic")}</CardContent></Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {publicCollections.map((c: any) => (
@@ -177,7 +153,7 @@ export default function CollectionsPage() {
                   <CardContent>
                     {c.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{c.description}</p>}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>bởi {(c.profiles as any)?.display_name || "Ẩn danh"}</span>
+                      <span>{t("collections.by")} {(c.profiles as any)?.display_name || t("reviews.anonymous")}</span>
                       <span>{(c.collection_items as any)?.[0]?.count || 0} tools</span>
                     </div>
                   </CardContent>

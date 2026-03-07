@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { useI18n } from "@/lib/i18n";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,8 @@ import { TrendingUp, Flame, Star, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TrendingPage = () => {
+  const { t } = useI18n();
+
   const { data: trendingTools, isLoading: loadingTrending } = useQuery({
     queryKey: ["trending-tools"],
     queryFn: async () => {
@@ -57,14 +60,12 @@ const TrendingPage = () => {
     if (loading) {
       return (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
         </div>
       );
     }
     if (!tools?.length) {
-      return <p className="text-muted-foreground text-center py-12">Chưa có dữ liệu.</p>;
+      return <p className="text-muted-foreground text-center py-12">{t("trending.noData")}</p>;
     }
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -92,7 +93,7 @@ const TrendingPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title="Trending Tools - ToolScope" description="Khám phá những công cụ đang hot nhất, rising stars và được đánh giá cao nhất." />
+      <SEOHead title={`${t("trending.title")} - ToolScope`} description={t("trending.subtitle")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -102,22 +103,22 @@ const TrendingPage = () => {
                 <TrendingUp className="h-5 w-5 text-accent" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Trending
+                {t("trending.title")}
               </h1>
             </div>
-            <p className="text-muted-foreground">Công cụ đang hot, rising stars và được yêu thích nhất.</p>
+            <p className="text-muted-foreground">{t("trending.subtitle")}</p>
           </div>
 
           <Tabs defaultValue="trending" className="space-y-6">
             <TabsList>
               <TabsTrigger value="trending" className="gap-1.5">
-                <Flame className="h-4 w-4" /> Hot
+                <Flame className="h-4 w-4" /> {t("trending.hot")}
               </TabsTrigger>
               <TabsTrigger value="rising" className="gap-1.5">
-                <Sparkles className="h-4 w-4" /> Rising Stars
+                <Sparkles className="h-4 w-4" /> {t("trending.risingStars")}
               </TabsTrigger>
               <TabsTrigger value="top-rated" className="gap-1.5">
-                <Star className="h-4 w-4" /> Top Rated
+                <Star className="h-4 w-4" /> {t("trending.topRated")}
               </TabsTrigger>
             </TabsList>
 

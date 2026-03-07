@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -10,6 +11,8 @@ import { Link } from "react-router-dom";
 import { Calendar, Eye, User } from "lucide-react";
 
 export default function BlogPage() {
+  const { t, locale } = useI18n();
+
   const { data: posts, isLoading } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
@@ -30,9 +33,9 @@ export default function BlogPage() {
       <main className="flex-1 container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Blog & Tin tức
+            {t("blog.pageTitle")}
           </h1>
-          <p className="mt-2 text-muted-foreground">Xu hướng công cụ, tips & tricks, so sánh chuyên sâu</p>
+          <p className="mt-2 text-muted-foreground">{t("blog.pageSubtitle")}</p>
         </div>
 
         {isLoading ? (
@@ -64,12 +67,12 @@ export default function BlogPage() {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {(post.profiles as any)?.display_name || "Ẩn danh"}
+                        {(post.profiles as any)?.display_name || t("reviews.anonymous")}
                       </span>
                       {post.published_at && (
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(post.published_at).toLocaleDateString("vi-VN")}
+                          {new Date(post.published_at).toLocaleDateString(locale === "en" ? "en-US" : "vi-VN")}
                         </span>
                       )}
                       <span className="flex items-center gap-1">
@@ -84,7 +87,7 @@ export default function BlogPage() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-lg text-muted-foreground">Chưa có bài viết nào. Hãy quay lại sau!</p>
+            <p className="text-lg text-muted-foreground">{t("blog.noPosts")}</p>
           </div>
         )}
       </main>

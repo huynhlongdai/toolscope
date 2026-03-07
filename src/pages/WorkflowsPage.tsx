@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { SEOHead } from "@/components/seo/SEOHead";
+import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,8 @@ import { Link } from "react-router-dom";
 import { Workflow, ArrowRight, Eye, ThumbsUp } from "lucide-react";
 
 const WorkflowsPage = () => {
+  const { t } = useI18n();
+
   const { data: workflows, isLoading } = useQuery({
     queryKey: ["workflows"],
     queryFn: async () => {
@@ -24,7 +27,7 @@ const WorkflowsPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title="Use Cases & Workflows - ToolScope" description="Khám phá các workflow và use case phổ biến với bộ tools phù hợp." />
+      <SEOHead title={`${t("workflows.title")} - ToolScope`} description={t("workflows.subtitle")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -34,10 +37,10 @@ const WorkflowsPage = () => {
                 <Workflow className="h-5 w-5 text-primary" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Use Cases & Workflows
+                {t("workflows.title")}
               </h1>
             </div>
-            <p className="text-muted-foreground">Tìm bộ tools phù hợp cho từng workflow cụ thể.</p>
+            <p className="text-muted-foreground">{t("workflows.subtitle")}</p>
           </div>
 
           {isLoading ? (
@@ -74,8 +77,8 @@ const WorkflowsPage = () => {
           ) : (
             <div className="text-center py-16">
               <Workflow className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Chưa có workflow nào</h3>
-              <p className="text-muted-foreground">Các workflow và use case sẽ sớm được thêm vào.</p>
+              <h3 className="text-lg font-semibold mb-2">{t("workflows.noWorkflows")}</h3>
+              <p className="text-muted-foreground">{t("workflows.comingSoon")}</p>
             </div>
           )}
         </div>

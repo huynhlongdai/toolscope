@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { ToolCard } from "@/components/tools/ToolCard";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { t } = useI18n();
   const [activeSubCat, setActiveSubCat] = useState<string | null>(null);
 
   const { data: category } = useQuery({
@@ -26,7 +28,6 @@ export default function CategoryPage() {
     enabled: !!slug,
   });
 
-  // Fetch parent category if exists
   const { data: parentCategory } = useQuery({
     queryKey: ["parent-category", category?.parent_id],
     queryFn: async () => {
@@ -37,7 +38,6 @@ export default function CategoryPage() {
     enabled: !!category?.parent_id,
   });
 
-  // Fetch sub-categories
   const { data: subCategories = [] } = useQuery({
     queryKey: ["sub-categories", category?.id],
     queryFn: async () => {
@@ -52,7 +52,6 @@ export default function CategoryPage() {
     enabled: !!category?.id,
   });
 
-  // Build category IDs to query: current + optionally filter by sub-cat
   const categoryIdsToQuery = activeSubCat
     ? [activeSubCat]
     : [category?.id, ...subCategories.map((s) => s.id)].filter(Boolean) as string[];
@@ -73,13 +72,12 @@ export default function CategoryPage() {
     enabled: categoryIdsToQuery.length > 0,
   });
 
-  // JSON-LD BreadcrumbList
   const breadcrumbJsonLd = category ? {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Trang chủ", item: window.location.origin + "/" },
-      { "@type": "ListItem", position: 2, name: "Danh mục", item: window.location.origin + "/categories" },
+      { "@type": "ListItem", position: 1, name: t("category.home"), item: window.location.origin + "/" },
+      { "@type": "ListItem", position: 2, name: t("category.categories"), item: window.location.origin + "/categories" },
       ...(parentCategory ? [{ "@type": "ListItem", position: 3, name: parentCategory.name, item: window.location.origin + "/category/" + parentCategory.slug }] : []),
       { "@type": "ListItem", position: parentCategory ? 4 : 3, name: category.name },
     ],
@@ -89,8 +87,8 @@ export default function CategoryPage() {
     <div className="flex min-h-screen flex-col">
       {category && (
         <SEOHead
-          title={`${category.name} — Công cụ AI tốt nhất | ToolScope`}
-          description={category.description || `Khám phá các công cụ AI hàng đầu trong danh mục ${category.name} trên ToolScope.`}
+          title={`${category.name} — ${t("tools.title")} | ToolScope`}
+          description={category.description || `${t("categories.title")} ${category.name}`}
         />
       )}
       {breadcrumbJsonLd && (
@@ -99,21 +97,20 @@ export default function CategoryPage() {
       <Header />
       <main className="flex-1">
         <div className="container py-8">
-          {/* Breadcrumb */}
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
                   <Link to="/" className="flex items-center gap-1">
                     <Home className="h-3.5 w-3.5" />
-                    Trang chủ
+                    {t("category.home")}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/categories">Danh mục</Link>
+                  <Link to="/categories">{t("category.categories")}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {parentCategory && (
@@ -135,14 +132,13 @@ export default function CategoryPage() {
 
           <div className="mb-6">
             <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {category?.name || "Đang tải..."}
+              {category?.name || t("common.loading")}
             </h1>
             {category?.description && (
               <p className="mt-2 text-muted-foreground">{category.description}</p>
             )}
           </div>
 
-          {/* Sub-category filter tabs */}
           {subCategories.length > 0 && (
             <div className="mb-6 flex flex-wrap items-center gap-2">
               <button
@@ -154,7 +150,7 @@ export default function CategoryPage() {
                     : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground"
                 )}
               >
-                Tất cả
+                {t("category.all")}
               </button>
               {subCategories.map((sub) => (
                 <button
@@ -173,7 +169,6 @@ export default function CategoryPage() {
             </div>
           )}
 
-          {/* G2 Grid Chart */}
           {tools && tools.length >= 3 && category && (
             <G2GridChart tools={tools as any} categoryName={category.name} />
           )}
@@ -184,7 +179,7 @@ export default function CategoryPage() {
             </div>
           ) : tools && tools.length > 0 ? (
             <>
-              <p className="mb-4 text-sm text-muted-foreground">{tools.length} công cụ</p>
+              <p className="mb-4 text-sm text-muted-foreground">{tools.length} {t("category.toolCount")}</p>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {tools.map((tool) => (
                   <ToolCard
@@ -208,7 +203,7 @@ export default function CategoryPage() {
             </>
           ) : (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
-              <p className="text-muted-foreground">Chưa có công cụ nào trong danh mục này</p>
+              <p className="text-muted-foreground">{t("category.noTools")}</p>
             </div>
           )}
         </div>
