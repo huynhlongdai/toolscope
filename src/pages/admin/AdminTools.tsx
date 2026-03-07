@@ -115,6 +115,7 @@ export default function AdminTools() {
     if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
+    if (healthFilter !== "all" && t.health_status !== healthFilter) return false;
     if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
     if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
