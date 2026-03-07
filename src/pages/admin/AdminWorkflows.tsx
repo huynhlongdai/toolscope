@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
