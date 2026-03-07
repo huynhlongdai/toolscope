@@ -15,6 +15,8 @@ import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLef
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
