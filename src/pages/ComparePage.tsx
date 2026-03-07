@@ -511,9 +511,9 @@ export default function ComparePage() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <GitCompareArrows className="h-8 w-8 text-primary" />
-              So sánh công cụ
+              {t("compare.title")}
             </h1>
-            <p className="mt-1 text-muted-foreground">Chọn 2-4 công cụ để so sánh chi tiết</p>
+            <p className="mt-1 text-muted-foreground">{t("compare.subtitle")}</p>
           </div>
 
           {/* Tool Selector */}
