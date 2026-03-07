@@ -64,13 +64,16 @@ const CRON_PRESETS = [
 export default function AdminCollectAI() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState<"keyword" | "url">("keyword");
+  const [searchType, setSearchType] = useState<"keyword" | "url" | "text">("keyword");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [importCategory, setImportCategory] = useState<string>("");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("search");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSession, setFilterSession] = useState<string>("all");
+  const [contentText, setContentText] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Schedule form state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
