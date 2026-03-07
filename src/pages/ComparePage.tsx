@@ -330,7 +330,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
             <Input type="number" min={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chuyển từ</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t("compare.switchFrom")}</label>
             <select
               value={currentToolIdx}
               onChange={(e) => setCurrentToolIdx(Number(e.target.value))}
