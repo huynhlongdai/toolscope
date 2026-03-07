@@ -5,6 +5,7 @@ const en: Record<string, string> = {
   "nav.tasks": "Tasks",
   "nav.launches": "Launches",
   "nav.deals": "Deals",
+  "nav.workflows": "Workflows",
   "nav.blog": "Blog",
   "nav.home": "Home",
   "nav.account": "Account",

@@ -28,6 +28,7 @@ const defaultNavItems: MenuItem[] = [
   { label: "Trending", url: "/trending" },
   { label: "Tasks", url: "/tasks" },
   { label: "Launches", url: "/launches" },
+  { label: "Workflows", url: "/workflows" },
   { label: "Ưu đãi", url: "/deals" },
   { label: "Blog", url: "/blog" },
 ];
