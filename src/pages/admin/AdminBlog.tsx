@@ -366,114 +366,143 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{isNew ? "Tạo bài viết mới" : "Chỉnh sửa bài viết"}</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          {/* Basic fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tiêu đề *</Label>
-              <Input value={form.title} onChange={(e) => { updateField("title", e.target.value); if (isNew) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
-            </div>
-            <div className="space-y-2">
-              <Label>Slug *</Label>
-              <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value)} />
-            </div>
-          </div>
+        
+        <Tabs defaultValue="content" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="content">Nội dung</TabsTrigger>
+            <TabsTrigger value="seo">SEO & Tools</TabsTrigger>
+            <TabsTrigger value="translations" className="flex items-center gap-1.5" disabled={isNew}>
+              <Languages className="h-3.5 w-3.5" /> Dịch thuật
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Excerpt</Label>
-              <Button variant="ghost" size="sm" onClick={handleAutoExcerpt} disabled={!!aiLoading}>
-                {aiLoading === "excerpt" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                Tạo tự động
-              </Button>
-            </div>
-            <Input value={form.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
-          </div>
-
-          <CoverImageUpload value={form.cover_image_url} onChange={(v) => updateField("cover_image_url", v)} />
-
-          <div className="space-y-2">
-            <Label>Tags (phẩy phân cách)</Label>
-            <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Nội dung</Label>
-            <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." />
-          </div>
-
-          {/* Related Tools */}
-          <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
-              <Button variant="ghost" size="sm" onClick={handleSuggestTools} disabled={!!aiLoading}>
-                {aiLoading === "suggest_tools" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                AI gợi ý
-              </Button>
-            </div>
-            <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
-            {toolSearch && (
-              <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
-                {allTools.filter((t: any) => t.name.toLowerCase().includes(toolSearch.toLowerCase()) && !form.related_tool_ids.includes(t.id)).slice(0, 10).map((t: any) => (
-                  <button key={t.id} type="button" className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm" onClick={() => { updateField("related_tool_ids", [...form.related_tool_ids, t.id]); setToolSearch(""); }}>
-                    <span className="font-medium">{t.name}</span>
-                  </button>
-                ))}
+          <TabsContent value="content" className="space-y-4 mt-4">
+            {/* Basic fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tiêu đề *</Label>
+                <Input value={form.title} onChange={(e) => { updateField("title", e.target.value); if (isNew) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
               </div>
-            )}
-            {form.related_tool_ids.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {form.related_tool_ids.map((id: string) => {
-                  const tool = allTools.find((t: any) => t.id === id);
-                  return (
-                    <Badge key={id} variant="secondary" className="gap-1 pr-1">
-                      {tool?.name || id.slice(0, 8)}
-                      <button type="button" className="ml-1 hover:text-destructive" onClick={() => updateField("related_tool_ids", form.related_tool_ids.filter((x: string) => x !== id))}>×</button>
-                    </Badge>
-                  );
-                })}
+              <div className="space-y-2">
+                <Label>Slug *</Label>
+                <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value)} />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Excerpt</Label>
+                <Button variant="ghost" size="sm" onClick={handleAutoExcerpt} disabled={!!aiLoading}>
+                  {aiLoading === "excerpt" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Tạo tự động
+                </Button>
+              </div>
+              <Input value={form.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
+            </div>
+
+            <CoverImageUpload value={form.cover_image_url} onChange={(v) => updateField("cover_image_url", v)} />
+
+            <div className="space-y-2">
+              <Label>Tags (phẩy phân cách)</Label>
+              <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nội dung</Label>
+              <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Trạng thái</Label>
+              <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="seo" className="space-y-4 mt-4">
+            {/* Related Tools */}
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
+                <Button variant="ghost" size="sm" onClick={handleSuggestTools} disabled={!!aiLoading}>
+                  {aiLoading === "suggest_tools" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  AI gợi ý
+                </Button>
+              </div>
+              <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
+              {toolSearch && (
+                <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
+                  {allTools.filter((t: any) => t.name.toLowerCase().includes(toolSearch.toLowerCase()) && !form.related_tool_ids.includes(t.id)).slice(0, 10).map((t: any) => (
+                    <button key={t.id} type="button" className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm" onClick={() => { updateField("related_tool_ids", [...form.related_tool_ids, t.id]); setToolSearch(""); }}>
+                      <span className="font-medium">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {form.related_tool_ids.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.related_tool_ids.map((id: string) => {
+                    const tool = allTools.find((t: any) => t.id === id);
+                    return (
+                      <Badge key={id} variant="secondary" className="gap-1 pr-1">
+                        {tool?.name || id.slice(0, 8)}
+                        <button type="button" className="ml-1 hover:text-destructive" onClick={() => updateField("related_tool_ids", form.related_tool_ids.filter((x: string) => x !== id))}>×</button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* SEO Section */}
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm flex items-center gap-2">🔍 SEO Metadata</h3>
+                <Button variant="outline" size="sm" onClick={handleAutoSEO} disabled={!!aiLoading}>
+                  {aiLoading === "seo" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                  Tạo SEO tự động
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <Label>SEO Title <span className="text-muted-foreground text-xs">({form.seo_title.length}/60)</span></Label>
+                <Input value={form.seo_title} onChange={(e) => updateField("seo_title", e.target.value)} placeholder="Tiêu đề tối ưu cho SEO" maxLength={70} />
+              </div>
+              <div className="space-y-2">
+                <Label>SEO Description <span className="text-muted-foreground text-xs">({form.seo_description.length}/160)</span></Label>
+                <Input value={form.seo_description} onChange={(e) => updateField("seo_description", e.target.value)} placeholder="Mô tả meta cho công cụ tìm kiếm" maxLength={170} />
+              </div>
+              <div className="space-y-2">
+                <Label>SEO Keywords (phẩy phân cách)</Label>
+                <Input value={form.seo_keywords} onChange={(e) => updateField("seo_keywords", e.target.value)} placeholder="keyword1, keyword2, ..." />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="translations" className="mt-4">
+            {!isNew && post?.id && (
+              <EntityTranslationEditor
+                entityType="blog"
+                entityId={post.id}
+                translateFunctionName="translate-blog"
+                fields={[
+                  { key: "title", label: "Tiêu đề", type: "input", originalValue: form.title },
+                  { key: "excerpt", label: "Excerpt", type: "textarea", originalValue: form.excerpt },
+                  { key: "content", label: "Nội dung", type: "richtext", originalValue: form.content },
+                ]}
+              />
             )}
-          </div>
+          </TabsContent>
+        </Tabs>
 
-          {/* SEO Section */}
-          <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm flex items-center gap-2">🔍 SEO Metadata</h3>
-              <Button variant="outline" size="sm" onClick={handleAutoSEO} disabled={!!aiLoading}>
-                {aiLoading === "seo" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                Tạo SEO tự động
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label>SEO Title <span className="text-muted-foreground text-xs">({form.seo_title.length}/60)</span></Label>
-              <Input value={form.seo_title} onChange={(e) => updateField("seo_title", e.target.value)} placeholder="Tiêu đề tối ưu cho SEO" maxLength={70} />
-            </div>
-            <div className="space-y-2">
-              <Label>SEO Description <span className="text-muted-foreground text-xs">({form.seo_description.length}/160)</span></Label>
-              <Input value={form.seo_description} onChange={(e) => updateField("seo_description", e.target.value)} placeholder="Mô tả meta cho công cụ tìm kiếm" maxLength={170} />
-            </div>
-            <div className="space-y-2">
-              <Label>SEO Keywords (phẩy phân cách)</Label>
-              <Input value={form.seo_keywords} onChange={(e) => updateField("seo_keywords", e.target.value)} placeholder="keyword1, keyword2, ..." />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Trạng thái</Label>
-            <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>Hủy</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
-          </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={onClose}>Hủy</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
         </div>
       </DialogContent>
     </Dialog>

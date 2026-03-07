@@ -594,6 +594,24 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
               </div>
             )}
           </TabsContent>
+
+          {/* Tab: Translations */}
+          <TabsContent value="translations" className="mt-4">
+            {!isNew && wf?.id && (
+              <EntityTranslationEditor
+                entityType="workflow"
+                entityId={wf.id}
+                translateFunctionName="translate-blog"
+                translateBodyExtra={{ entity_type: "workflow" }}
+                fields={[
+                  { key: "title", label: "Tiêu đề", type: "input", originalValue: form.title },
+                  { key: "description", label: "Mô tả", type: "textarea", originalValue: form.description },
+                  { key: "seo_title", label: "SEO Title", type: "input", originalValue: form.seo_title },
+                  { key: "seo_description", label: "SEO Description", type: "textarea", originalValue: form.seo_description },
+                ]}
+              />
+            )}
+          </TabsContent>
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-2">
