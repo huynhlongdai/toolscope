@@ -65,7 +65,7 @@ export function EntityTranslationEditor({
     mutationFn: async () => {
       const body: any = { locale, ...translateBodyExtra };
       if (entityType === "blog") body.blog_id = entityId;
-      else if (entityType === "workflow") body.workflow_id = entityId;
+      if (entityType === "workflow") body.workflow_id = entityId;
 
       const { data, error } = await supabase.functions.invoke(translateFunctionName, { body });
       if (error) throw error;
