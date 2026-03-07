@@ -223,7 +223,7 @@ function PricingTrendChart({ toolIds, tools, t }: { toolIds: string[]; tools: To
 }
 
 /* ─── ROI Calculator ─── */
-function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
+function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const [teamSize, setTeamSize] = useState(10);
   const [months, setMonths] = useState(12);
 
