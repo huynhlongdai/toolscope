@@ -352,7 +352,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
           <div className="rounded-lg bg-muted/50 p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">{t("compare.productivityLoss")}</p>
             <p className="text-xl font-bold text-foreground">${productivityLossCost.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">~{productivityLossDays} ngày learning curve</p>
+            <p className="text-[10px] text-muted-foreground">~{productivityLossDays} {t("compare.learningCurve")}</p>
           </div>
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
             <p className="text-xs font-medium text-primary mb-1">Tổng chi phí chuyển đổi</p>
