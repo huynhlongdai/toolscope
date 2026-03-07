@@ -151,6 +151,15 @@ export default function AdminCollectAI() {
   // Search mutation
   const searchMutation = useMutation({
     mutationFn: async () => {
+      if (searchType === "text") {
+        // Parse content mode
+        const { data, error } = await supabase.functions.invoke("collect-ai", {
+          body: { action: "parse-content", content_text: contentText, category_id: selectedCategory || undefined, category_name: categories.find(c => c.id === selectedCategory)?.name },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        return data;
+      }
       const catName = categories.find(c => c.id === selectedCategory)?.name;
       const { data, error } = await supabase.functions.invoke("collect-ai", {
         body: { action: "search", query: searchQuery, search_type: searchType, category_id: selectedCategory || undefined, category_name: catName || undefined },
@@ -160,14 +169,46 @@ export default function AdminCollectAI() {
       return data;
     },
     onSuccess: (data) => {
-      const sourceLabel = data.data_source === "firecrawl" ? "Firecrawl" : "AI Fallback";
+      const sourceLabel = data.data_source === "firecrawl" ? "Firecrawl" : data.data_source === "content_parse" ? "Nội dung" : "AI Fallback";
       toast.success(`Tìm thấy ${data.tools_count} công cụ (nguồn: ${sourceLabel})`);
       queryClient.invalidateQueries({ queryKey: ["collect-items"] });
       queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-stats"] });
       setActiveTab("staging");
+      setContentText("");
     },
     onError: (e: any) => toast.error(e.message || "Lỗi tìm kiếm"),
   });
+
+  // File upload mutation
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "txt";
+      const filePath = `${Date.now()}_${file.name}`;
+      
+      const { error: uploadError } = await supabase.storage.from("collect-uploads").upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const catName = categories.find(c => c.id === selectedCategory)?.name;
+      const { data, error } = await supabase.functions.invoke("collect-ai", {
+        body: { action: "parse-content", file_path: filePath, file_type: ext, category_id: selectedCategory || undefined, category_name: catName },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Tìm thấy ${data.tools_count} công cụ từ file`);
+      queryClient.invalidateQueries({ queryKey: ["collect-items"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-stats"] });
+      setActiveTab("staging");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi upload file");
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Approve/Reject
   const updateStatusMutation = useMutation({
