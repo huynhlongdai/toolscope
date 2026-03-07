@@ -82,9 +82,9 @@ function CompareRadarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: str
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BarChart3 className="h-5 w-5 text-primary" /> Biểu đồ Radar AI Score
+          <BarChart3 className="h-5 w-5 text-primary" /> {t("compare.radarTitle")}
         </CardTitle>
-        <CardDescription>So sánh trực quan các tiêu chí đánh giá</CardDescription>
+        <CardDescription>{t("compare.radarDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-80">
