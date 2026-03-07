@@ -246,10 +246,10 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <label className="text-sm font-medium">Thời gian:</label>
+            <label className="text-sm font-medium">Time:</label>
             <Input type="number" min={1} max={60} value={months}
               onChange={(e) => setMonths(Number(e.target.value) || 1)} className="h-8 w-20" />
-            <span className="text-xs text-muted-foreground">tháng</span>
+            <span className="text-xs text-muted-foreground">{t("compare.timeLabel")}</span>
           </div>
         </div>
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
