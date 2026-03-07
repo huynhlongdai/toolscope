@@ -577,16 +577,16 @@ export default function ComparePage() {
           ) : tools.length < 2 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
               <GitCompareArrows className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-4 text-lg font-medium">Chọn ít nhất 2 công cụ để bắt đầu so sánh</p>
-              <p className="mt-1 text-sm text-muted-foreground">Tìm kiếm và thêm công cụ ở thanh phía trên</p>
+              <p className="mt-4 text-lg font-medium">{t("compare.selectMin")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("compare.searchHint")}</p>
             </div>
           ) : (
             <Tabs defaultValue="table" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4 max-w-lg">
-                <TabsTrigger value="table">📊 Bảng</TabsTrigger>
-                <TabsTrigger value="charts">📈 Biểu đồ</TabsTrigger>
-                <TabsTrigger value="pricing">💰 Chi phí</TabsTrigger>
-                <TabsTrigger value="tools">🔧 Công cụ</TabsTrigger>
+                <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
+                <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
+                <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
+                <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
               </TabsList>
 
               {/* TAB: Table */}
