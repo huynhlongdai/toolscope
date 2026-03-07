@@ -272,7 +272,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="rounded-md bg-muted/50 p-2">
                         <p className="text-sm font-semibold">${monthlyCost.toLocaleString()}</p>
-                        <p className="text-[10px] text-muted-foreground">/tháng</p>
+                        <p className="text-[10px] text-muted-foreground">{t("compare.perMonth")}</p>
                       </div>
                       <div className="rounded-md bg-muted/50 p-2">
                         <p className="text-sm font-semibold">${dailyCost!.toFixed(1)}</p>
