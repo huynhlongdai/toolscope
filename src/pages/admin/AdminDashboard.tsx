@@ -129,8 +129,6 @@ export default function AdminDashboard() {
             href="/admin/tools" 
           />
         </div>
-          <StatCard title="Deals đang hoạt động" value={stats?.dealsCount ?? 0} icon={Star} href="/admin/deals" />
-        </div>
 
         {/* Quick Actions */}
         <Card>
