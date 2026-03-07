@@ -61,13 +61,13 @@ function ScoreBar({ score, max = 10 }: { score: number | null; max?: number }) {
 }
 
 /* ─── Radar Chart ─── */
-function CompareRadarChart({ tools }: { tools: ToolWithScores[] }) {
+function CompareRadarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const dimensions = [
-    { key: "ease_of_use", label: "Dễ sử dụng" },
-    { key: "features", label: "Tính năng" },
-    { key: "value_for_money", label: "Giá trị" },
-    { key: "performance", label: "Hiệu suất" },
-    { key: "support", label: "Hỗ trợ" },
+    { key: "ease_of_use", label: t("compare.easeOfUse") },
+    { key: "features", label: t("compare.features") },
+    { key: "value_for_money", label: t("compare.value") },
+    { key: "performance", label: t("compare.performance") },
+    { key: "support", label: t("compare.support") },
   ];
 
   const data = dimensions.map((d) => {
