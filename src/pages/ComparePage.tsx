@@ -162,7 +162,7 @@ function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: strin
 }
 
 /* ─── Pricing Trend Comparison ─── */
-function PricingTrendChart({ toolIds, tools }: { toolIds: string[]; tools: ToolWithScores[] }) {
+function PricingTrendChart({ toolIds, tools, t }: { toolIds: string[]; tools: ToolWithScores[]; t: (key: string) => string }) {
   const { data: allHistory } = useQuery({
     queryKey: ["pricing-history-compare", toolIds],
     queryFn: async () => {
