@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -8,14 +8,92 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, Save, ChevronUp, ChevronDown, FolderPlus, Eye, Link as LinkIcon } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, ChevronUp, ChevronDown, FolderPlus, Eye, Link as LinkIcon, Smile } from "lucide-react";
+import dynamicIconImports from "lucide-react/dynamicIconImports";
+import { icons, type LucideIcon } from "lucide-react";
+
+const POPULAR_ICONS = [
+  "home", "search", "compass", "trending-up", "rocket", "briefcase", "zap",
+  "star", "heart", "bookmark", "tag", "gift", "shopping-cart", "globe",
+  "file-text", "layout-grid", "users", "message-circle", "bell", "settings",
+  "folder", "award", "bar-chart-2", "calendar", "code", "cpu", "database",
+  "download", "edit", "external-link", "eye", "filter", "flag", "image",
+  "info", "layers", "link", "list", "lock", "mail", "map", "monitor",
+  "package", "pen-tool", "phone", "play", "plus", "shield", "sparkles",
+  "target", "terminal", "tool", "upload", "video", "wand-2",
+];
 
 interface MenuItem {
   label: string;
   url: string;
+  icon?: string;
   open_new_tab: boolean;
   children?: MenuItem[];
+}
+
+function IconPreview({ name, className = "h-4 w-4" }: { name?: string; className?: string }) {
+  if (!name) return null;
+  // Convert kebab-case to PascalCase for icons lookup
+  const pascalName = name.replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase());
+  const Icon = (icons as Record<string, LucideIcon>)[pascalName];
+  if (!Icon) return <span className="text-[10px] text-muted-foreground">{name}</span>;
+  return <Icon className={className} />;
+}
+
+function IconPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const allIconNames = Object.keys(dynamicIconImports);
+  const filtered = search
+    ? allIconNames.filter((n) => n.includes(search.toLowerCase())).slice(0, 60)
+    : POPULAR_ICONS;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Chọn icon">
+          {value ? <IconPreview name={value} /> : <Smile className="h-4 w-4 text-muted-foreground" />}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-2" align="start">
+        <Input
+          placeholder="Tìm icon..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-8 text-sm mb-2"
+        />
+        <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+          {value && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive"
+              title="Xóa icon"
+              onClick={() => { onChange(""); setOpen(false); }}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
+          {filtered.map((name) => (
+            <Button
+              key={name}
+              variant={value === name ? "secondary" : "ghost"}
+              size="icon"
+              className="h-7 w-7"
+              title={name}
+              onClick={() => { onChange(name); setOpen(false); }}
+            >
+              <IconPreview name={name} className="h-3.5 w-3.5" />
+            </Button>
+          ))}
+        </div>
+        {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Không tìm thấy icon</p>}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export default function AdminMenus() {
@@ -32,13 +110,13 @@ export default function AdminMenus() {
   });
 
   const defaultHeaderItems: MenuItem[] = [
-    { label: "Khám phá", url: "/tools", open_new_tab: false },
-    { label: "Trending", url: "/trending", open_new_tab: false },
-    { label: "Tasks", url: "/tasks", open_new_tab: false },
-    { label: "Launches", url: "/launches", open_new_tab: false },
-    { label: "Workflows", url: "/workflows", open_new_tab: false },
-    { label: "Ưu đãi", url: "/deals", open_new_tab: false },
-    { label: "Blog", url: "/blog", open_new_tab: false },
+    { label: "Khám phá", url: "/tools", open_new_tab: false, icon: "compass" },
+    { label: "Trending", url: "/trending", open_new_tab: false, icon: "trending-up" },
+    { label: "Tasks", url: "/tasks", open_new_tab: false, icon: "briefcase" },
+    { label: "Launches", url: "/launches", open_new_tab: false, icon: "rocket" },
+    { label: "Workflows", url: "/workflows", open_new_tab: false, icon: "zap" },
+    { label: "Ưu đãi", url: "/deals", open_new_tab: false, icon: "tag" },
+    { label: "Blog", url: "/blog", open_new_tab: false, icon: "file-text" },
   ];
 
   const defaultFooterItems: MenuItem[] = [
@@ -62,7 +140,6 @@ export default function AdminMenus() {
 
   const [items, setItems] = useState<MenuItem[]>([]);
 
-  // Sync items from DB whenever menu data changes, fallback to defaults
   useEffect(() => {
     if (isSuccess) {
       const dbItems = (menu?.items as any) as MenuItem[] | undefined;
@@ -93,10 +170,9 @@ export default function AdminMenus() {
     onError: () => toast.error("Lỗi lưu menu"),
   });
 
-  // Item CRUD
   const addItem = () => setItems([...items, { label: "", url: "/", open_new_tab: false }]);
 
-  const updateItem = (idx: number, field: keyof MenuItem, value: any) => {
+  const updateItem = (idx: number, field: string, value: any) => {
     const updated = [...items];
     (updated[idx] as any)[field] = value;
     setItems(updated);
@@ -112,7 +188,6 @@ export default function AdminMenus() {
     setItems(updated);
   };
 
-  // Children CRUD
   const addChild = (parentIdx: number) => {
     const updated = [...items];
     if (!updated[parentIdx].children) updated[parentIdx].children = [];
@@ -120,7 +195,7 @@ export default function AdminMenus() {
     setItems(updated);
   };
 
-  const updateChild = (parentIdx: number, childIdx: number, field: keyof MenuItem, value: any) => {
+  const updateChild = (parentIdx: number, childIdx: number, field: string, value: any) => {
     const updated = [...items];
     (updated[parentIdx].children![childIdx] as any)[field] = value;
     setItems(updated);
@@ -177,7 +252,8 @@ export default function AdminMenus() {
               {location === "header" ? (
                 <nav className="flex items-center gap-6 flex-wrap">
                   {items.map((item, i) => (
-                    <span key={i} className="text-sm font-medium text-muted-foreground hover:text-foreground cursor-default">
+                    <span key={i} className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground cursor-default">
+                      {item.icon && <IconPreview name={item.icon} className="h-3.5 w-3.5" />}
                       {item.label || <span className="italic text-muted-foreground/50">Chưa đặt tên</span>}
                     </span>
                   ))}
@@ -190,7 +266,10 @@ export default function AdminMenus() {
                       <h4 className="text-sm font-semibold mb-2">{col.label || <span className="italic text-muted-foreground/50">Tiêu đề cột</span>}</h4>
                       <div className="flex flex-col gap-1.5">
                         {(col.children ?? []).map((child, ci) => (
-                          <span key={ci} className="text-sm text-muted-foreground">{child.label || "..."}</span>
+                          <span key={ci} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            {child.icon && <IconPreview name={child.icon} className="h-3 w-3" />}
+                            {child.label || "..."}
+                          </span>
                         ))}
                         {(!col.children || col.children.length === 0) && <span className="text-xs text-muted-foreground/50 italic">Chưa có link</span>}
                       </div>
@@ -235,6 +314,7 @@ export default function AdminMenus() {
                     </Button>
                   </div>
                   <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 mt-2.5" />
+                  <IconPicker value={item.icon} onChange={(v) => updateItem(idx, "icon", v)} />
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Input
                       placeholder={isFooter ? "Tiêu đề cột" : "Label"}
@@ -282,7 +362,7 @@ export default function AdminMenus() {
                             <ChevronDown className="h-2.5 w-2.5" />
                           </Button>
                         </div>
-                        <LinkIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <IconPicker value={child.icon} onChange={(v) => updateChild(idx, ci, "icon", v)} />
                         <Input
                           placeholder="Label"
                           value={child.label}
