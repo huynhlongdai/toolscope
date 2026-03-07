@@ -674,10 +674,10 @@ export default function ComparePage() {
               {/* TAB: Charts */}
               <TabsContent value="charts" className="space-y-6">
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <CompareRadarChart tools={tools} />
-                  <CompareBarChart tools={tools} />
+                  <CompareRadarChart tools={tools} t={t} />
+                  <CompareBarChart tools={tools} t={t} />
                 </div>
-                <PricingTrendChart toolIds={selectedIds} tools={tools} />
+                <PricingTrendChart toolIds={selectedIds} tools={tools} t={t} />
               </TabsContent>
 
               {/* TAB: Pricing */}
