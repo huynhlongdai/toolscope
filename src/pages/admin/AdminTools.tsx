@@ -285,6 +285,9 @@ export default function AdminTools() {
             ) : (
               <>
                 <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+                <Button variant="outline" size="sm" onClick={checkAllHealth} disabled={checkingHealthAll}>
+                  {checkingHealthAll ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <HeartPulse className="mr-1 h-3.5 w-3.5" />} Health Check
+                </Button>
                 <BatchTranslateButton tools={filtered} isMobile={false} />
                 <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
                 <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
