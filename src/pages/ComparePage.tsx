@@ -399,15 +399,15 @@ function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: str
               <p className="text-[10px] text-muted-foreground">/100 productivity score</p>
               <div className="mt-3 space-y-1 text-left">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Tiết kiệm ~</span>
-                  <span className="font-medium">{d.timeSaved}h/tuần</span>
+                  <span className="text-muted-foreground">{t("compare.savesPerWeek")}</span>
+                  <span className="font-medium">{d.timeSaved}{t("compare.hrsPerWeek")}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Dễ sử dụng</span>
+                  <span className="text-muted-foreground">{t("compare.easeOfUse")}</span>
                   <span className="font-medium">{d.ease}/10</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Tính năng</span>
+                  <span className="text-muted-foreground">{t("compare.features")}</span>
                   <span className="font-medium">{d.feat}/10</span>
                 </div>
               </div>
