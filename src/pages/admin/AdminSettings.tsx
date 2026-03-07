@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2, Blocks } from "lucide-react";
 import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
-import { logAuditAction } from "@/hooks/useAuditLog";
 
 const AI_PROVIDERS = [
   { id: "openai", name: "OpenAI", keyField: "openai_api_key", placeholder: "sk-..." },
