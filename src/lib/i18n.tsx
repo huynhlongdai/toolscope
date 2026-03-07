@@ -2,9 +2,23 @@ import { createContext, useContext, useState, useCallback, ReactNode } from "rea
 import vi from "@/lib/translations/vi";
 import en from "@/lib/translations/en";
 
-type Locale = "vi" | "en";
+export type Locale = "vi" | "en" | "zh" | "ja" | "ko" | "th" | "id" | "es" | "fr" | "pt" | "de";
 
-const dictionaries: Record<Locale, Record<string, string>> = { vi, en };
+export const SUPPORTED_LOCALES: Record<Locale, { label: string; flag: string; nativeName: string }> = {
+  vi: { label: "Tiếng Việt", flag: "🇻🇳", nativeName: "Tiếng Việt" },
+  en: { label: "English", flag: "🇺🇸", nativeName: "English" },
+  zh: { label: "Chinese", flag: "🇨🇳", nativeName: "中文" },
+  ja: { label: "Japanese", flag: "🇯🇵", nativeName: "日本語" },
+  ko: { label: "Korean", flag: "🇰🇷", nativeName: "한국어" },
+  th: { label: "Thai", flag: "🇹🇭", nativeName: "ภาษาไทย" },
+  id: { label: "Indonesian", flag: "🇮🇩", nativeName: "Bahasa Indonesia" },
+  es: { label: "Spanish", flag: "🇪🇸", nativeName: "Español" },
+  fr: { label: "French", flag: "🇫🇷", nativeName: "Français" },
+  pt: { label: "Portuguese", flag: "🇧🇷", nativeName: "Português" },
+  de: { label: "German", flag: "🇩🇪", nativeName: "Deutsch" },
+};
+
+const dictionaries: Record<string, Record<string, string>> = { vi, en };
 
 interface I18nContextType {
   locale: Locale;
@@ -20,7 +34,8 @@ const I18nContext = createContext<I18nContextType>({
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
-    return (localStorage.getItem("locale") as Locale) || "vi";
+    const stored = localStorage.getItem("locale") as Locale;
+    return stored && stored in SUPPORTED_LOCALES ? stored : "vi";
   });
 
   const setLocale = useCallback((l: Locale) => {
@@ -30,7 +45,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, fallback?: string) => {
-      return dictionaries[locale]?.[key] ?? fallback ?? key;
+      // Try current locale dictionary, then fallback to vi
+      return dictionaries[locale]?.[key] ?? dictionaries["vi"]?.[key] ?? fallback ?? key;
     },
     [locale]
   );

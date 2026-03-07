@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Layers, Shield, Globe } from "lucide-react";
+import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -92,6 +92,8 @@ export function Header() {
     );
   };
 
+  const currentLocale = SUPPORTED_LOCALES[locale];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
@@ -121,15 +123,30 @@ export function Header() {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocale(locale === "vi" ? "en" : "vi")}
-            className="hidden md:flex gap-1 text-xs font-medium"
-          >
-            <Globe className="h-3.5 w-3.5" />
-            {locale === "vi" ? "EN" : "VI"}
-          </Button>
+          {/* Language Switcher Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 text-xs font-medium">
+                <span className="text-base leading-none">{currentLocale.flag}</span>
+                {locale.toUpperCase()}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
+              {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
+                <DropdownMenuItem
+                  key={code}
+                  onClick={() => setLocale(code)}
+                  className="flex items-center justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-base">{meta.flag}</span>
+                    <span className="text-sm">{meta.nativeName}</span>
+                  </span>
+                  {locale === code && <Check className="h-3.5 w-3.5 text-primary" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {user ? (
             <DropdownMenu>
@@ -174,16 +191,33 @@ export function Header() {
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => renderLink(item, () => setMobileMenuOpen(false)))}
             <div className="my-2 h-px bg-border" />
-            <button
-              onClick={() => {
-                setLocale(locale === "vi" ? "en" : "vi");
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Globe className="h-4 w-4" />
-              {locale === "vi" ? "English" : "Tiếng Việt"}
-            </button>
+            {/* Mobile Language Switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground w-fit">
+                  <Globe className="h-4 w-4" />
+                  <span>{currentLocale.flag} {currentLocale.nativeName}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 max-h-72 overflow-y-auto">
+                {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
+                  <DropdownMenuItem
+                    key={code}
+                    onClick={() => {
+                      setLocale(code);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-base">{meta.flag}</span>
+                      <span className="text-sm">{meta.nativeName}</span>
+                    </span>
+                    {locale === code && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {user && (
               <>
                 <Link

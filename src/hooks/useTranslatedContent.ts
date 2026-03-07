@@ -12,11 +12,8 @@ interface UseTranslatedContentResult {
   isLoading: boolean;
 }
 
-/**
- * Hook to fetch translated content from the translations table.
- * When locale is "vi" (default), returns original fallback values.
- * When locale is "en", queries translations table and falls back to original.
- */
+const SOURCE_LOCALE = "vi";
+
 export function useTranslatedContent(
   entityType: string,
   entityId: string | undefined,
@@ -38,12 +35,11 @@ export function useTranslatedContent(
       if (error) throw error;
       return data;
     },
-    enabled: !!entityId && locale !== "vi" && fields.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    enabled: !!entityId && locale !== SOURCE_LOCALE && fields.length > 0,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // If locale is "vi" (default language), return fallbacks directly
-  if (locale === "vi" || !entityId) {
+  if (locale === SOURCE_LOCALE || !entityId) {
     const translated: TranslatedContent = {};
     fields.forEach((f) => {
       translated[f] = fallbacks[f] ?? undefined;
