@@ -682,8 +682,8 @@ export default function ComparePage() {
 
               {/* TAB: Pricing */}
               <TabsContent value="pricing" className="space-y-6">
-                <ROICalculator tools={tools} />
-                <SwitchingCostCalculator tools={tools} />
+                <ROICalculator tools={tools} t={t} />
+                <SwitchingCostCalculator tools={tools} t={t} />
               </TabsContent>
 
               {/* TAB: Tools */}
