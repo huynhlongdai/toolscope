@@ -48,6 +48,24 @@ export default function AdminDashboard() {
     },
   });
 
+  const { data: healthStats } = useQuery({
+    queryKey: ["admin-health-stats"],
+    queryFn: async () => {
+      const [active, warning, dead, unknown] = await Promise.all([
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "active"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "warning"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "dead"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "unknown"),
+      ]);
+      return {
+        active: active.count ?? 0,
+        warning: warning.count ?? 0,
+        dead: dead.count ?? 0,
+        unknown: unknown.count ?? 0,
+      };
+    },
+  });
+
   const { data: topTools = [] } = useQuery({
     queryKey: ["admin-top-tools"],
     queryFn: async () => {
