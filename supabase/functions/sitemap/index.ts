@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const BASE_URL = "https://toolscope.app";
+const LOCALES = ["vi", "en"];
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -39,31 +40,49 @@ Sitemap: ${BASE_URL}/sitemap.xml
     const workflows = workflowsRes.data || [];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${BASE_URL}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>${BASE_URL}/tools</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>${BASE_URL}/trending</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>${BASE_URL}/blog</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>${BASE_URL}/collections</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>${BASE_URL}/workflows</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>${BASE_URL}/compare</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>${BASE_URL}/leaderboard</loc><changefreq>daily</changefreq><priority>0.6</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 `;
 
+    // Helper to add URL with hreflang alternates
+    const addUrl = (path: string, lastmod?: string, changefreq = "weekly", priority = "0.7") => {
+      xml += `  <url>\n    <loc>${BASE_URL}${path}</loc>\n`;
+      if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n`;
+      // Add hreflang for each locale pointing to same URL (content switches via locale toggle)
+      for (const locale of LOCALES) {
+        xml += `    <xhtml:link rel="alternate" hreflang="${locale}" href="${BASE_URL}${path}" />\n`;
+      }
+      xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${BASE_URL}${path}" />\n`;
+      xml += `  </url>\n`;
+    };
+
+    // Static pages
+    addUrl("/", undefined, "daily", "1.0");
+    addUrl("/tools", undefined, "daily", "0.9");
+    addUrl("/trending", undefined, "daily", "0.8");
+    addUrl("/blog", undefined, "daily", "0.8");
+    addUrl("/collections", undefined, "weekly", "0.7");
+    addUrl("/workflows", undefined, "weekly", "0.7");
+    addUrl("/compare", undefined, "weekly", "0.6");
+    addUrl("/leaderboard", undefined, "daily", "0.6");
+    addUrl("/deals", undefined, "daily", "0.7");
+    addUrl("/launches", undefined, "daily", "0.7");
+
     for (const t of tools) {
-      xml += `  <url><loc>${BASE_URL}/tool/${t.slug}</loc><lastmod>${new Date(t.updated_at).toISOString().split("T")[0]}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      addUrl(`/tool/${t.slug}`, new Date(t.updated_at).toISOString().split("T")[0], "weekly", "0.8");
     }
 
     for (const c of categories) {
-      xml += `  <url><loc>${BASE_URL}/category/${c.slug}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
+      addUrl(`/category/${c.slug}`, undefined, "weekly", "0.7");
     }
 
     for (const b of blogs) {
-      xml += `  <url><loc>${BASE_URL}/blog/${b.slug}</loc><lastmod>${new Date(b.updated_at).toISOString().split("T")[0]}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>\n`;
+      addUrl(`/blog/${b.slug}`, new Date(b.updated_at).toISOString().split("T")[0], "monthly", "0.7");
     }
 
     for (const w of workflows) {
-      xml += `  <url><loc>${BASE_URL}/workflow/${w.slug}</loc><lastmod>${new Date(w.updated_at).toISOString().split("T")[0]}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>\n`;
+      addUrl(`/workflow/${w.slug}`, new Date(w.updated_at).toISOString().split("T")[0], "monthly", "0.6");
     }
 
     xml += `</urlset>`;
