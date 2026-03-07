@@ -93,7 +93,7 @@ Important: Preserve all HTML tags, Markdown formatting, URLs. Only translate hum
       .map(([field, text]) => ({ entity_type: entityType, entity_id: entityId, field_name: field, locale, translated_text: text, is_auto: true }));
 
     if (upserts.length > 0) {
-      await supabase.from("translations").delete().eq("entity_type", "blog").eq("entity_id", blog_id).eq("locale", locale).eq("is_auto", true);
+      await supabase.from("translations").delete().eq("entity_type", entityType).eq("entity_id", entityId).eq("locale", locale).eq("is_auto", true);
       await supabase.from("translations").insert(upserts);
     }
 
