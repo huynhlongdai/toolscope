@@ -504,6 +504,21 @@ export default function AdminTools() {
                           </SelectContent>
                         </Select>
                       </TableCell>
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="cursor-pointer">{healthBadge(tool.health_status)}</button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-3 text-xs space-y-2">
+                            <p className="font-medium">Health: {tool.health_status}</p>
+                            {tool.health_details && <p className="text-muted-foreground">{tool.health_details}</p>}
+                            {tool.health_checked_at && <p className="text-muted-foreground">Checked: {new Date(tool.health_checked_at).toLocaleString("vi-VN")}</p>}
+                            <Button size="sm" variant="outline" className="w-full text-xs h-7" onClick={() => checkSingleHealth(tool.id)}>
+                              <HeartPulse className="h-3 w-3 mr-1" /> Check now
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
                       <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
                       <TableCell>
                         {(() => {
