@@ -279,7 +279,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
                         <p className="text-[10px] text-muted-foreground">{t("compare.perDay")}</p>
                       </div>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user/tháng</p>
+                    <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user{t("compare.perMonth")}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground py-4">
