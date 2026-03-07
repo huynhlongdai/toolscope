@@ -276,7 +276,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
                       </div>
                       <div className="rounded-md bg-muted/50 p-2">
                         <p className="text-sm font-semibold">${dailyCost!.toFixed(1)}</p>
-                        <p className="text-[10px] text-muted-foreground">/ngày</p>
+                        <p className="text-[10px] text-muted-foreground">{t("compare.perDay")}</p>
                       </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user/tháng</p>
