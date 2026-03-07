@@ -345,7 +345,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-muted/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Chi phí migration</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("compare.migrationCost")}</p>
             <p className="text-xl font-bold text-foreground">${migrationCost.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{teamSize} người × {hoursToMigrate}h × ${hourlyRate}/h</p>
           </div>
