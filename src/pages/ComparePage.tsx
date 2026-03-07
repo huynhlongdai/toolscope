@@ -30,10 +30,7 @@ const CHART_COLORS = [
   "hsl(var(--destructive))",
 ];
 
-const pricingLabel: Record<string, string> = {
-  free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
-  open_source: "Open Source", contact: "Liên hệ",
-};
+// pricingLabel removed - now uses t() in component
 
 type ToolWithScores = {
   id: string; name: string; slug: string; logo_url: string | null;
