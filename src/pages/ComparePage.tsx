@@ -355,7 +355,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
             <p className="text-[10px] text-muted-foreground">~{productivityLossDays} {t("compare.learningCurve")}</p>
           </div>
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
-            <p className="text-xs font-medium text-primary mb-1">Tổng chi phí chuyển đổi</p>
+            <p className="text-xs font-medium text-primary mb-1">{t("compare.totalSwitchCost")}</p>
             <p className="text-2xl font-bold text-primary">${totalSwitchingCost.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">từ {tools[currentToolIdx]?.name}</p>
           </div>
