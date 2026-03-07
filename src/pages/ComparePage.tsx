@@ -120,12 +120,12 @@ function CompareRadarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: str
 }
 
 /* ─── Bar Chart Score Comparison ─── */
-function CompareBarChart({ tools }: { tools: ToolWithScores[] }) {
-  const data = tools.map((t) => ({
-    name: t.name,
-    "AI Score": Number(t.ai_scores?.overall_score) || 0,
-    "Rating": Number(t.avg_rating || 0) * 2, // scale to 10
-    "Lượt xem": Math.min(t.view_count / 100, 10), // normalize
+function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
+  const data = tools.map((t_) => ({
+    name: t_.name,
+    "AI Score": Number(t_.ai_scores?.overall_score) || 0,
+    "Rating": Number(t_.avg_rating || 0) * 2,
+    [t("compare.views")]: Math.min(t_.view_count / 100, 10),
   }));
 
   return (
