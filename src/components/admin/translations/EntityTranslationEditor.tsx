@@ -21,7 +21,7 @@ interface TranslationField {
 }
 
 interface EntityTranslationEditorProps {
-  entityType: "blog" | "workflow";
+  entityType: "blog" | "workflow" | "tool";
   entityId: string | undefined;
   fields: TranslationField[];
   translateFunctionName: string;
