@@ -430,6 +430,7 @@ export default function AdminTools() {
                       {tool.logo_url && <img src={tool.logo_url} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          {healthBadge(tool.health_status)}
                           <p className="font-medium text-sm truncate">{tool.name}</p>
                           <Badge variant={statusColor(tool.status) as any} className="text-[10px] shrink-0">{tool.status}</Badge>
                         </div>
