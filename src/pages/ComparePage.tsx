@@ -193,9 +193,9 @@ function PricingTrendChart({ toolIds, tools, t }: { toolIds: string[]; tools: To
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <TrendingUp className="h-5 w-5 text-primary" /> Xu hướng giá theo thời gian
+          <TrendingUp className="h-5 w-5 text-primary" /> {t("compare.priceTrendTitle")}
         </CardTitle>
-        <CardDescription>So sánh biến động giá của các công cụ</CardDescription>
+        <CardDescription>{t("compare.priceTrendDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-64">
