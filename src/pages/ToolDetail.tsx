@@ -3,6 +3,8 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslatedContent";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -39,16 +41,12 @@ import { UpvoteButton } from "@/components/UpvoteButton";
 import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
 import { VendorResponse } from "@/components/tool-detail/VendorResponse";
 
-const pricingLabel: Record<string, string> = {
-  free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
-  open_source: "Open Source", contact: "Liên hệ",
-};
-
 export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t, locale } = useI18n();
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
@@ -60,12 +58,32 @@ export default function ToolDetail() {
         .select("*, categories(name, slug), ai_scores(*)")
         .eq("slug", slug!)
         .eq("status", "published")
-        .maybeSingle() as any; // detailed_content not in types yet
+        .maybeSingle() as any;
       if (error) throw error;
       return data;
     },
     enabled: !!slug,
   });
+
+  // Translated content from DB
+  const { translated, isTranslated } = useTranslatedContent(
+    "tool",
+    tool?.id,
+    ["name", "description", "short_description", "detailed_content"],
+    {
+      name: tool?.name,
+      description: tool?.description,
+      short_description: tool?.short_description,
+      detailed_content: (tool as any)?.detailed_content,
+    }
+  );
+
+  const displayName = translated.name || tool?.name || "";
+  const displayDesc = translated.description || tool?.description || "";
+  const displayShort = translated.short_description || tool?.short_description || "";
+  const displayDetailed = translated.detailed_content || (tool as any)?.detailed_content || "";
+
+  const pricingLabel = (type: string) => t(`pricing.${type}`, type);
 
   const { data: reviews } = useQuery({
     queryKey: ["tool-reviews", tool?.id],
@@ -97,9 +115,8 @@ export default function ToolDetail() {
     enabled: !!tool?.id && !!user?.id,
   });
 
-
   const toggleBookmark = async () => {
-    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!user) { toast({ title: t("tool.loginRequired"), variant: "destructive" }); return; }
     if (isBookmarked) {
       await supabase.from("bookmarks").delete().eq("tool_id", tool!.id).eq("user_id", user.id);
     } else {
@@ -109,19 +126,18 @@ export default function ToolDetail() {
   };
 
   const submitRating = async (score: number) => {
-    if (!user) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!user) { toast({ title: t("tool.loginRequired"), variant: "destructive" }); return; }
     setUserRating(score);
     const { error } = await supabase.from("ratings").upsert(
       { tool_id: tool!.id, user_id: user.id, score },
       { onConflict: "tool_id,user_id" }
     );
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: `Đã đánh giá ${score} sao!` });
+    if (error) { toast({ title: t("tool.ratingError"), description: error.message, variant: "destructive" }); return; }
+    toast({ title: t("tool.ratingSuccess").replace("{n}", String(score)) });
   };
 
   const faqItems: { question: string; answer: string }[] = Array.isArray((tool as any)?.faq) ? (tool as any).faq : [];
 
-  // FAQ JSON-LD Schema
   useEffect(() => {
     if (faqItems.length === 0) return;
     const script = document.createElement("script");
@@ -158,8 +174,8 @@ export default function ToolDetail() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 container py-16 text-center">
-          <p className="text-xl text-muted-foreground">Không tìm thấy công cụ này</p>
-          <Link to="/tools" className="mt-4 inline-block text-primary hover:underline">← Quay lại danh sách</Link>
+          <p className="text-xl text-muted-foreground">{t("tool.notFound")}</p>
+          <Link to="/tools" className="mt-4 inline-block text-primary hover:underline">{t("tool.backToTools")}</Link>
         </main>
         <Footer />
       </div>
@@ -175,7 +191,7 @@ export default function ToolDetail() {
       <main className="flex-1">
         <div className="container py-8">
           <Link to="/tools" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> Quay lại
+            <ArrowLeft className="h-3.5 w-3.5" /> {t("tool.backToList")}
           </Link>
 
           {/* Tool Header */}
@@ -185,22 +201,25 @@ export default function ToolDetail() {
                 {(() => {
                   const resolvedLogo = getToolLogoUrl(tool.logo_url, tool.website_url);
                   return resolvedLogo ? (
-                    <img src={resolvedLogo} alt={tool.name} className="h-full w-full rounded-2xl object-cover" />
-                  ) : tool.name.charAt(0);
+                    <img src={resolvedLogo} alt={displayName} className="h-full w-full rounded-2xl object-cover" />
+                  ) : displayName.charAt(0);
                 })()}
               </div>
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {tool.name}
+                    {displayName}
                   </h1>
+                  {isTranslated && locale !== "vi" && (
+                    <Badge variant="outline" className="text-[10px]">EN</Badge>
+                  )}
                   {aiScore?.is_recommended && (
                     <Badge className="bg-primary text-primary-foreground">⚡ AI Recommended</Badge>
                   )}
                   <VendorClaimBadge toolId={tool.id} />
                 </div>
-                {tool.short_description && (
-                  <p className="mt-2 text-lg text-muted-foreground">{tool.short_description}</p>
+                {displayShort && (
+                  <p className="mt-2 text-lg text-muted-foreground">{displayShort}</p>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {cat?.name && (
@@ -208,15 +227,15 @@ export default function ToolDetail() {
                       <Badge variant="secondary">{cat.name}</Badge>
                     </Link>
                   )}
-                  <Badge variant="outline">{pricingLabel[tool.pricing_type] || tool.pricing_type}</Badge>
+                  <Badge variant="outline">{pricingLabel(tool.pricing_type)}</Badge>
                   {tool.rating_count > 0 && (
                     <span className="flex items-center gap-1 text-sm">
                       <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                       {Number(tool.avg_rating).toFixed(1)}
-                      <span className="text-muted-foreground">({tool.rating_count} đánh giá)</span>
+                      <span className="text-muted-foreground">({tool.rating_count} {t("tool.ratings")})</span>
                     </span>
                   )}
-                  <span className="text-sm text-muted-foreground">{tool.view_count.toLocaleString()} lượt xem</span>
+                  <span className="text-sm text-muted-foreground">{tool.view_count.toLocaleString()} {t("tool.views")}</span>
                 </div>
               </div>
             </div>
@@ -225,57 +244,54 @@ export default function ToolDetail() {
               {(tool.affiliate_url || tool.website_url) && (
                 <Button asChild className="gap-2">
                   <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer">
-                    <Globe className="h-4 w-4" /> Truy cập website
+                    <Globe className="h-4 w-4" /> {t("tool.visitWebsite")}
                   </a>
                 </Button>
               )}
               <FollowButton targetType="tool" targetId={tool.id} showCount />
               <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={tool.upvotes ?? 0} tableName="tools" />
-              <AddToCollectionDialog toolId={tool.id} toolName={tool.name} />
+              <AddToCollectionDialog toolId={tool.id} toolName={displayName} />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" onClick={toggleBookmark}>
                     {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent><p>{isBookmarked ? "Đã lưu" : "Lưu lại"}</p></TooltipContent>
+                <TooltipContent><p>{isBookmarked ? t("tool.saved") : t("tool.save")}</p></TooltipContent>
               </Tooltip>
-              <ShareButtons title={tool.name} />
-              <VendorClaimButton toolId={tool.id} toolName={tool.name} />
+              <ShareButtons title={displayName} />
+              <VendorClaimButton toolId={tool.id} toolName={displayName} />
             </div>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* Description */}
-              {tool.description && (
+              {displayDesc && (
                 <Card>
-                  <CardHeader><CardTitle>Giới thiệu</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>{t("tool.introduction")}</CardTitle></CardHeader>
                   <CardContent>
-                    {tool.description.startsWith("<") ? (
-                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: tool.description }} />
+                    {displayDesc.startsWith("<") ? (
+                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: displayDesc }} />
                     ) : (
-                      <p className="text-muted-foreground whitespace-pre-wrap">{tool.description}</p>
+                      <p className="text-muted-foreground whitespace-pre-wrap">{displayDesc}</p>
                     )}
                   </CardContent>
                 </Card>
               )}
 
-              {/* Detailed Article */}
               <DetailedArticle
                 toolId={tool.id}
-                toolName={tool.name}
-                detailedContent={(tool as any).detailed_content}
+                toolName={displayName}
+                detailedContent={displayDetailed}
                 isAdmin={!!user}
               />
 
-              {/* FAQ Section */}
               {faqItems.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5" /> Câu hỏi thường gặp ({faqItems.length})
+                      <MessageCircle className="h-5 w-5" /> {t("tool.faq")} ({faqItems.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -293,9 +309,8 @@ export default function ToolDetail() {
                 </Card>
               )}
 
-              {/* Your Rating */}
               <Card>
-                <CardHeader><CardTitle>Đánh giá của bạn</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("tool.yourRating")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -313,17 +328,16 @@ export default function ToolDetail() {
                         }`} />
                       </button>
                     ))}
-                    {userRating > 0 && <span className="ml-2 text-sm text-muted-foreground">Bạn đã đánh giá {userRating} sao</span>}
+                    {userRating > 0 && <span className="ml-2 text-sm text-muted-foreground">{t("tool.ratedStars").replace("{n}", String(userRating))}</span>}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Reviews */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5" /> Reviews ({reviews?.length || 0})
+                      <MessageCircle className="h-5 w-5" /> {t("tool.reviews")} ({reviews?.length || 0})
                     </CardTitle>
                     <StructuredReviewForm toolId={tool.id} userId={user?.id} />
                   </div>
@@ -337,9 +351,9 @@ export default function ToolDetail() {
                             <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
                               {(review.profiles as any)?.display_name?.charAt(0) || "?"}
                             </div>
-                            <span className="text-sm font-medium">{(review.profiles as any)?.display_name || "Ẩn danh"}</span>
+                            <span className="text-sm font-medium">{(review.profiles as any)?.display_name || t("reviews.anonymous")}</span>
                             {review.is_editor_review && <Badge variant="secondary" className="text-[10px]">Editor</Badge>}
-                            <span className="text-xs text-muted-foreground ml-auto">{new Date(review.created_at).toLocaleDateString("vi-VN")}</span>
+                            <span className="text-xs text-muted-foreground ml-auto">{new Date(review.created_at).toLocaleDateString(locale === "en" ? "en-US" : "vi-VN")}</span>
                           </div>
                           <h4 className="font-medium mb-1">{review.title}</h4>
                           <div className="text-sm text-muted-foreground prose prose-sm prose-neutral dark:prose-invert max-w-none">
@@ -353,21 +367,17 @@ export default function ToolDetail() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Chưa có review nào. Hãy là người đầu tiên!</p>
+                    <p className="text-sm text-muted-foreground">{t("tool.noReviews")}</p>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Comments */}
               <CommentSection toolId={tool.id} userId={user?.id} />
-
-              {/* Q&A */}
               <QASection toolId={tool.id} userId={user?.id} />
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* AI Score Card */}
               {aiScore ? (
                 <Card className="border-primary/20">
                   <CardHeader>
@@ -381,11 +391,11 @@ export default function ToolDetail() {
                       <span className="text-lg text-muted-foreground">/10</span>
                     </div>
                     {[
-                      { label: "Dễ sử dụng", value: aiScore.ease_of_use, icon: Shield },
-                      { label: "Tính năng", value: aiScore.features, icon: Zap },
-                      { label: "Giá trị", value: aiScore.value_for_money, icon: DollarSign },
-                      { label: "Hỗ trợ", value: aiScore.support, icon: MessageCircle },
-                      { label: "Hiệu suất", value: aiScore.performance, icon: BarChart3 },
+                      { label: t("tool.easeOfUse"), value: aiScore.ease_of_use, icon: Shield },
+                      { label: t("tool.features"), value: aiScore.features, icon: Zap },
+                      { label: t("tool.value"), value: aiScore.value_for_money, icon: DollarSign },
+                      { label: t("tool.support"), value: aiScore.support, icon: MessageCircle },
+                      { label: t("tool.performance"), value: aiScore.performance, icon: BarChart3 },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center gap-2">
                         <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -401,7 +411,7 @@ export default function ToolDetail() {
                     ))}
                     {aiScore.pros && aiScore.pros.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">Ưu điểm</p>
+                        <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">{t("tool.pros")}</p>
                         <ul className="space-y-0.5">
                           {aiScore.pros.map((p: string, i: number) => (
                             <li key={i} className="text-xs text-muted-foreground">+ {p}</li>
@@ -411,7 +421,7 @@ export default function ToolDetail() {
                     )}
                     {aiScore.cons && aiScore.cons.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Nhược điểm</p>
+                        <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">{t("tool.cons")}</p>
                         <ul className="space-y-0.5">
                           {aiScore.cons.map((c: string, i: number) => (
                             <li key={i} className="text-xs text-muted-foreground">− {c}</li>
@@ -433,46 +443,36 @@ export default function ToolDetail() {
                   </CardHeader>
                   <CardContent className="text-center py-6">
                     <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Đang phân tích bằng AI...</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Điểm đánh giá sẽ sớm có mặt tại đây</p>
+                    <p className="text-sm text-muted-foreground">{t("tool.aiAnalyzing")}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{t("tool.aiScoreSoon")}</p>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Review Breakdown */}
               <ReviewBreakdown reviews={(reviews || []) as any} />
+              <ScreenshotGallery toolId={tool.id} toolName={displayName} />
+              <DealsSection toolId={tool.id} toolName={displayName} />
+              <AlternativesSection toolId={tool.id} toolName={displayName} categoryId={tool.category_id} />
 
-              {/* Screenshots */}
-              <ScreenshotGallery toolId={tool.id} toolName={tool.name} />
-
-              {/* Deals */}
-              <DealsSection toolId={tool.id} toolName={tool.name} />
-
-              {/* Alternatives */}
-              <AlternativesSection toolId={tool.id} toolName={tool.name} categoryId={tool.category_id} />
-
-              {/* Find Similar with AI */}
               <Button
                 variant="outline"
                 className="w-full gap-2"
-                onClick={() => navigate(`/tools?q=${encodeURIComponent(`Similar to ${tool.name}`)}`)}
+                onClick={() => navigate(`/tools?q=${encodeURIComponent(`Similar to ${displayName}`)}`)}
               >
                 <Sparkles className="h-4 w-4" />
-                Tìm tool tương tự bằng AI
+                {t("tool.findSimilar")}
               </Button>
 
-              {/* Compare */}
               <Button
                 variant="outline"
                 className="w-full gap-2"
                 onClick={() => navigate(`/compare?tools=${tool.id}`)}
               >
                 <GitCompareArrows className="h-4 w-4" />
-                So sánh với tool khác
+                {t("tool.compareWith")}
               </Button>
 
-              {/* Pricing History */}
-              <PricingHistoryChart toolId={tool.id} toolName={tool.name} />
+              <PricingHistoryChart toolId={tool.id} toolName={displayName} />
             </div>
           </div>
         </div>

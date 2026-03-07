@@ -150,6 +150,117 @@ const vi: Record<string, string> = {
   "tools.nextPage": "Sau",
   "tools.pageOf": "Trang",
 
+  // Tool Detail page
+  "tool.backToList": "Quay lại",
+  "tool.notFound": "Không tìm thấy công cụ này",
+  "tool.backToTools": "← Quay lại danh sách",
+  "tool.visitWebsite": "Truy cập website",
+  "tool.saved": "Đã lưu",
+  "tool.save": "Lưu lại",
+  "tool.introduction": "Giới thiệu",
+  "tool.faq": "Câu hỏi thường gặp",
+  "tool.yourRating": "Đánh giá của bạn",
+  "tool.ratedStars": "Bạn đã đánh giá {n} sao",
+  "tool.reviews": "Reviews",
+  "tool.noReviews": "Chưa có review nào. Hãy là người đầu tiên!",
+  "tool.easeOfUse": "Dễ sử dụng",
+  "tool.features": "Tính năng",
+  "tool.value": "Giá trị",
+  "tool.support": "Hỗ trợ",
+  "tool.performance": "Hiệu suất",
+  "tool.pros": "Ưu điểm",
+  "tool.cons": "Nhược điểm",
+  "tool.aiAnalyzing": "Đang phân tích bằng AI...",
+  "tool.aiScoreSoon": "Điểm đánh giá sẽ sớm có mặt tại đây",
+  "tool.findSimilar": "Tìm tool tương tự bằng AI",
+  "tool.compareWith": "So sánh với tool khác",
+  "tool.loginRequired": "Vui lòng đăng nhập",
+  "tool.ratingError": "Lỗi",
+  "tool.ratingSuccess": "Đã đánh giá {n} sao!",
+  "tool.ratings": "đánh giá",
+  "tool.views": "lượt xem",
+
+  // Pricing labels
+  "pricing.free": "Miễn phí",
+  "pricing.freemium": "Freemium",
+  "pricing.paid": "Trả phí",
+  "pricing.open_source": "Open Source",
+  "pricing.contact": "Liên hệ",
+
+  // Blog page
+  "blog.pageTitle": "Blog & Tin tức",
+  "blog.pageSubtitle": "Xu hướng công cụ, tips & tricks, so sánh chuyên sâu",
+  "blog.noPosts": "Chưa có bài viết nào. Hãy quay lại sau!",
+  "blog.backToBlog": "Quay lại Blog",
+  "blog.postNotFound": "Không tìm thấy bài viết",
+  "blog.relatedTools": "🔗 Công cụ liên quan",
+
+  // Deals page
+  "deals.pageTitle": "Ưu đãi & Coupon",
+  "deals.pageSubtitle": "Tổng hợp các mã giảm giá, ưu đãi độc quyền cho các công cụ AI.",
+  "deals.searchPlaceholder": "Tìm deal...",
+  "deals.allTypes": "Tất cả loại",
+  "deals.percentage": "Giảm %",
+  "deals.fixed": "Giảm cố định",
+  "deals.freeTrial": "Dùng thử free",
+  "deals.noDeals": "Không tìm thấy ưu đãi nào.",
+  "deals.activeCount": "ưu đãi đang hoạt động",
+
+  // Compare page
+  "compare.title": "So sánh công cụ",
+  "compare.subtitle": "So sánh chi tiết để tìm ra tool phù hợp nhất",
+
+  // Collections page
+  "collections.title": "Collections",
+  "collections.subtitle": "Tạo và khám phá bộ sưu tập công cụ",
+  "collections.create": "Tạo Collection",
+  "collections.createNew": "Tạo Collection mới",
+  "collections.namePlaceholder": "Tên collection",
+  "collections.descPlaceholder": "Mô tả (tùy chọn)",
+  "collections.public": "Công khai",
+  "collections.private": "Riêng tư",
+  "collections.createButton": "Tạo",
+  "collections.yours": "Collections của bạn",
+  "collections.noOwn": "Bạn chưa tạo collection nào",
+  "collections.popular": "Collections phổ biến",
+  "collections.noPublic": "Chưa có collection nào được tạo",
+  "collections.by": "bởi",
+
+  // Workflows page
+  "workflows.title": "Use Cases & Workflows",
+  "workflows.subtitle": "Tìm bộ tools phù hợp cho từng workflow cụ thể.",
+  "workflows.noWorkflows": "Chưa có workflow nào",
+  "workflows.comingSoon": "Các workflow và use case sẽ sớm được thêm vào.",
+
+  // Trending page
+  "trending.title": "Trending",
+  "trending.subtitle": "Công cụ đang hot, rising stars và được yêu thích nhất.",
+  "trending.hot": "Hot",
+  "trending.risingStars": "Rising Stars",
+  "trending.topRated": "Top Rated",
+  "trending.noData": "Chưa có dữ liệu.",
+
+  // Launches page
+  "launches.title": "Product Launches",
+  "launches.subtitle": "Khám phá sản phẩm mới mỗi ngày, upvote yêu thích của bạn",
+  "launches.submit": "Launch sản phẩm",
+  "launches.submitTitle": "🚀 Submit Product Launch",
+  "launches.noLaunches": "Chưa có sản phẩm nào",
+  "launches.beFirst": "Hãy là người đầu tiên launch sản phẩm!",
+  "launches.today": "🔥 Hôm nay",
+  "launches.loginToVote": "Vui lòng đăng nhập",
+  "launches.voteError": "Lỗi khi vote",
+
+  // Category page
+  "category.home": "Trang chủ",
+  "category.categories": "Danh mục",
+  "category.all": "Tất cả",
+  "category.toolCount": "công cụ",
+  "category.noTools": "Chưa có công cụ nào trong danh mục này",
+
+  // Not translated badge
+  "translation.notTranslated": "Chưa dịch",
+
   // Common
   "common.loading": "Đang tải...",
   "common.viewMore": "Xem thêm",

@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { DealCard } from "@/components/deals/DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag, Search } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 
 export default function DealsPage() {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [discountFilter, setDiscountFilter] = useState("all");
 
@@ -37,34 +38,32 @@ export default function DealsPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead title="Ưu đãi & Coupon - ToolScope" description="Tổng hợp các ưu đãi, mã giảm giá, coupon cho các công cụ AI hàng đầu." />
+      <SEOHead title={`${t("deals.pageTitle")} - ToolScope`} description={t("deals.pageSubtitle")} />
       <Header />
       <main className="flex-1 container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <Tag className="h-7 w-7 text-primary" /> Ưu đãi & Coupon
+            <Tag className="h-7 w-7 text-primary" /> {t("deals.pageTitle")}
           </h1>
-          <p className="mt-2 text-muted-foreground">Tổng hợp các mã giảm giá, ưu đãi độc quyền cho các công cụ AI.</p>
+          <p className="mt-2 text-muted-foreground">{t("deals.pageSubtitle")}</p>
         </div>
 
-        {/* Filters */}
         <div className="flex gap-4 mb-6">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Tìm deal..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder={t("deals.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={discountFilter} onValueChange={setDiscountFilter}>
             <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả loại</SelectItem>
-              <SelectItem value="percentage">Giảm %</SelectItem>
-              <SelectItem value="fixed">Giảm cố định</SelectItem>
-              <SelectItem value="free_trial">Dùng thử free</SelectItem>
+              <SelectItem value="all">{t("deals.allTypes")}</SelectItem>
+              <SelectItem value="percentage">{t("deals.percentage")}</SelectItem>
+              <SelectItem value="fixed">{t("deals.fixed")}</SelectItem>
+              <SelectItem value="free_trial">{t("deals.freeTrial")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Results */}
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
@@ -72,7 +71,7 @@ export default function DealsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <Tag className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-muted-foreground">Không tìm thấy ưu đãi nào.</p>
+            <p className="text-muted-foreground">{t("deals.noDeals")}</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,7 +87,7 @@ export default function DealsPage() {
         )}
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
-          {filtered.length} ưu đãi đang hoạt động
+          {filtered.length} {t("deals.activeCount")}
         </div>
       </main>
       <Footer />

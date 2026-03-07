@@ -1,6 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslatedContent";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +14,7 @@ import { ToolCard } from "@/components/tools/ToolCard";
 
 export default function BlogDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const { t, locale } = useI18n();
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["blog-post", slug],
@@ -23,8 +26,6 @@ export default function BlogDetail() {
         .eq("status", "published")
         .maybeSingle();
       if (error) throw error;
-
-      // Increment view count
       if (data) {
         supabase.from("blog_posts").update({ view_count: data.view_count + 1 }).eq("id", data.id).then();
       }
@@ -32,6 +33,16 @@ export default function BlogDetail() {
     },
     enabled: !!slug,
   });
+
+  const { translated, isTranslated } = useTranslatedContent(
+    "blog",
+    post?.id,
+    ["title", "content", "excerpt"],
+    { title: post?.title, content: post?.content, excerpt: post?.excerpt }
+  );
+
+  const displayTitle = translated.title || post?.title || "";
+  const displayContent = translated.content || post?.content || "";
 
   const relatedToolIds = (post?.related_tool_ids as string[]) ?? [];
   const { data: relatedTools = [] } = useQuery({
@@ -64,8 +75,8 @@ export default function BlogDetail() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 container py-16 text-center">
-          <p className="text-xl text-muted-foreground">Không tìm thấy bài viết</p>
-          <Link to="/blog" className="mt-4 inline-block text-primary hover:underline">← Quay lại blog</Link>
+          <p className="text-xl text-muted-foreground">{t("blog.postNotFound")}</p>
+          <Link to="/blog" className="mt-4 inline-block text-primary hover:underline">← {t("blog.backToBlog")}</Link>
         </main>
         <Footer />
       </div>
@@ -78,33 +89,38 @@ export default function BlogDetail() {
       <main className="flex-1">
         <article className="container max-w-3xl py-8">
           <Link to="/blog" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> Quay lại Blog
+            <ArrowLeft className="h-3.5 w-3.5" /> {t("blog.backToBlog")}
           </Link>
 
           {post.cover_image_url && (
             <div className="mb-6 aspect-video overflow-hidden rounded-xl">
-              <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover" />
+              <img src={post.cover_image_url} alt={displayTitle} className="h-full w-full object-cover" />
             </div>
           )}
 
-          <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            {post.title}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              {displayTitle}
+            </h1>
+            {isTranslated && locale !== "vi" && (
+              <Badge variant="outline" className="text-[10px]">EN</Badge>
+            )}
+          </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <User className="h-4 w-4" />
-              {(post.profiles as any)?.display_name || "Ẩn danh"}
+              {(post.profiles as any)?.display_name || t("reviews.anonymous")}
             </span>
             {post.published_at && (
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
-                {new Date(post.published_at).toLocaleDateString("vi-VN", { year: "numeric", month: "long", day: "numeric" })}
+                {new Date(post.published_at).toLocaleDateString(locale === "en" ? "en-US" : "vi-VN", { year: "numeric", month: "long", day: "numeric" })}
               </span>
             )}
             <span className="flex items-center gap-1.5">
               <Eye className="h-4 w-4" />
-              {post.view_count} lượt xem
+              {post.view_count} {t("tool.views")}
             </span>
           </div>
 
@@ -117,34 +133,34 @@ export default function BlogDetail() {
           )}
 
           <div className="mt-4">
-            <ShareButtons title={post.title} />
+            <ShareButtons title={displayTitle} />
           </div>
 
           <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
-            {post.content.startsWith("<") ? (
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
+            {displayContent.startsWith("<") ? (
+              <div dangerouslySetInnerHTML={{ __html: displayContent }} />
             ) : (
-              <ReactMarkdown>{post.content}</ReactMarkdown>
+              <ReactMarkdown>{displayContent}</ReactMarkdown>
             )}
           </div>
 
           {relatedTools.length > 0 && (
             <div className="mt-12 border-t pt-8">
-              <h2 className="text-xl font-bold mb-4">🔗 Công cụ liên quan</h2>
+              <h2 className="text-xl font-bold mb-4">{t("blog.relatedTools")}</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                {relatedTools.map((t: any) => (
+                {relatedTools.map((tool: any) => (
                   <ToolCard
-                    key={t.id}
-                    id={t.id}
-                    name={t.name}
-                    slug={t.slug}
-                    shortDescription={t.short_description}
-                    logoUrl={t.logo_url}
-                    websiteUrl={t.website_url}
-                    pricingType={t.pricing_type}
-                    avgRating={t.avg_rating ?? 0}
-                    ratingCount={t.rating_count ?? 0}
-                    categoryName={t.categories?.name}
+                    key={tool.id}
+                    id={tool.id}
+                    name={tool.name}
+                    slug={tool.slug}
+                    shortDescription={tool.short_description}
+                    logoUrl={tool.logo_url}
+                    websiteUrl={tool.website_url}
+                    pricingType={tool.pricing_type}
+                    avgRating={tool.avg_rating ?? 0}
+                    ratingCount={tool.rating_count ?? 0}
+                    categoryName={tool.categories?.name}
                   />
                 ))}
               </div>

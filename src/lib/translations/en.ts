@@ -150,6 +150,117 @@ const en: Record<string, string> = {
   "tools.nextPage": "Next",
   "tools.pageOf": "Page",
 
+  // Tool Detail page
+  "tool.backToList": "Back",
+  "tool.notFound": "Tool not found",
+  "tool.backToTools": "← Back to list",
+  "tool.visitWebsite": "Visit website",
+  "tool.saved": "Saved",
+  "tool.save": "Save",
+  "tool.introduction": "Introduction",
+  "tool.faq": "Frequently Asked Questions",
+  "tool.yourRating": "Your Rating",
+  "tool.ratedStars": "You rated {n} stars",
+  "tool.reviews": "Reviews",
+  "tool.noReviews": "No reviews yet. Be the first!",
+  "tool.easeOfUse": "Ease of Use",
+  "tool.features": "Features",
+  "tool.value": "Value",
+  "tool.support": "Support",
+  "tool.performance": "Performance",
+  "tool.pros": "Pros",
+  "tool.cons": "Cons",
+  "tool.aiAnalyzing": "Analyzing with AI...",
+  "tool.aiScoreSoon": "AI score will be available soon",
+  "tool.findSimilar": "Find similar tools with AI",
+  "tool.compareWith": "Compare with other tools",
+  "tool.loginRequired": "Please sign in",
+  "tool.ratingError": "Error",
+  "tool.ratingSuccess": "Rated {n} stars!",
+  "tool.ratings": "ratings",
+  "tool.views": "views",
+
+  // Pricing labels
+  "pricing.free": "Free",
+  "pricing.freemium": "Freemium",
+  "pricing.paid": "Paid",
+  "pricing.open_source": "Open Source",
+  "pricing.contact": "Contact",
+
+  // Blog page
+  "blog.pageTitle": "Blog & News",
+  "blog.pageSubtitle": "Tool trends, tips & tricks, in-depth comparisons",
+  "blog.noPosts": "No posts yet. Come back later!",
+  "blog.backToBlog": "Back to Blog",
+  "blog.postNotFound": "Post not found",
+  "blog.relatedTools": "🔗 Related Tools",
+
+  // Deals page
+  "deals.pageTitle": "Deals & Coupons",
+  "deals.pageSubtitle": "Collection of exclusive discounts and coupons for top AI tools.",
+  "deals.searchPlaceholder": "Search deals...",
+  "deals.allTypes": "All types",
+  "deals.percentage": "Percentage off",
+  "deals.fixed": "Fixed discount",
+  "deals.freeTrial": "Free trial",
+  "deals.noDeals": "No deals found.",
+  "deals.activeCount": "active deals",
+
+  // Compare page
+  "compare.title": "Compare Tools",
+  "compare.subtitle": "Detailed comparison to find the best fit",
+
+  // Collections page
+  "collections.title": "Collections",
+  "collections.subtitle": "Create and discover tool collections",
+  "collections.create": "Create Collection",
+  "collections.createNew": "Create New Collection",
+  "collections.namePlaceholder": "Collection name",
+  "collections.descPlaceholder": "Description (optional)",
+  "collections.public": "Public",
+  "collections.private": "Private",
+  "collections.createButton": "Create",
+  "collections.yours": "Your Collections",
+  "collections.noOwn": "You haven't created any collections",
+  "collections.popular": "Popular Collections",
+  "collections.noPublic": "No collections created yet",
+  "collections.by": "by",
+
+  // Workflows page
+  "workflows.title": "Use Cases & Workflows",
+  "workflows.subtitle": "Find the right tools for each specific workflow.",
+  "workflows.noWorkflows": "No workflows yet",
+  "workflows.comingSoon": "Workflows and use cases will be added soon.",
+
+  // Trending page
+  "trending.title": "Trending",
+  "trending.subtitle": "Hottest tools, rising stars and top rated.",
+  "trending.hot": "Hot",
+  "trending.risingStars": "Rising Stars",
+  "trending.topRated": "Top Rated",
+  "trending.noData": "No data yet.",
+
+  // Launches page
+  "launches.title": "Product Launches",
+  "launches.subtitle": "Discover new products daily, upvote your favorites",
+  "launches.submit": "Launch product",
+  "launches.submitTitle": "🚀 Submit Product Launch",
+  "launches.noLaunches": "No products yet",
+  "launches.beFirst": "Be the first to launch a product!",
+  "launches.today": "🔥 Today",
+  "launches.loginToVote": "Please sign in",
+  "launches.voteError": "Error voting",
+
+  // Category page
+  "category.home": "Home",
+  "category.categories": "Categories",
+  "category.all": "All",
+  "category.toolCount": "tools",
+  "category.noTools": "No tools in this category yet",
+
+  // Not translated badge
+  "translation.notTranslated": "Not translated",
+
   // Common
   "common.loading": "Loading...",
   "common.viewMore": "View more",
