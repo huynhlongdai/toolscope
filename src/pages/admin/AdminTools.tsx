@@ -274,9 +274,12 @@ export default function AdminTools() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Xuất CSV</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Import</DropdownMenuItem>
+                    <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
+                      <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BatchTranslateButton tools={filtered} isMobile={isMobile} />
