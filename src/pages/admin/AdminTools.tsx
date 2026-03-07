@@ -1324,16 +1324,21 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
 function TranslateButton({ toolId, toolName }: { toolId: string; toolName: string }) {
   const [translating, setTranslating] = useState(false);
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleTranslate = async () => {
+  const handleTranslate = async (locale: string) => {
     setTranslating(true);
+    setOpen(false);
     try {
       const { data, error } = await supabase.functions.invoke("translate-tool", {
-        body: { tool_id: toolId, locale: "en" },
+        body: { tool_id: toolId, locale },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Đã dịch "${toolName}" sang tiếng Anh (${data.saved} trường)`);
+      const localeMeta = SUPPORTED_LOCALES[locale as Locale];
+      toast.success(`Đã dịch "${toolName}" sang ${localeMeta?.nativeName || locale} (${data.saved} trường)`);
+      queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
     } catch (e: any) {
       toast.error(e.message || "Lỗi dịch tự động");
     } finally {
@@ -1342,20 +1347,34 @@ function TranslateButton({ toolId, toolName }: { toolId: string; toolName: strin
   };
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleTranslate} disabled={translating} title="Dịch sang tiếng Anh">
-      {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-    </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" disabled={translating} title="Dịch tool">
+          {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1" align="end">
+        {TARGET_LOCALES.map(([code, meta]) => (
+          <Button key={code} variant="ghost" size="sm" className="w-full justify-start text-sm h-8" onClick={() => handleTranslate(code)}>
+            {meta.flag} {meta.nativeName}
+          </Button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
 function BatchTranslateButton({ tools }: { tools: any[] }) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [batchLocale, setBatchLocale] = useState<Locale>("en");
+  const queryClient = useQueryClient();
 
   const handleBatchTranslate = async () => {
     const publishedTools = tools.filter((t: any) => t.status === "published");
     if (publishedTools.length === 0) { toast.error("Không có tool published nào"); return; }
-    if (!confirm(`Dịch ${publishedTools.length} tools sang tiếng Anh?`)) return;
+    const localeMeta = SUPPORTED_LOCALES[batchLocale];
+    if (!confirm(`Dịch ${publishedTools.length} tools sang ${localeMeta.nativeName}?`)) return;
 
     setRunning(true);
     setProgress({ done: 0, total: publishedTools.length });
@@ -1366,7 +1385,7 @@ function BatchTranslateButton({ tools }: { tools: any[] }) {
     for (const tool of publishedTools) {
       try {
         const { data, error } = await supabase.functions.invoke("translate-tool", {
-          body: { tool_id: tool.id, locale: "en" },
+          body: { tool_id: tool.id, locale: batchLocale },
         });
         if (error || data?.error) throw error || new Error(data?.error);
         successCount++;
@@ -1374,27 +1393,39 @@ function BatchTranslateButton({ tools }: { tools: any[] }) {
         errorCount++;
       }
       setProgress(prev => ({ ...prev, done: prev.done + 1 }));
-      // Small delay to avoid rate limiting
       await new Promise(r => setTimeout(r, 1500));
     }
 
     setRunning(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
     toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
   };
 
   return (
-    <Button variant="outline" onClick={handleBatchTranslate} disabled={running}>
-      {running ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {progress.done}/{progress.total}
-        </>
-      ) : (
-        <>
-          <Languages className="mr-2 h-4 w-4" /> Dịch tất cả
-        </>
-      )}
-    </Button>
+    <div className="flex items-center gap-1">
+      <Select value={batchLocale} onValueChange={(v) => setBatchLocale(v as Locale)}>
+        <SelectTrigger className="h-8 w-[110px] text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {TARGET_LOCALES.map(([code, meta]) => (
+            <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button variant="outline" size="sm" onClick={handleBatchTranslate} disabled={running}>
+        {running ? (
+          <>
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            {progress.done}/{progress.total}
+          </>
+        ) : (
+          <>
+            <Languages className="mr-1 h-3.5 w-3.5" /> Dịch hàng loạt
+          </>
+        )}
+      </Button>
+    </div>
   );
 }
 
