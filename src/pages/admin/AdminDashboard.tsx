@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, ArrowRight } from "lucide-react";
+import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, ArrowRight, HeartPulse } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
 
@@ -44,6 +44,24 @@ export default function AdminDashboard() {
         reportsCount: reports.count ?? 0,
         newsletterCount: newsletter.count ?? 0,
         dealsCount: deals.count ?? 0,
+      };
+    },
+  });
+
+  const { data: healthStats } = useQuery({
+    queryKey: ["admin-health-stats"],
+    queryFn: async () => {
+      const [active, warning, dead, unknown] = await Promise.all([
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "active"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "warning"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "dead"),
+        supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "unknown"),
+      ]);
+      return {
+        active: active.count ?? 0,
+        warning: warning.count ?? 0,
+        dead: dead.count ?? 0,
+        unknown: unknown.count ?? 0,
       };
     },
   });
@@ -99,10 +117,17 @@ export default function AdminDashboard() {
           <StatCard title="Chờ duyệt" value={stats?.pendingCount ?? 0} icon={Shield} description="Tools pending review" href="/admin/tools" />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard title="Báo cáo chờ xử lý" value={stats?.reportsCount ?? 0} icon={Flag} href="/admin/reports" />
           <StatCard title="Newsletter" value={stats?.newsletterCount ?? 0} icon={Newspaper} description="Subscribers active" href="/admin/newsletter" />
           <StatCard title="Deals đang hoạt động" value={stats?.dealsCount ?? 0} icon={Star} href="/admin/deals" />
+          <StatCard 
+            title="Tool Health" 
+            value={`🟢${healthStats?.active ?? 0} 🟡${healthStats?.warning ?? 0} 🔴${healthStats?.dead ?? 0}`} 
+            icon={HeartPulse} 
+            description={`${healthStats?.unknown ?? 0} chưa kiểm tra`}
+            href="/admin/tools" 
+          />
         </div>
 
         {/* Quick Actions */}

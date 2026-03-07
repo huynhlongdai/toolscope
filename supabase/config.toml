@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.analyze-search-patterns]
 verify_jwt = false
+
+[functions.check-tool-health]
+verify_jwt = false

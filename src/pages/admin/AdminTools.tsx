@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
@@ -40,10 +40,12 @@ export default function AdminTools() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [pricingFilter, setPricingFilter] = useState("all");
   const [translationFilter, setTranslationFilter] = useState("all");
+  const [healthFilter, setHealthFilter] = useState("all");
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [checkingHealthAll, setCheckingHealthAll] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-list-filter"],
@@ -113,6 +115,7 @@ export default function AdminTools() {
     if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
+    if (healthFilter !== "all" && t.health_status !== healthFilter) return false;
     if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
     if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
@@ -145,7 +148,46 @@ export default function AdminTools() {
   };
 
   // Count active filters (excluding "all")
-  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter].filter(f => f !== "all").length;
+  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter].filter(f => f !== "all").length;
+
+  const healthBadge = (status: string) => {
+    switch (status) {
+      case "active": return <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400" title="Active">🟢</span>;
+      case "warning": return <span className="inline-flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400" title="Warning">🟡</span>;
+      case "dead": return <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400" title="Dead">🔴</span>;
+      default: return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title="Unknown">⚪</span>;
+    }
+  };
+
+  const checkSingleHealth = async (toolId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-tool-health", { body: { tool_id: toolId } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      const result = data?.results?.[0];
+      if (result) {
+        toast.success(`${result.name}: ${result.health_status} - ${result.health_details}`);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Health check failed");
+    }
+  };
+
+  const checkAllHealth = async () => {
+    setCheckingHealthAll(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-tool-health", { body: { batch: true } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      const dead = data?.results?.filter((r: any) => r.health_status === "dead").length ?? 0;
+      const warning = data?.results?.filter((r: any) => r.health_status === "warning").length ?? 0;
+      toast.success(`Đã kiểm tra ${data?.checked} tools. ${dead} dead, ${warning} warning`);
+    } catch (e: any) {
+      toast.error(e.message || "Batch health check failed");
+    } finally {
+      setCheckingHealthAll(false);
+    }
+  };
 
   const filterContent = (
     <div className="space-y-3">
@@ -202,6 +244,19 @@ export default function AdminTools() {
           </SelectContent>
         </Select>
       </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Health</Label>
+        <Select value={healthFilter} onValueChange={(v) => { setHealthFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Health" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả health</SelectItem>
+            <SelectItem value="active">🟢 Active</SelectItem>
+            <SelectItem value="warning">🟡 Warning</SelectItem>
+            <SelectItem value="dead">🔴 Dead</SelectItem>
+            <SelectItem value="unknown">⚪ Chưa kiểm tra</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
@@ -219,9 +274,12 @@ export default function AdminTools() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Xuất CSV</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Import</DropdownMenuItem>
+                    <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
+                      <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BatchTranslateButton tools={filtered} isMobile={isMobile} />
@@ -230,6 +288,9 @@ export default function AdminTools() {
             ) : (
               <>
                 <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+                <Button variant="outline" size="sm" onClick={checkAllHealth} disabled={checkingHealthAll}>
+                  {checkingHealthAll ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <HeartPulse className="mr-1 h-3.5 w-3.5" />} Health Check
+                </Button>
                 <BatchTranslateButton tools={filtered} isMobile={false} />
                 <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
                 <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
@@ -350,6 +411,16 @@ export default function AdminTools() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={healthFilter} onValueChange={(v) => { setHealthFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Health" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả health</SelectItem>
+                  <SelectItem value="active">🟢 Active</SelectItem>
+                  <SelectItem value="warning">🟡 Warning</SelectItem>
+                  <SelectItem value="dead">🔴 Dead</SelectItem>
+                  <SelectItem value="unknown">⚪ Unknown</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -372,6 +443,7 @@ export default function AdminTools() {
                       {tool.logo_url && <img src={tool.logo_url} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          {healthBadge(tool.health_status)}
                           <p className="font-medium text-sm truncate">{tool.name}</p>
                           <Badge variant={statusColor(tool.status) as any} className="text-[10px] shrink-0">{tool.status}</Badge>
                         </div>
@@ -406,6 +478,7 @@ export default function AdminTools() {
                   <TableHead>Tên</TableHead>
                   <TableHead>Danh mục</TableHead>
                   <TableHead>Trạng thái</TableHead>
+                  <TableHead>Health</TableHead>
                   <TableHead>Pricing</TableHead>
                   <TableHead>Ngôn ngữ</TableHead>
                   <TableHead>Rating</TableHead>
@@ -415,9 +488,9 @@ export default function AdminTools() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8">Đang tải...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
                 ) : (
                   paged.map((tool: any) => (
                     <TableRow key={tool.id}>
@@ -443,6 +516,21 @@ export default function AdminTools() {
                             <SelectItem value="archived">Archived</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button className="cursor-pointer">{healthBadge(tool.health_status)}</button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-3 text-xs space-y-2">
+                            <p className="font-medium">Health: {tool.health_status}</p>
+                            {tool.health_details && <p className="text-muted-foreground">{tool.health_details}</p>}
+                            {tool.health_checked_at && <p className="text-muted-foreground">Checked: {new Date(tool.health_checked_at).toLocaleString("vi-VN")}</p>}
+                            <Button size="sm" variant="outline" className="w-full text-xs h-7" onClick={() => checkSingleHealth(tool.id)}>
+                              <HeartPulse className="h-3 w-3 mr-1" /> Check now
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
                       </TableCell>
                       <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
                       <TableCell>
