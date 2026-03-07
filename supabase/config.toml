@@ -18,6 +18,15 @@ verify_jwt = false
 [functions.translate-tool]
 verify_jwt = false
 
+[functions.translate-blog]
+verify_jwt = false
+
+[functions.translate-menu]
+verify_jwt = false
+
+[functions.translate-system-keys]
+verify_jwt = false
+
 [functions.sitemap]
 verify_jwt = false
 
