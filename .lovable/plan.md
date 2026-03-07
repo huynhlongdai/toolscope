@@ -1,278 +1,86 @@
 
 
-## ToolScope - Kế hoạch triển khai đầy đủ
+## Nâng cấp Search Analytics - Auto-create Rules từ Search Logs
 
-### Tổng quan
-Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
+### Ý tưởng cốt lõi
 
----
+Khi một từ khóa (hoặc nhóm từ khóa tương tự) được tìm kiếm nhiều lần vượt ngưỡng do admin cài đặt, hệ thống sẽ **tự động tạo search rule** ghim tool phù hợp nhất. Lần tìm kiếm tiếp theo với từ khóa đó sẽ trả kết quả từ rule (pinned tools) thay vì gọi AI, **tiết kiệm credit AI**.
 
-### 🏠 TRANG CÔNG KHAI
+### Luồng hoạt động
 
-**1. Trang chủ**
-- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
-- Section "AI Recommended Tools" với badge
-- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
-- Tool nổi bật / trending / mới nhất
-- Bộ lọc theo danh mục, rating, giá, tags
-- "For You" feed cá nhân hóa
-- Nút chuyển ngôn ngữ + Dark/Light mode
+```text
+User tìm kiếm "design tool"
+        │
+        ▼
+ai-search edge function
+        │
+        ├── Check search_rules → Có rule? → Trả pinned tools (KHÔNG gọi AI)
+        │
+        └── Không có rule → Gọi AI → Trả kết quả
+                                │
+                                └── Lưu kết quả vào search_logs
+                                        │
+                                        ▼
+                          (Cron / Manual trigger)
+                    analyze-search-patterns edge function
+                                        │
+                    ┌───────────────────┘
+                    ▼
+        1. Đếm tần suất từ khóa tương tự (AI phân cụm)
+        2. Nếu vượt ngưỡng → Tạo search_rule tự động
+        3. Ghim top tools từ kết quả AI trước đó
+```
 
-**2. Trang chi tiết công cụ**
-- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
-- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
-- Badge "AI Recommended" nếu đạt chuẩn
-- Bài review chi tiết từ editor (markdown, ảnh, video embed)
-- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
-- Bình luận threaded (trả lời lồng nhau)
-- Q&A section với upvote câu trả lời hay nhất
-- Danh sách alternatives (tool tương tự)
-- "Works well with" integrations
-- Nút Bookmark, Share, Follow
-- Pricing history chart + alert giảm giá
+### Kế hoạch thực hiện
 
-**3. Trang so sánh công cụ**
-- Chọn 2-4 tool để so sánh side-by-side
-- Bảng so sánh tính năng, giá, rating, AI score
-- AI tự động tạo kết luận & đề xuất
-- ROI Calculator: nhập team size → tính chi phí
+#### 1. Thêm cài đặt ngưỡng (site_settings)
+- Key: `auto_rule_threshold` — số lượt tìm kiếm tối thiểu để tự động tạo rule (mặc định: 10)
+- Key: `auto_rule_enabled` — bật/tắt tính năng
+- UI cài đặt ngay trong tab "Rules" của Search Analytics
 
-**4. Trang danh sách & tìm kiếm**
-- Grid/list view toggle
-- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
-- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
-- Infinite scroll + skeleton loading
-- Search history, auto-complete, popular searches
-- Voice search (Web Speech API)
+#### 2. Mở rộng bảng `search_logs`
+- Thêm cột `matched_tool_ids` (uuid[]) — lưu danh sách tool ID mà AI trả về cho mỗi lần tìm kiếm
+- Dùng dữ liệu này để biết nên ghim tool nào khi tạo rule tự động
 
-**5. Trang danh mục**
-- Mỗi danh mục có landing page riêng + mô tả + top tools
-- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
+#### 3. Mở rộng bảng `search_rules`
+- Thêm cột `is_auto` (boolean, default false) — đánh dấu rule do AI tạo tự động
+- Thêm cột `source_keywords` (text[]) — danh sách các biến thể từ khóa gốc đã được gom nhóm
 
-**6. Trang Trending**
-- Tools đang trending tuần/tháng
-- "Rising Stars" - tools mới nổi tăng rating nhanh
-- Biểu đồ xu hướng popularity theo thời gian
+#### 4. Tạo Edge Function `analyze-search-patterns`
+- Lấy search_logs gần đây (chưa có rule tương ứng)
+- Gom nhóm từ khóa tương tự bằng AI (Gemini flash-lite cho rẻ):
+  - Input: danh sách unique keywords + số lần xuất hiện
+  - Output: các cụm từ khóa đồng nghĩa (VD: "design tool", "công cụ thiết kế", "tool thiết kế" → 1 cụm)
+- Với mỗi cụm vượt ngưỡng:
+  - Tổng hợp `matched_tool_ids` phổ biến nhất từ logs
+  - Tạo `search_rule` với `match_type: "contains"`, `pinned_tool_ids` = top tools, `is_auto: true`
+- Trả về báo cáo: bao nhiêu rule mới được tạo
 
-**7. Trang Use Cases & Workflows**
-- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
-- Mỗi use case gợi ý combo tools phù hợp
-- User submit workflow + tools đang dùng
+#### 5. Cập nhật `ai-search` Edge Function
+- Sau khi gọi AI thành công, lưu `matched_tool_ids` vào `search_logs` (update row vừa insert)
+- Khi rule khớp và có pinned tools → **bỏ qua gọi AI**, trả kết quả trực tiếp từ DB
 
-**8. Trang Collections & Lists**
-- User tạo collection tool theo chủ đề
-- Editor tạo "Curated Lists" (Top 10 AI Tools...)
-- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
-- Collections công khai có thể upvote
+#### 6. Nâng cấp UI Search Analytics (`AdminSearchAnalytics.tsx`)
+- **Tab Rules**: 
+  - Thêm section "Cài đặt tự động" với input ngưỡng + switch bật/tắt
+  - Badge `Auto` cho rule tự động, hiển thị `source_keywords`
+  - Nút "Phân tích & tạo rule" (trigger manual edge function)
+  - Thống kê: số rule auto vs manual, ước tính credit tiết kiệm
+- **Tab Overview**: Thêm card "Credit tiết kiệm" (= số lần rule match thay AI)
+- **Mobile**: Đảm bảo responsive cho các section mới
 
-**9. Trang Profile người dùng**
-- Reviews đã viết, câu hỏi, tools bookmarked, collections
-- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
-- Lịch sử hoạt động
-- Recently viewed tools
+### Technical Details
 
-**10. Trang Blog/Tin tức**
-- Bài viết về xu hướng công cụ mới
-- AI tóm tắt tin tự động
-- Weekly digest
+**Files tạo mới:**
+- `supabase/functions/analyze-search-patterns/index.ts`
 
----
+**Files chỉnh sửa:**
+- `supabase/functions/ai-search/index.ts` — lưu matched_tool_ids, tối ưu rule-match flow
+- `src/pages/admin/AdminSearchAnalytics.tsx` — UI cài đặt ngưỡng, badge auto rule, nút trigger
+- `supabase/config.toml` — thêm config cho function mới
 
-### 🤖 TÍNH NĂNG AI
+**DB Migration:**
+- `ALTER TABLE search_logs ADD COLUMN matched_tool_ids uuid[] DEFAULT '{}'`
+- `ALTER TABLE search_rules ADD COLUMN is_auto boolean DEFAULT false`
+- `ALTER TABLE search_rules ADD COLUMN source_keywords text[] DEFAULT '{}'`
 
-**1. AI Search thông minh**
-- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
-- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
-- "Similar to [tool X]" search
-
-**2. Chatbot tư vấn AI**
-- Widget chat floating trên mọi trang
-- Hỏi đáp, so sánh, tư vấn lựa chọn tool
-- Streaming response token-by-token
-- Trả lời dựa trên dữ liệu tools trong database
-
-**3. AI Thu thập dữ liệu tự động**
-- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
-- Tự điền form thêm tool mới
-- Scheduled re-scrape hàng tuần phát hiện thay đổi
-- User submit URL tool → AI thu thập → Admin duyệt
-
-**4. AI Hỗ trợ viết bài review**
-- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
-- Editor chỉnh sửa → xuất bản
-- AI dịch tự động sang ngôn ngữ khác
-
-**5. AI Đánh giá & chấm điểm**
-- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
-- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
-- Tóm tắt ưu/nhược bằng AI
-- Badge "AI Recommended"
-
-**6. AI Spam Detection**
-- Tự động phát hiện comment/review spam
-- Flag nội dung nghi vấn cho admin
-
-**7. AI Personalization**
-- Onboarding quiz → gợi ý tools theo lĩnh vực
-- "Because you liked [X]" recommendations
-
----
-
-### 🔐 HỆ THỐNG NGƯỜI DÙNG
-
-- Đăng ký/đăng nhập: Email + Google OAuth
-- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
-- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
-- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
-- **Admin**: toàn quyền
-
-**Gamification**
-- Điểm reputation (viết review, Q&A, upvote nhận được)
-- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
-- Leaderboard contributors hàng tháng
-
----
-
-### 📊 ADMIN DASHBOARD
-
-**Quản lý cơ bản**
-- CRUD tools, categories, tags, blog posts
-- Quản lý users, phân quyền role
-- Quản lý reviews, bình luận, Q&A
-- Bulk import tools từ CSV
-
-**Analytics & Dashboard**
-- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
-- Top tools phổ biến, user activity, đăng ký mới
-- Top contributors
-- Revenue tracking (nếu affiliate)
-
-**Content Moderation**
-- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
-- Hệ thống báo cáo spam/vi phạm
-- Approve/reject/flag + AI spam detection
-- Audit log mọi thao tác admin/editor
-
-**AI Management**
-- Nút "Auto-collect từ URL" khi thêm tool
-- Nút "Generate AI Draft" khi tạo review
-- Xem/chỉnh sửa AI scores
-- Log các lần AI scrape/generate
-- Scheduled re-scrape settings
-
-**Quản lý đa ngôn ngữ**
-- Trạng thái dịch mỗi bài (đã dịch/chưa)
-- Trigger dịch lại khi nội dung thay đổi
-- Chỉnh sửa bản dịch thủ công
-
----
-
-### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
-
-- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
-- Editor viết 1 ngôn ngữ → AI dịch tự động
-- URL routing: `/vi/tool/...`, `/en/tool/...`
-- Bảng `translations` lưu bản dịch
-- Hreflang tags + canonical URLs cho SEO
-
----
-
-### 🔔 THÔNG BÁO & FOLLOW
-
-- Follow tool → thông báo review mới, thay đổi pricing
-- Follow user/editor → thông báo review mới
-- Follow category → tool mới trong danh mục
-- Thông báo in-app + email digest tùy chọn
-- Price drop alerts
-
----
-
-### 📱 MOBILE RESPONSIVE
-
-- Mobile-first responsive design
-- Bottom navigation bar (Home, Search, Bookmarks, Profile)
-- Collapsible filters
-- Pull-to-refresh, infinite scroll
-- Skeleton loading states
-- Touch-friendly rating, buttons
-- Share sheet native
-- "Quick Rate" swipe cards
-- Lazy loading images
-- Sticky header thu gọn khi scroll
-
----
-
-### 📈 SEO & GROWTH
-
-- Auto-generate sitemap XML
-- Structured data JSON-LD cho Rich Snippets
-- Open Graph social cards tự động
-- Hreflang tags đa ngôn ngữ
-- Canonical URLs
-- Newsletter đăng ký email weekly digest
-
----
-
-### 🏗️ BACKEND (Lovable Cloud + Supabase)
-
-**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
-
-**Edge Functions**:
-- `collect-tool-data`: Firecrawl scrape + AI parse
-- `generate-review`: AI tạo draft review
-- `evaluate-tool`: AI chấm điểm
-- `translate-content`: AI dịch đa ngôn ngữ
-- `ai-search`: Tìm kiếm thông minh
-- `ai-chat`: Chatbot tư vấn (streaming)
-- `detect-spam`: AI phát hiện spam
-
-**Auth + RLS**: Phân quyền theo role, security definer functions
-
----
-
-### 📋 THỨ TỰ TRIỂN KHAI
-
-1. ✅ Database schema + Auth + Roles
-2. ✅ Trang chủ + Danh sách tools + Chi tiết tool (responsive)
-3. ✅ Review, Rating, Bình luận, Q&A, Upvote/Downvote
-4. ✅ AI Search + Chatbot tư vấn
-5. ✅ AI thu thập + viết bài + đánh giá (Firecrawl)
-6. ✅ So sánh tools + Pricing tracker
-7. ✅ Collections, Bookmarks, Follow, Notifications
-8. ✅ Admin dashboard đầy đủ + Moderation
-9. ✅ Đa ngôn ngữ tự động
-10. ✅ Trending, Gamification, Personalization
-11. ✅ Use Cases, Integrations map, Blog
-12. ✅ SEO optimization + Mobile polish
-
----
-
-### 🆕 TÍNH NĂNG MỞ RỘNG (Học hỏi G2, Capterra, Product Hunt, AlternativeTo, TAAFT)
-
-13. ✅ Structured Review Form (đánh giá theo tiêu chí ease_of_use, value_for_money, customer_support, NPS)
-14. ✅ Alternatives Section (AI gợi ý + user vote "I switched from X to Y")
-15. ✅ G2 Grid Quadrant Chart (Satisfaction vs Market Presence trên Category page)
-16. ✅ Screenshot Gallery (slider + lightbox trên Tool Detail)
-17. ✅ AI Score Auto-Generation (Edge Function + Admin button)
-18. ✅ Task-Based Discovery (/tasks - chọn task tìm tool phù hợp)
-19. ✅ Product Launch (/launches - submit + upvote sản phẩm mới mỗi ngày)
-20. ✅ Vendor/Maker Profiles (claim tool, respond to reviews)
-21. ✅ Analytics & Tracking Scripts (GA, custom scripts, admin settings page)
-22. ✅ Newsletter Subscription (footer form + newsletter_subscribers table)
-23. ✅ SEOHead nâng cao (hreflang tags + twitter:card meta tags)
-24. ✅ Audit Logs table (tracking admin actions)
-25. ✅ Reports table (user spam/content reporting)
-
-### 📌 BACKLOG (Chưa triển khai)
-
-- Seasonal Awards / Best Of (auto-generate top tools theo quý/năm)
-- Discussion Forum / Threads
-- AI Agents Directory
-- Tool Changelog / Update Timeline
-- Company Profiles
-- AI Model Directory
-- Job Impact Index
-- Fundraise Tracker
-- Mini Tools / Interactive Demos
-- Comparison Advisor (AI chatbot chuyên so sánh)
-- Verified Reviews (badge "Verified User")
