@@ -74,6 +74,7 @@ export default function AdminCollectAI() {
   const [contentText, setContentText] = useState("");
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [itemCategoryOverrides, setItemCategoryOverrides] = useState<Record<string, string>>({});
 
   // Schedule form state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -222,7 +223,14 @@ export default function AdminCollectAI() {
   // Import
   const importMutation = useMutation({
     mutationFn: async (itemIds: string[]) => {
-      const { data, error } = await supabase.functions.invoke("collect-ai", { body: { action: "import", item_ids: itemIds, target_category_id: importCategory || undefined } });
+      const { data, error } = await supabase.functions.invoke("collect-ai", { 
+        body: { 
+          action: "import", 
+          item_ids: itemIds, 
+          target_category_id: importCategory || undefined,
+          item_category_overrides: itemCategoryOverrides,
+        } 
+      });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
@@ -606,7 +614,45 @@ export default function AdminCollectAI() {
                       </TableCell>
                       <TableCell className="max-w-[200px]"><p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p></TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{item.pricing_type}</Badge></TableCell>
-                      <TableCell className="text-xs">{item.category_name}</TableCell>
+                      <TableCell className="min-w-[180px]">
+                        {(() => {
+                          const catName = item.category_name?.trim().toLowerCase() || "";
+                          const catSlug = catName.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+                          const matched = catName ? categories.find(c => c.name.toLowerCase() === catName || c.slug === catSlug) : null;
+                          const overrideId = itemCategoryOverrides[item.id];
+                          const overrideCat = overrideId ? categories.find(c => c.id === overrideId) : null;
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs">{item.category_name || "—"}</span>
+                                {item.category_name && (
+                                  matched
+                                    ? <Badge variant="default" className="text-[10px] px-1.5 py-0">✓ Match</Badge>
+                                    : <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Mới</Badge>
+                                )}
+                              </div>
+                              {overrideCat && <span className="text-[10px] text-primary">→ {overrideCat.name}</span>}
+                              <Select
+                                value={overrideId || "__auto"}
+                                onValueChange={(v) => setItemCategoryOverrides(prev => {
+                                  const next = { ...prev };
+                                  if (v === "__auto") { delete next[item.id]; } else { next[item.id] = v; }
+                                  return next;
+                                })}
+                              >
+                                <SelectTrigger className="h-6 text-[10px] w-full">
+                                  <SelectValue placeholder="Tự động" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__auto">Tự động</SelectItem>
+                                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell>{statusBadge(item.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">

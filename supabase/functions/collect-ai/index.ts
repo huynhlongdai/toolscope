@@ -402,6 +402,12 @@ serve(async (req) => {
     if (action === "import") {
       if (!item_ids?.length) throw new Error("item_ids required");
 
+      // Fetch all categories for matching
+      const { data: allCategories } = await supabase
+        .from("categories")
+        .select("id, name, slug");
+      const categoriesList = allCategories || [];
+
       const { data: items, error: fetchErr } = await supabase
         .from("collect_items")
         .select("*")
@@ -410,6 +416,9 @@ serve(async (req) => {
 
       if (fetchErr) throw new Error(fetchErr.message);
       if (!items?.length) throw new Error("No approved items found");
+
+      // Per-item category overrides from request body
+      const itemCategoryOverrides: Record<string, string> = body.item_category_overrides || {};
 
       const results: any[] = [];
 
@@ -428,6 +437,27 @@ serve(async (req) => {
           continue;
         }
 
+        // Determine category_id: override > auto-match > target_category_id
+        let resolvedCategoryId = target_category_id || null;
+        let matchSource = "fallback";
+
+        if (itemCategoryOverrides[item.id]) {
+          resolvedCategoryId = itemCategoryOverrides[item.id];
+          matchSource = "override";
+        } else if (item.category_name) {
+          const catName = item.category_name.trim().toLowerCase();
+          const catSlug = catName.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+          
+          const matched = categoriesList.find((c: any) => 
+            c.name.toLowerCase() === catName || c.slug === catSlug
+          );
+
+          if (matched) {
+            resolvedCategoryId = matched.id;
+            matchSource = "auto_match";
+          }
+        }
+
         const { data: newTool, error: insertErr } = await supabase
           .from("tools")
           .insert({
@@ -438,7 +468,7 @@ serve(async (req) => {
             website_url: item.website_url,
             logo_url: item.logo_url || (item.website_url ? `https://www.google.com/s2/favicons?domain=${extractDomain(item.website_url)}&sz=128` : null),
             pricing_type: ["free", "freemium", "paid", "open_source", "contact"].includes(item.pricing_type) ? item.pricing_type : "contact",
-            category_id: target_category_id || null,
+            category_id: resolvedCategoryId,
             status: "pending_review",
           })
           .select("id")
@@ -453,7 +483,7 @@ serve(async (req) => {
             reviewed_by: userId,
             reviewed_at: new Date().toISOString(),
           }).eq("id", item.id);
-          results.push({ id: item.id, name: item.name, status: "imported", tool_id: newTool.id });
+          results.push({ id: item.id, name: item.name, status: "imported", tool_id: newTool.id, category_match: matchSource });
         }
       }
 
