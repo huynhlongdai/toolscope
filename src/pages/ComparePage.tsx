@@ -132,9 +132,9 @@ function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: strin
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BarChart3 className="h-5 w-5 text-accent" /> So sánh tổng quan
+          <BarChart3 className="h-5 w-5 text-accent" /> {t("compare.overviewTitle")}
         </CardTitle>
-        <CardDescription>AI Score, Rating (×2) và Popularity</CardDescription>
+        <CardDescription>AI Score, Rating (×2) & Popularity</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-64">
