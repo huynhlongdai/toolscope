@@ -152,7 +152,7 @@ function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: strin
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="AI Score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Rating" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Lượt xem" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={t("compare.views")} fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
