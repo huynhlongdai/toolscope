@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2 } from "lucide-react";
+import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2, Blocks } from "lucide-react";
+import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
 const AI_PROVIDERS = [
@@ -31,8 +32,8 @@ const FEATURES = [
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
-
-  // Analytics & Scripts
+  const { modulesConfig, saveMutation: saveModulesMutation } = useModules();
+  const [localModules, setLocalModules] = useState<Record<string, boolean>>({});
   const [gaId, setGaId] = useState("");
   const [headScripts, setHeadScripts] = useState("");
   const [bodyScripts, setBodyScripts] = useState("");
@@ -94,6 +95,10 @@ export default function AdminSettings() {
       setDefaultCategoryId(settings.default_category_id || "");
     }
   }, [settings]);
+
+  useEffect(() => {
+    setLocalModules(modulesConfig);
+  }, [modulesConfig]);
 
   useEffect(() => {
     if (aiKeyData) {
@@ -196,6 +201,7 @@ export default function AdminSettings() {
             <TabsTrigger value="site" className="gap-1.5 text-xs md:text-sm"><Settings2 className="h-3.5 w-3.5" /> Site</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
             <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
+            <TabsTrigger value="modules" className="gap-1.5 text-xs md:text-sm"><Blocks className="h-3.5 w-3.5" /> Modules</TabsTrigger>
           </TabsList>
 
           {/* AI PROVIDERS TAB */}
@@ -408,6 +414,57 @@ export default function AdminSettings() {
             </Card>
             <Button onClick={() => saveGeneralMutation.mutate()} disabled={saveGeneralMutation.isPending}>
               <Save className="mr-2 h-4 w-4" /> Lưu
+            </Button>
+          </TabsContent>
+
+          {/* MODULES TAB */}
+          <TabsContent value="modules" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Blocks className="h-5 w-5" /> Quản lý Module</CardTitle>
+                <CardDescription>Bật/tắt các tính năng của website. Module tắt sẽ ẩn khỏi menu và giao diện.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {Object.entries(MODULE_CATEGORIES).map(([catKey, catLabel]) => {
+                  const modules = MODULE_DEFINITIONS.filter((m) => m.category === catKey);
+                  if (modules.length === 0) return null;
+                  return (
+                    <div key={catKey} className="space-y-3">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{catLabel}</h3>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {modules.map((mod) => (
+                          <div
+                            key={mod.id}
+                            className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${localModules[mod.id] ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}
+                          >
+                            <span className="text-xl mt-0.5">{mod.icon}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="font-medium text-sm">{mod.label}</Label>
+                                <Switch
+                                  checked={localModules[mod.id] ?? false}
+                                  onCheckedChange={(v) => setLocalModules((prev) => ({ ...prev, [mod.id]: v }))}
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{mod.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            <Button
+              onClick={() => {
+                saveModulesMutation.mutate(localModules);
+                logAuditAction("modules_save", "site_settings", undefined, { modules: localModules });
+                toast.success("Đã lưu cấu hình module");
+              }}
+              disabled={saveModulesMutation.isPending}
+            >
+              <Save className="mr-2 h-4 w-4" /> {saveModulesMutation.isPending ? "Đang lưu..." : "Lưu cấu hình Module"}
             </Button>
           </TabsContent>
         </Tabs>
