@@ -655,7 +655,7 @@ export default function ComparePage() {
                         )}
                         {tool.ai_scores?.cons && tool.ai_scores.cons.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-destructive mb-1">❌ Nhược điểm</p>
+                            <p className="text-xs font-semibold text-destructive mb-1">❌ {t("compare.cons")}</p>
                             <ul className="space-y-1">
                               {tool.ai_scores.cons.map((c, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
