@@ -230,11 +230,16 @@ export default function AdminTools() {
             </SelectContent>
           </Select>
           <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Dịch thuật" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả dịch</SelectItem>
-              <SelectItem value="translated">✅ Đã dịch</SelectItem>
+              <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
+              <SelectItem value="translated">✅ Đã dịch (bất kỳ)</SelectItem>
               <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
+              {TARGET_LOCALES.map(([code, meta]) => (
+                <SelectItem key={code} value={code}>
+                  {meta.flag} Chưa dịch {meta.nativeName}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
