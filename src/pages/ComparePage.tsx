@@ -476,26 +476,26 @@ export default function ComparePage() {
   const colCount = tools.length;
 
   const compareRows = [
-    { label: "Danh mục", key: "category", render: (t: ToolWithScores) => (t.categories as any)?.name || "—" },
-    { label: "Giá", key: "pricing", render: (t: ToolWithScores) => pricingLabel[t.pricing_type] || t.pricing_type },
-    { label: "Rating", key: "rating", render: (t: ToolWithScores) => (
+    { label: t("compare.category"), key: "category", render: (tool: ToolWithScores) => (tool.categories as any)?.name || "—" },
+    { label: t("compare.price"), key: "pricing", render: (tool: ToolWithScores) => t(`pricing.${tool.pricing_type}`, tool.pricing_type) },
+    { label: "Rating", key: "rating", render: (tool: ToolWithScores) => (
       <span className="flex items-center gap-1">
         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-        {t.avg_rating ? Number(t.avg_rating).toFixed(1) : "—"} ({t.rating_count})
+        {tool.avg_rating ? Number(tool.avg_rating).toFixed(1) : "—"} ({tool.rating_count})
       </span>
     )},
-    { label: "AI Score", key: "ai_score", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.overall_score ?? null} /> },
-    { label: "Dễ sử dụng", key: "ease", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.ease_of_use ?? null} /> },
-    { label: "Tính năng", key: "features", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.features ?? null} /> },
-    { label: "Giá trị", key: "value", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.value_for_money ?? null} /> },
-    { label: "Hiệu suất", key: "perf", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.performance ?? null} /> },
-    { label: "Hỗ trợ", key: "support", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.support ?? null} /> },
-    { label: "Platforms", key: "platforms", render: (t: ToolWithScores) => (
+    { label: "AI Score", key: "ai_score", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.overall_score ?? null} /> },
+    { label: t("compare.easeOfUse"), key: "ease", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.ease_of_use ?? null} /> },
+    { label: t("compare.features"), key: "features", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.features ?? null} /> },
+    { label: t("compare.value"), key: "value", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.value_for_money ?? null} /> },
+    { label: t("compare.performance"), key: "perf", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.performance ?? null} /> },
+    { label: t("compare.support"), key: "support", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.support ?? null} /> },
+    { label: "Platforms", key: "platforms", render: (tool: ToolWithScores) => (
       <div className="flex flex-wrap gap-1">
-        {t.platforms?.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>) || "—"}
+        {tool.platforms?.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>) || "—"}
       </div>
     )},
-    { label: "Lượt xem", key: "views", render: (t: ToolWithScores) => t.view_count.toLocaleString() },
+    { label: t("compare.views"), key: "views", render: (tool: ToolWithScores) => tool.view_count.toLocaleString() },
     { label: "AI Recommended", key: "recommended", render: (t: ToolWithScores) => (
       t.ai_scores?.is_recommended
         ? <Check className="h-4 w-4 text-accent" />
