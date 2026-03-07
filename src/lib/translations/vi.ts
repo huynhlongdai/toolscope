@@ -5,6 +5,7 @@ const vi: Record<string, string> = {
   "nav.tasks": "Tasks",
   "nav.launches": "Launches",
   "nav.deals": "Ưu đãi",
+  "nav.workflows": "Workflows",
   "nav.blog": "Blog",
   "nav.home": "Trang chủ",
   "nav.account": "Tài khoản",

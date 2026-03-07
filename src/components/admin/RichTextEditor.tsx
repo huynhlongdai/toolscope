@@ -7,18 +7,24 @@ import Youtube from "@tiptap/extension-youtube";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
 import { TextStyle } from "@tiptap/extension-text-style";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  Heading1, Heading2, Heading3, Heading4,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   ImageIcon, LinkIcon, Youtube as YoutubeIcon, Quote, Code,
   Undo, Redo, Upload, Loader2, Palette, RemoveFormatting, Highlighter,
   TableIcon, Plus, Minus, Trash2, SquarePlus,
   MoveHorizontal, MoveVertical, Merge, Split,
+  Maximize, Minimize, ChevronDown, Type, Heading1, Heading2, Heading3, Heading4,
+  LayoutGrid, MessageSquareQuote, Timer, Tag, Grip, FileText,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -32,14 +38,19 @@ interface RichTextEditorProps {
 export function RichTextEditor({ content, onChange, placeholder = "Nhập nội dung..." }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkNewTab, setLinkNewTab] = useState(true);
+  const [linkOpen, setLinkOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
-        link: { openOnClick: false },
       }),
       Image,
+      Underline,
+      Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
       Placeholder.configure({ placeholder }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Youtube.configure({ width: 640, height: 360 }),
@@ -55,13 +66,6 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  if (!editor) return null;
-
-  const addImage = () => {
-    const url = prompt("Image URL:");
-    if (url) editor.chain().focus().setImage({ src: url }).run();
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -75,23 +79,74 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       const { error: uploadError } = await supabase.storage.from("editor-images").upload(filePath, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("editor-images").getPublicUrl(filePath);
-      editor.chain().focus().setImage({ src: publicUrl }).run();
+      editor?.chain().focus().setImage({ src: publicUrl }).run();
     } catch (err: any) { alert("Upload thất bại: " + err.message); }
     finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
 
-  const addLink = () => {
-    const url = prompt("Link URL:");
-    if (url) editor.chain().focus().setLink({ href: url }).run();
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const filePath = `uploads/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from("editor-images").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("editor-images").getPublicUrl(filePath);
+      editor?.chain().focus().setImage({ src: publicUrl }).run();
+    } catch (err: any) { alert("Upload thất bại: " + err.message); }
+    finally { setUploading(false); }
+  }, [editor]);
+
+  const addImage = () => {
+    const url = prompt("Image URL:");
+    if (url) editor?.chain().focus().setImage({ src: url }).run();
+  };
+
+  const handleSetLink = () => {
+    if (!linkUrl) {
+      editor?.chain().focus().unsetLink().run();
+    } else {
+      editor?.chain().focus().extendMarkRange("link").setLink({ href: linkUrl, target: linkNewTab ? "_blank" : null }).run();
+    }
+    setLinkOpen(false);
+    setLinkUrl("");
+  };
+
+  const openLinkPopover = () => {
+    const existingUrl = editor?.getAttributes("link").href || "";
+    setLinkUrl(existingUrl);
+    setLinkOpen(true);
   };
 
   const addYoutube = () => {
     const url = prompt("YouTube URL:");
-    if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
+    if (url) editor?.chain().focus().setYoutubeVideo({ src: url }).run();
   };
 
   const insertSnippet = (html: string) => {
-    editor.chain().focus().insertContent(html).run();
+    editor?.chain().focus().insertContent(html).run();
+  };
+
+  if (!editor) return null;
+
+  // Word count & reading time
+  const text = editor.getText();
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  // Current block type label
+  const getBlockLabel = () => {
+    if (editor.isActive("heading", { level: 1 })) return "Heading 1";
+    if (editor.isActive("heading", { level: 2 })) return "Heading 2";
+    if (editor.isActive("heading", { level: 3 })) return "Heading 3";
+    if (editor.isActive("heading", { level: 4 })) return "Heading 4";
+    if (editor.isActive("blockquote")) return "Blockquote";
+    if (editor.isActive("codeBlock")) return "Code Block";
+    return "Paragraph";
   };
 
   const ToolbarButton = ({ onClick, active, children, title, disabled }: any) => (
@@ -109,23 +164,63 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     </Button>
   );
 
-  return (
-    <div className="border rounded-md">
+  const editorContent = (
+    <div className={`border rounded-md flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-background rounded-none" : ""}`}>
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleFileUpload} />
-      <div className="flex flex-wrap gap-0.5 border-b p-1 bg-muted/30">
+
+      {/* Toolbar Row 1: Block type + Text formatting + Color */}
+      <div className="flex flex-wrap items-center gap-0.5 border-b p-1 bg-muted/30">
+        {/* Block type selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs px-2 min-w-[100px] justify-between" onMouseDown={(e: React.MouseEvent) => e.preventDefault()}>
+              {getBlockLabel()}
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[160px]">
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setParagraph().run()}>
+              <Type className="h-4 w-4 mr-2" /> Paragraph
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
+              <Heading1 className="h-4 w-4 mr-2" /> Heading 1
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+              <Heading2 className="h-4 w-4 mr-2" /> Heading 2
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+              <Heading3 className="h-4 w-4 mr-2" /> Heading 3
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}>
+              <Heading4 className="h-4 w-4 mr-2" /> Heading 4
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+              <Quote className="h-4 w-4 mr-2" /> Blockquote
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
+              <Code className="h-4 w-4 mr-2" /> Code Block
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
         {/* Text formatting */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold (Ctrl+B)">
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic (Ctrl+I)">
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline">
+        <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline (Ctrl+U)">
           <UnderlineIcon className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough">
           <Strikethrough className="h-3.5 w-3.5" />
         </ToolbarButton>
+
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Text color */}
         <Popover>
@@ -165,40 +260,61 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
           </PopoverContent>
         </Popover>
 
-        <div className="w-px bg-border mx-0.5" />
+        <ToolbarButton onClick={() => editor.chain().focus().unsetAllMarks().run()} title="Xóa format">
+          <RemoveFormatting className="h-3.5 w-3.5" />
+        </ToolbarButton>
+      </div>
 
-        {/* Headings */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })} title="H1"><Heading1 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="H2"><Heading2 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3"><Heading3 className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} active={editor.isActive("heading", { level: 4 })} title="H4"><Heading4 className="h-3.5 w-3.5" /></ToolbarButton>
-
-        <div className="w-px bg-border mx-0.5" />
-
-        {/* Lists */}
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list"><List className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Ordered list"><ListOrdered className="h-3.5 w-3.5" /></ToolbarButton>
-
-        <div className="w-px bg-border mx-0.5" />
-
+      {/* Toolbar Row 2: Align + Lists + Media + Table + Blocks + Undo/Redo */}
+      <div className="flex flex-wrap items-center gap-0.5 border-b p-1 bg-muted/30">
         {/* Alignment */}
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align left"><AlignLeft className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center"><AlignCenter className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right"><AlignRight className="h-3.5 w-3.5" /></ToolbarButton>
 
-        <div className="w-px bg-border mx-0.5" />
+        <div className="w-px h-5 bg-border mx-1" />
 
-        {/* Media & Links */}
+        {/* Lists */}
+        <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list"><List className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Ordered list"><ListOrdered className="h-3.5 w-3.5" /></ToolbarButton>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
+        {/* Link popover */}
+        <Popover open={linkOpen} onOpenChange={setLinkOpen}>
+          <PopoverTrigger asChild>
+            <Button type="button" variant={editor.isActive("link") ? "secondary" : "ghost"} size="icon" className="h-7 w-7" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} onClick={openLinkPopover} title="Link">
+              <LinkIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-3" align="start">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">URL</Label>
+                <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="h-8 text-sm mt-1" onKeyDown={(e) => e.key === "Enter" && handleSetLink()} />
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="link-new-tab" checked={linkNewTab} onCheckedChange={(v) => setLinkNewTab(!!v)} />
+                <Label htmlFor="link-new-tab" className="text-xs">Mở tab mới</Label>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="h-7 text-xs flex-1" onClick={handleSetLink}>Áp dụng</Button>
+                {editor.isActive("link") && (
+                  <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => { editor.chain().focus().unsetLink().run(); setLinkOpen(false); }}>Xóa link</Button>
+                )}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Media */}
         <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Upload ảnh" disabled={uploading}>
           {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
         </ToolbarButton>
         <ToolbarButton onClick={addImage} title="Image URL"><ImageIcon className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={addLink} active={editor.isActive("link")} title="Link"><LinkIcon className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={addYoutube} title="YouTube"><YoutubeIcon className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Blockquote"><Quote className="h-3.5 w-3.5" /></ToolbarButton>
-        <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} active={editor.isActive("codeBlock")} title="Code block"><Code className="h-3.5 w-3.5" /></ToolbarButton>
 
-        <div className="w-px bg-border mx-0.5" />
+        <div className="w-px h-5 bg-border mx-1" />
 
         {/* Table */}
         <DropdownMenu>
@@ -241,21 +357,42 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Insert Blocks dropdown */}
+        <div className="w-px h-5 bg-border mx-1" />
+
+        {/* Block Inserter "+" */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} title="Chèn khối">
-              <Plus className="h-3.5 w-3.5" />
+            <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 text-xs px-2" onMouseDown={(e: React.MouseEvent) => e.preventDefault()} title="Chèn khối">
+              <Plus className="h-3.5 w-3.5" /> Chèn
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[200px]">
+          <DropdownMenuContent align="start" className="min-w-[240px] max-h-[400px] overflow-y-auto">
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Nội dung</div>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setHorizontalRule().run()}>
+              <Minus className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Đường phân cách</div><div className="text-xs text-muted-foreground">Ngăn cách các phần nội dung</div></div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+              <Quote className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Trích dẫn</div><div className="text-xs text-muted-foreground">Blockquote nổi bật</div></div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
+              <Code className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Code Block</div><div className="text-xs text-muted-foreground">Hiển thị mã nguồn</div></div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Khối đặc biệt</div>
+
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
               <div data-type="button-block" style="text-align:center;margin:16px 0;">
                 <a href="#" style="display:inline-block;padding:12px 32px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600;">Click me</a>
               </div>
             `)}>
-              🔘 Button
+              <LayoutGrid className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Button</div><div className="text-xs text-muted-foreground">Nút CTA với link</div></div>
             </DropdownMenuItem>
+
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
               <div data-type="accordion-block" style="border:1px solid #e5e7eb;border-radius:8px;margin:16px 0;overflow:hidden;">
                 <details style="padding:0;">
@@ -264,8 +401,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
                 </details>
               </div>
             `)}>
-              📋 Accordion
+              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Accordion</div><div className="text-xs text-muted-foreground">Nội dung mở rộng/thu gọn</div></div>
             </DropdownMenuItem>
+
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
               <div data-type="testimonial-block" style="border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin:16px 0;background:#f9fafb;">
                 <p style="font-style:italic;font-size:16px;margin-bottom:12px;">"Sản phẩm rất tuyệt vời, tôi rất hài lòng!"</p>
@@ -278,8 +417,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
                 </div>
               </div>
             `)}>
-              💬 Testimonial
+              <MessageSquareQuote className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Testimonial</div><div className="text-xs text-muted-foreground">Đánh giá/nhận xét khách hàng</div></div>
             </DropdownMenuItem>
+
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
               <div data-type="price-table-block" style="margin:16px 0;">
                 <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
@@ -297,8 +438,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
                 </table>
               </div>
             `)}>
-              💰 Price Table
+              <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Price Table</div><div className="text-xs text-muted-foreground">Bảng giá so sánh gói</div></div>
             </DropdownMenuItem>
+
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
               <div data-type="countdown-block" style="text-align:center;padding:24px;margin:16px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:12px;">
                 <p style="font-size:14px;margin-bottom:8px;opacity:0.9;">⏰ Ưu đãi kết thúc sau</p>
@@ -313,26 +456,51 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
                 </div>
               </div>
             `)}>
-              ⏳ Countdown
+              <Timer className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Countdown</div><div className="text-xs text-muted-foreground">Đếm ngược ưu đãi</div></div>
             </DropdownMenuItem>
+
             <DropdownMenuSeparator />
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`<p>[deals]</p>`)}>
-              🏷️ Deal Block (ưu đãi tool)
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-              ➖ Đường phân cách
+              <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Deal Block</div><div className="text-xs text-muted-foreground">Hiển thị ưu đãi của tool</div></div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <div className="w-px bg-border mx-0.5" />
+        <div className="flex-1" />
 
         {/* Undo/Redo */}
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
+
+        <div className="w-px h-5 bg-border mx-1" />
+
+        {/* Fullscreen */}
+        <ToolbarButton onClick={() => setIsFullscreen(!isFullscreen)} title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}>
+          {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
+        </ToolbarButton>
       </div>
-      <EditorContent editor={editor} className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-3 min-h-[200px] focus-within:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[180px] [&_.tiptap_table]:border-collapse [&_.tiptap_table]:w-full [&_.tiptap_table_td]:border [&_.tiptap_table_td]:border-border [&_.tiptap_table_td]:p-2 [&_.tiptap_table_th]:border [&_.tiptap_table_th]:border-border [&_.tiptap_table_th]:p-2 [&_.tiptap_table_th]:bg-muted/50 [&_.tiptap_table_th]:font-semibold [&_.selectedCell]:bg-primary/10" />
+
+      {/* Editor content */}
+      <div
+        className={`flex-1 overflow-y-auto ${isFullscreen ? "max-h-[calc(100vh-120px)]" : ""}`}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        <EditorContent editor={editor} className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[280px] [&_.tiptap_table]:border-collapse [&_.tiptap_table]:w-full [&_.tiptap_table_td]:border [&_.tiptap_table_td]:border-border [&_.tiptap_table_td]:p-2 [&_.tiptap_table_th]:border [&_.tiptap_table_th]:border-border [&_.tiptap_table_th]:p-2 [&_.tiptap_table_th]:bg-muted/50 [&_.tiptap_table_th]:font-semibold [&_.selectedCell]:bg-primary/10" />
+      </div>
+
+      {/* Footer: Word count + Reading time */}
+      <div className="flex items-center justify-between border-t px-3 py-1.5 bg-muted/20 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span>📝 {wordCount} từ</span>
+          <span>⏱ ~{readingTime} phút đọc</span>
+        </div>
+        {uploading && <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Đang upload...</span>}
+      </div>
     </div>
   );
+
+  return editorContent;
 }
