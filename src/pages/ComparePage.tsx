@@ -421,6 +421,7 @@ function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: str
 
 /* ─── Main Compare Page ─── */
 export default function ComparePage() {
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIds = useMemo(() => {
     const ids = searchParams.get("tools")?.split(",").filter(Boolean) || [];
