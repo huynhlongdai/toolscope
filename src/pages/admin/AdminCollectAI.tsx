@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap, Database, PackageCheck, Hourglass, BarChart3 } from "lucide-react";
+import { Search, Globe, Download, CheckCircle, XCircle, Sparkles, History, Loader2, ExternalLink, Trash2, Clock, Play, Plus, Zap, Database, PackageCheck, Hourglass, BarChart3, FileText, Upload } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type CollectItem = {
   id: string;
@@ -63,13 +64,16 @@ const CRON_PRESETS = [
 export default function AdminCollectAI() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchType, setSearchType] = useState<"keyword" | "url">("keyword");
+  const [searchType, setSearchType] = useState<"keyword" | "url" | "text">("keyword");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [importCategory, setImportCategory] = useState<string>("");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("search");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSession, setFilterSession] = useState<string>("all");
+  const [contentText, setContentText] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Schedule form state
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -147,6 +151,15 @@ export default function AdminCollectAI() {
   // Search mutation
   const searchMutation = useMutation({
     mutationFn: async () => {
+      if (searchType === "text") {
+        // Parse content mode
+        const { data, error } = await supabase.functions.invoke("collect-ai", {
+          body: { action: "parse-content", content_text: contentText, category_id: selectedCategory || undefined, category_name: categories.find(c => c.id === selectedCategory)?.name },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        return data;
+      }
       const catName = categories.find(c => c.id === selectedCategory)?.name;
       const { data, error } = await supabase.functions.invoke("collect-ai", {
         body: { action: "search", query: searchQuery, search_type: searchType, category_id: selectedCategory || undefined, category_name: catName || undefined },
@@ -156,14 +169,46 @@ export default function AdminCollectAI() {
       return data;
     },
     onSuccess: (data) => {
-      const sourceLabel = data.data_source === "firecrawl" ? "Firecrawl" : "AI Fallback";
+      const sourceLabel = data.data_source === "firecrawl" ? "Firecrawl" : data.data_source === "content_parse" ? "Nội dung" : "AI Fallback";
       toast.success(`Tìm thấy ${data.tools_count} công cụ (nguồn: ${sourceLabel})`);
       queryClient.invalidateQueries({ queryKey: ["collect-items"] });
       queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-stats"] });
       setActiveTab("staging");
+      setContentText("");
     },
     onError: (e: any) => toast.error(e.message || "Lỗi tìm kiếm"),
   });
+
+  // File upload mutation
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "txt";
+      const filePath = `${Date.now()}_${file.name}`;
+      
+      const { error: uploadError } = await supabase.storage.from("collect-uploads").upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const catName = categories.find(c => c.id === selectedCategory)?.name;
+      const { data, error } = await supabase.functions.invoke("collect-ai", {
+        body: { action: "parse-content", file_path: filePath, file_type: ext, category_id: selectedCategory || undefined, category_name: catName },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Tìm thấy ${data.tools_count} công cụ từ file`);
+      queryClient.invalidateQueries({ queryKey: ["collect-items"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["collect-stats"] });
+      setActiveTab("staging");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi upload file");
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   // Approve/Reject
   const updateStatusMutation = useMutation({
@@ -387,21 +432,57 @@ export default function AdminCollectAI() {
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Select value={searchType} onValueChange={(v: "keyword" | "url") => setSearchType(v)}>
-                    <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+                  <Select value={searchType} onValueChange={(v: "keyword" | "url" | "text") => setSearchType(v)}>
+                    <SelectTrigger className="w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="keyword"><Search className="inline h-3 w-3 mr-1" />Theo keyword</SelectItem>
                       <SelectItem value="url"><Globe className="inline h-3 w-3 mr-1" />Theo URL</SelectItem>
+                      <SelectItem value="text"><FileText className="inline h-3 w-3 mr-1" />Từ văn bản/file</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
-                    className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
-                  <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
-                    {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
-                    Thu thập
-                  </Button>
+                  {searchType !== "text" && (
+                    <>
+                      <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                        placeholder={searchType === "keyword" ? "VD: AI writing tools..." : "VD: https://..."}
+                        className="flex-1" onKeyDown={e => e.key === "Enter" && searchQuery && searchMutation.mutate()} />
+                      <Button onClick={() => searchMutation.mutate()} disabled={!searchQuery || searchMutation.isPending}>
+                        {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
+                        Thu thập
+                      </Button>
+                    </>
+                  )}
                 </div>
+
+                {searchType === "text" && (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={contentText}
+                      onChange={e => setContentText(e.target.value)}
+                      placeholder="Paste nội dung chứa danh sách công cụ AI vào đây... (VD: danh sách từ blog, báo cáo, tài liệu...)"
+                      className="min-h-[160px]"
+                    />
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <Button onClick={() => searchMutation.mutate()} disabled={!contentText.trim() || searchMutation.isPending}>
+                        {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                        Phân tích văn bản
+                      </Button>
+                      <span className="text-sm text-muted-foreground">hoặc</span>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept=".pdf,.xlsx,.xls,.csv,.md,.txt,.markdown"
+                        className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); }}
+                      />
+                      <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}>
+                        {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                        Upload file
+                      </Button>
+                      <span className="text-xs text-muted-foreground">PDF, Excel, CSV, Markdown, TXT</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 items-center">
                   <span className="text-sm text-muted-foreground">Danh mục:</span>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -412,10 +493,10 @@ export default function AdminCollectAI() {
                     </SelectContent>
                   </Select>
                 </div>
-                {searchMutation.isPending && (
+                {(searchMutation.isPending || uploadingFile) && (
                   <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="text-sm">Đang tìm kiếm và phân tích dữ liệu với AI...</span>
+                    <span className="text-sm">Đang phân tích dữ liệu với AI...</span>
                   </div>
                 )}
               </CardContent>
