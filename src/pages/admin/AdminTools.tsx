@@ -23,6 +23,10 @@ import { EntityTranslationEditor } from "@/components/admin/translations/EntityT
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
 export default function AdminTools() {
   const queryClient = useQueryClient();
