@@ -496,8 +496,8 @@ export default function ComparePage() {
       </div>
     )},
     { label: t("compare.views"), key: "views", render: (tool: ToolWithScores) => tool.view_count.toLocaleString() },
-    { label: "AI Recommended", key: "recommended", render: (t: ToolWithScores) => (
-      t.ai_scores?.is_recommended
+    { label: "AI Recommended", key: "recommended", render: (tool: ToolWithScores) => (
+      tool.ai_scores?.is_recommended
         ? <Check className="h-4 w-4 text-accent" />
         : <Minus className="h-4 w-4 text-muted-foreground" />
     )},
