@@ -14,8 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
@@ -361,11 +362,14 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
         </Card>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Cơ bản</TabsTrigger>
             <TabsTrigger value="steps">Steps & Tools</TabsTrigger>
             <TabsTrigger value="seo-content">Nội dung SEO</TabsTrigger>
             <TabsTrigger value="seo-meta">SEO & Media</TabsTrigger>
+            <TabsTrigger value="translations" className="flex items-center gap-1" disabled={isNew}>
+              <Languages className="h-3.5 w-3.5" /> Dịch
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab: Basic */}
@@ -588,6 +592,24 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                   Nhấn "Tìm" để tìm video trên YouTube, sau đó copy URL và dán vào ô Video URL phía trên.
                 </p>
               </div>
+            )}
+          </TabsContent>
+
+          {/* Tab: Translations */}
+          <TabsContent value="translations" className="mt-4">
+            {!isNew && wf?.id && (
+              <EntityTranslationEditor
+                entityType="workflow"
+                entityId={wf.id}
+                translateFunctionName="translate-blog"
+                translateBodyExtra={{ entity_type: "workflow" }}
+                fields={[
+                  { key: "title", label: "Tiêu đề", type: "input", originalValue: form.title },
+                  { key: "description", label: "Mô tả", type: "textarea", originalValue: form.description },
+                  { key: "seo_title", label: "SEO Title", type: "input", originalValue: form.seo_title },
+                  { key: "seo_description", label: "SEO Description", type: "textarea", originalValue: form.seo_description },
+                ]}
+              />
             )}
           </TabsContent>
         </Tabs>
