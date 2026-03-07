@@ -23,6 +23,10 @@ import { EntityTranslationEditor } from "@/components/admin/translations/EntityT
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
 export default function AdminTools() {
   const queryClient = useQueryClient();
@@ -57,18 +61,21 @@ export default function AdminTools() {
   // Pending submissions
   const pendingTools = tools.filter((t: any) => t.status === "pending_review");
 
-  // Translation status per tool
-  const { data: translatedToolIds = new Set<string>() } = useQuery({
-    queryKey: ["admin-tools-translation-ids", translationFilter],
+  // Translation status per tool: Map<toolId, Set<locale>>
+  const { data: toolTranslationMap = new Map<string, Set<string>>() } = useQuery({
+    queryKey: ["admin-tools-translation-map"],
     queryFn: async () => {
-      if (translationFilter === "all") return new Set<string>();
-      const locale = translationFilter === "untranslated" || translationFilter === "translated" ? undefined : translationFilter;
-      let q = supabase.from("translations").select("entity_id").eq("entity_type", "tool");
-      if (locale) q = q.eq("locale", locale);
-      const { data } = await q;
-      return new Set((data ?? []).map((t: any) => t.entity_id));
+      const { data } = await supabase
+        .from("translations")
+        .select("entity_id, locale")
+        .eq("entity_type", "tool");
+      const map = new Map<string, Set<string>>();
+      (data ?? []).forEach((t: any) => {
+        if (!map.has(t.entity_id)) map.set(t.entity_id, new Set());
+        map.get(t.entity_id)!.add(t.locale);
+      });
+      return map;
     },
-    select: (data) => data,
   });
 
   const deleteMutation = useMutation({
@@ -102,10 +109,12 @@ export default function AdminTools() {
     if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
-    if (translationFilter === "translated" && !translatedToolIds.has(t.id)) return false;
-    if (translationFilter === "untranslated" && translatedToolIds.has(t.id)) return false;
+    if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
+    if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
-      // Specific locale filter - show tools that have/don't have translation for that locale
+      // Specific locale: show tools NOT translated for this locale
+      const locales = toolTranslationMap.get(t.id);
+      if (locales && locales.has(translationFilter)) return false;
     }
     return true;
   });
@@ -221,11 +230,16 @@ export default function AdminTools() {
             </SelectContent>
           </Select>
           <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Dịch thuật" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả dịch</SelectItem>
-              <SelectItem value="translated">✅ Đã dịch</SelectItem>
+              <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
+              <SelectItem value="translated">✅ Đã dịch (bất kỳ)</SelectItem>
               <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
+              {TARGET_LOCALES.map(([code, meta]) => (
+                <SelectItem key={code} value={code}>
+                  {meta.flag} Chưa dịch {meta.nativeName}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -238,6 +252,7 @@ export default function AdminTools() {
                 <TableHead>Danh mục</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Pricing</TableHead>
+                <TableHead>Ngôn ngữ</TableHead>
                 <TableHead>Rating</TableHead>
                 <TableHead>Views</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
@@ -245,9 +260,9 @@ export default function AdminTools() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
               ) : (
                 paged.map((tool: any) => (
                   <TableRow key={tool.id}>
@@ -275,6 +290,20 @@ export default function AdminTools() {
                       </Select>
                     </TableCell>
                     <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
+                    <TableCell>
+                      {(() => {
+                        const locales = toolTranslationMap.get(tool.id);
+                        if (!locales || locales.size === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                        const flags = TARGET_LOCALES
+                          .filter(([code]) => locales.has(code))
+                          .map(([code, meta]) => meta.flag);
+                        return (
+                          <span className="text-xs" title={`${locales.size}/${TARGET_LOCALES.length} ngôn ngữ`}>
+                            {flags.length <= 5 ? flags.join("") : `${flags.slice(0, 4).join("")} +${flags.length - 4}`}
+                          </span>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>{tool.avg_rating ? `${Number(tool.avg_rating).toFixed(1)} ⭐` : "—"}</TableCell>
                     <TableCell>{tool.view_count}</TableCell>
                     <TableCell className="text-right">
@@ -1295,16 +1324,21 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
 function TranslateButton({ toolId, toolName }: { toolId: string; toolName: string }) {
   const [translating, setTranslating] = useState(false);
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleTranslate = async () => {
+  const handleTranslate = async (locale: string) => {
     setTranslating(true);
+    setOpen(false);
     try {
       const { data, error } = await supabase.functions.invoke("translate-tool", {
-        body: { tool_id: toolId, locale: "en" },
+        body: { tool_id: toolId, locale },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast.success(`Đã dịch "${toolName}" sang tiếng Anh (${data.saved} trường)`);
+      const localeMeta = SUPPORTED_LOCALES[locale as Locale];
+      toast.success(`Đã dịch "${toolName}" sang ${localeMeta?.nativeName || locale} (${data.saved} trường)`);
+      queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
     } catch (e: any) {
       toast.error(e.message || "Lỗi dịch tự động");
     } finally {
@@ -1313,20 +1347,34 @@ function TranslateButton({ toolId, toolName }: { toolId: string; toolName: strin
   };
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleTranslate} disabled={translating} title="Dịch sang tiếng Anh">
-      {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-    </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" disabled={translating} title="Dịch tool">
+          {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-1" align="end">
+        {TARGET_LOCALES.map(([code, meta]) => (
+          <Button key={code} variant="ghost" size="sm" className="w-full justify-start text-sm h-8" onClick={() => handleTranslate(code)}>
+            {meta.flag} {meta.nativeName}
+          </Button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
 function BatchTranslateButton({ tools }: { tools: any[] }) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [batchLocale, setBatchLocale] = useState<Locale>("en");
+  const queryClient = useQueryClient();
 
   const handleBatchTranslate = async () => {
     const publishedTools = tools.filter((t: any) => t.status === "published");
     if (publishedTools.length === 0) { toast.error("Không có tool published nào"); return; }
-    if (!confirm(`Dịch ${publishedTools.length} tools sang tiếng Anh?`)) return;
+    const localeMeta = SUPPORTED_LOCALES[batchLocale];
+    if (!confirm(`Dịch ${publishedTools.length} tools sang ${localeMeta.nativeName}?`)) return;
 
     setRunning(true);
     setProgress({ done: 0, total: publishedTools.length });
@@ -1337,7 +1385,7 @@ function BatchTranslateButton({ tools }: { tools: any[] }) {
     for (const tool of publishedTools) {
       try {
         const { data, error } = await supabase.functions.invoke("translate-tool", {
-          body: { tool_id: tool.id, locale: "en" },
+          body: { tool_id: tool.id, locale: batchLocale },
         });
         if (error || data?.error) throw error || new Error(data?.error);
         successCount++;
@@ -1345,27 +1393,39 @@ function BatchTranslateButton({ tools }: { tools: any[] }) {
         errorCount++;
       }
       setProgress(prev => ({ ...prev, done: prev.done + 1 }));
-      // Small delay to avoid rate limiting
       await new Promise(r => setTimeout(r, 1500));
     }
 
     setRunning(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
     toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
   };
 
   return (
-    <Button variant="outline" onClick={handleBatchTranslate} disabled={running}>
-      {running ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          {progress.done}/{progress.total}
-        </>
-      ) : (
-        <>
-          <Languages className="mr-2 h-4 w-4" /> Dịch tất cả
-        </>
-      )}
-    </Button>
+    <div className="flex items-center gap-1">
+      <Select value={batchLocale} onValueChange={(v) => setBatchLocale(v as Locale)}>
+        <SelectTrigger className="h-8 w-[110px] text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {TARGET_LOCALES.map(([code, meta]) => (
+            <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button variant="outline" size="sm" onClick={handleBatchTranslate} disabled={running}>
+        {running ? (
+          <>
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            {progress.done}/{progress.total}
+          </>
+        ) : (
+          <>
+            <Languages className="mr-1 h-3.5 w-3.5" /> Dịch hàng loạt
+          </>
+        )}
+      </Button>
+    </div>
   );
 }
 
