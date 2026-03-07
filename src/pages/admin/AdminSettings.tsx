@@ -201,6 +201,7 @@ export default function AdminSettings() {
             <TabsTrigger value="site" className="gap-1.5 text-xs md:text-sm"><Settings2 className="h-3.5 w-3.5" /> Site</TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
             <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
+            <TabsTrigger value="modules" className="gap-1.5 text-xs md:text-sm"><Blocks className="h-3.5 w-3.5" /> Modules</TabsTrigger>
           </TabsList>
 
           {/* AI PROVIDERS TAB */}
