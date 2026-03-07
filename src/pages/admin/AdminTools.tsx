@@ -109,10 +109,12 @@ export default function AdminTools() {
     if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
-    if (translationFilter === "translated" && !translatedToolIds.has(t.id)) return false;
-    if (translationFilter === "untranslated" && translatedToolIds.has(t.id)) return false;
+    if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
+    if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
-      // Specific locale filter - show tools that have/don't have translation for that locale
+      // Specific locale: show tools NOT translated for this locale
+      const locales = toolTranslationMap.get(t.id);
+      if (locales && locales.has(translationFilter)) return false;
     }
     return true;
   });
