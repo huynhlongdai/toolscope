@@ -30,6 +30,7 @@ serve(async (req) => {
 
     let pinnedToolIds: string[] = [];
     let redirectUrl: string | null = null;
+    let ruleMatched = false;
 
     if (rules) {
       for (const rule of rules) {
@@ -39,7 +40,10 @@ serve(async (req) => {
         else if (rule.match_type === "regex") { try { matches = new RegExp(rule.keyword_pattern, "i").test(normalizedQuery); } catch {} }
         if (matches) {
           if (rule.redirect_url) redirectUrl = rule.redirect_url;
-          if (rule.pinned_tool_ids?.length) pinnedToolIds.push(...rule.pinned_tool_ids);
+          if (rule.pinned_tool_ids?.length) {
+            pinnedToolIds.push(...rule.pinned_tool_ids);
+            ruleMatched = true;
+          }
         }
       }
     }
@@ -49,6 +53,35 @@ serve(async (req) => {
       return new Response(JSON.stringify({ redirect: redirectUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // If rule matched with pinned tools, return directly from DB (skip AI call)
+    if (ruleMatched && pinnedToolIds.length > 0) {
+      const uniquePinnedIds = [...new Set(pinnedToolIds)];
+      const { data: pinnedTools } = await supabase
+        .from("tools")
+        .select("id, name, slug, short_description, description, pricing_type, avg_rating, rating_count, logo_url, is_trending, is_featured, categories(name), ai_scores(overall_score, is_recommended, pros, cons, summary)")
+        .in("id", uniquePinnedIds)
+        .eq("status", "published");
+
+      const results = uniquePinnedIds
+        .map(id => {
+          const tool = pinnedTools?.find((t: any) => t.id === id);
+          return tool ? { id: tool.id, name: tool.name, slug: tool.slug, reason: "Kết quả phù hợp", tool, pinned: true } : null;
+        })
+        .filter(Boolean);
+
+      // Log search (rule-matched, no AI credit used)
+      supabase.from("search_logs").insert({
+        query, normalized_query: normalizedQuery,
+        results_count: results.length, source: source || "hero",
+        matched_tool_ids: uniquePinnedIds,
+      }).then(() => {});
+
+      return new Response(JSON.stringify({ results, summary: `Tìm thấy ${results.length} công cụ phù hợp.`, rule_matched: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // No rule matched — call AI
     const { data: tools, error } = await supabase
       .from("tools")
       .select("id, name, slug, short_description, description, pricing_type, avg_rating, rating_count, logo_url, is_trending, is_featured, categories(name), ai_scores(overall_score, is_recommended, pros, cons, summary)")
@@ -117,6 +150,9 @@ Chỉ trả về tools thực sự phù hợp với nhu cầu. Sắp xếp theo 
       return { ...r, tool: fullTool || null };
     }).filter((r: any) => r.tool);
 
+    // Collect matched tool IDs for auto-rule analysis
+    const matchedToolIds = enrichedResults.map((r: any) => r.id);
+
     if (pinnedToolIds.length > 0) {
       const existingIds = new Set(enrichedResults.map((r: any) => r.id));
       for (const pinnedId of pinnedToolIds) {
@@ -127,7 +163,12 @@ Chỉ trả về tools thực sự phù hợp với nhu cầu. Sắp xếp theo 
       }
     }
 
-    supabase.from("search_logs").insert({ query, normalized_query: normalizedQuery, results_count: enrichedResults.length, source: source || "hero" }).then(() => {});
+    // Save search log with matched_tool_ids
+    supabase.from("search_logs").insert({
+      query, normalized_query: normalizedQuery,
+      results_count: enrichedResults.length, source: source || "hero",
+      matched_tool_ids: matchedToolIds,
+    }).then(() => {});
 
     return new Response(JSON.stringify({ results: enrichedResults, summary: searchResults.summary }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

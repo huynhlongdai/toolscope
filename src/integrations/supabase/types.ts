@@ -1286,6 +1286,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          matched_tool_ids: string[] | null
           normalized_query: string
           query: string
           results_count: number
@@ -1296,6 +1297,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          matched_tool_ids?: string[] | null
           normalized_query: string
           query: string
           results_count?: number
@@ -1306,6 +1308,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          matched_tool_ids?: string[] | null
           normalized_query?: string
           query?: string
           results_count?: number
@@ -1322,10 +1325,12 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_auto: boolean | null
           keyword_pattern: string
           match_type: string
           pinned_tool_ids: string[] | null
           redirect_url: string | null
+          source_keywords: string[] | null
           updated_at: string | null
         }
         Insert: {
@@ -1334,10 +1339,12 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_auto?: boolean | null
           keyword_pattern: string
           match_type?: string
           pinned_tool_ids?: string[] | null
           redirect_url?: string | null
+          source_keywords?: string[] | null
           updated_at?: string | null
         }
         Update: {
@@ -1346,10 +1353,12 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_auto?: boolean | null
           keyword_pattern?: string
           match_type?: string
           pinned_tool_ids?: string[] | null
           redirect_url?: string | null
+          source_keywords?: string[] | null
           updated_at?: string | null
         }
         Relationships: [
