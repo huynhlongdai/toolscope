@@ -15,8 +15,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
@@ -25,11 +28,13 @@ import { Progress } from "@/components/ui/progress";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
 export default function AdminTools() {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -38,6 +43,7 @@ export default function AdminTools() {
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-list-filter"],
@@ -58,10 +64,8 @@ export default function AdminTools() {
     },
   });
 
-  // Pending submissions
   const pendingTools = tools.filter((t: any) => t.status === "pending_review");
 
-  // Translation status per tool: Map<toolId, Set<locale>>
   const { data: toolTranslationMap = new Map<string, Set<string>>() } = useQuery({
     queryKey: ["admin-tools-translation-map"],
     queryFn: async () => {
@@ -112,7 +116,6 @@ export default function AdminTools() {
     if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
     if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
-      // Specific locale: show tools NOT translated for this locale
       const locales = toolTranslationMap.get(t.id);
       if (locales && locales.has(translationFilter)) return false;
     }
@@ -141,16 +144,97 @@ export default function AdminTools() {
     }
   };
 
+  // Count active filters (excluding "all")
+  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter].filter(f => f !== "all").length;
+
+  const filterContent = (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Trạng thái</Label>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả TT</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="pending_review">Pending</SelectItem>
+            <SelectItem value="archived">Archived</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Danh mục</Label>
+        <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Danh mục" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả DM</SelectItem>
+            {categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Pricing</Label>
+        <Select value={pricingFilter} onValueChange={(v) => { setPricingFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Pricing" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả giá</SelectItem>
+            <SelectItem value="free">Free</SelectItem>
+            <SelectItem value="freemium">Freemium</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="open_source">Open Source</SelectItem>
+            <SelectItem value="contact">Contact</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Ngôn ngữ</Label>
+        <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
+            <SelectItem value="translated">✅ Đã dịch (bất kỳ)</SelectItem>
+            <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
+            {TARGET_LOCALES.map(([code, meta]) => (
+              <SelectItem key={code} value={code}>
+                {meta.flag} Chưa dịch {meta.nativeName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
+        {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Tools</h1>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-1 h-3.5 w-3.5" /> CSV</Button>
-            <BatchTranslateButton tools={filtered} />
-            <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
-            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
+          <div className="flex items-center gap-2">
+            {/* Mobile: group secondary actions */}
+            {isMobile ? (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Xuất CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Import</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <BatchTranslateButton tools={filtered} isMobile={isMobile} />
+                <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4" /></Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" onClick={exportCSV}><Upload className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+                <BatchTranslateButton tools={filtered} isMobile={false} />
+                <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
+                <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -166,7 +250,7 @@ export default function AdminTools() {
             <CardContent className="pt-0 pb-3 px-4">
               <div className="space-y-2">
                 {pendingTools.slice(0, 10).map((tool: any) => (
-                  <div key={tool.id} className="flex items-center justify-between gap-3 rounded-md border bg-background p-3">
+                  <div key={tool.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 rounded-md border bg-background p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {tool.logo_url && <img src={tool.logo_url} alt="" className="h-8 w-8 rounded-md object-cover shrink-0" />}
                       <div className="min-w-0">
@@ -175,14 +259,14 @@ export default function AdminTools() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" onClick={() => setEditTool(tool)} className="text-xs">
-                        <Eye className="h-3.5 w-3.5 mr-1" /> Xem
+                      <Button variant="ghost" size="sm" onClick={() => setEditTool(tool)} className="text-xs h-7 px-2">
+                        <Eye className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Xem</span>
                       </Button>
-                      <Button variant="default" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "published" })} className="text-xs">
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Duyệt
+                      <Button variant="default" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "published" })} className="text-xs h-7 px-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Duyệt</span>
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "archived" })} className="text-xs">
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Từ chối
+                      <Button variant="destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "archived" })} className="text-xs h-7 px-2">
+                        <XCircle className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Từ chối</span>
                       </Button>
                     </div>
                   </div>
@@ -196,139 +280,211 @@ export default function AdminTools() {
         )}
 
         {/* Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
           </div>
-          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả TT</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="pending_review">Pending</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Danh mục" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả DM</SelectItem>
-              {categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={pricingFilter} onValueChange={(v) => { setPricingFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Pricing" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả giá</SelectItem>
-              <SelectItem value="free">Free</SelectItem>
-              <SelectItem value="freemium">Freemium</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="open_source">Open Source</SelectItem>
-              <SelectItem value="contact">Contact</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
-            <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
-              <SelectItem value="translated">✅ Đã dịch (bất kỳ)</SelectItem>
-              <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
-              {TARGET_LOCALES.map(([code, meta]) => (
-                <SelectItem key={code} value={code}>
-                  {meta.flag} Chưa dịch {meta.nativeName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+          {/* Mobile: filter sheet */}
+          {isMobile ? (
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="relative shrink-0">
+                  <Filter className="h-4 w-4 mr-1" /> Lọc
+                  {activeFilterCount > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-[10px]">{activeFilterCount}</Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="max-h-[70vh]">
+                <SheetHeader>
+                  <SheetTitle>Bộ lọc</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">
+                  {filterContent}
+                  <Button className="w-full mt-4" onClick={() => setFilterSheetOpen(false)}>Áp dụng</Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả TT</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="pending_review">Pending</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Danh mục" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả DM</SelectItem>
+                  {categories.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={pricingFilter} onValueChange={(v) => { setPricingFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Pricing" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả giá</SelectItem>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="freemium">Freemium</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="open_source">Open Source</SelectItem>
+                  <SelectItem value="contact">Contact</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả ngôn ngữ</SelectItem>
+                  <SelectItem value="translated">✅ Đã dịch (bất kỳ)</SelectItem>
+                  <SelectItem value="untranslated">⚠️ Chưa dịch</SelectItem>
+                  {TARGET_LOCALES.map(([code, meta]) => (
+                    <SelectItem key={code} value={code}>
+                      {meta.flag} Chưa dịch {meta.nativeName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tên</TableHead>
-                <TableHead>Danh mục</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Pricing</TableHead>
-                <TableHead>Ngôn ngữ</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Views</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
-              ) : (
-                paged.map((tool: any) => (
-                  <TableRow key={tool.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {tool.logo_url && <img src={tool.logo_url} alt="" className="h-8 w-8 rounded-md object-cover" />}
-                        <div>
-                          <p className="font-medium">{tool.name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{tool.short_description}</p>
+        {/* Tools List */}
+        {isMobile ? (
+          /* Mobile: Card layout */
+          <div className="space-y-2">
+            {isLoading ? (
+              <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">Không có tool nào</p>
+            ) : (
+              paged.map((tool: any) => {
+                const locales = toolTranslationMap.get(tool.id);
+                const flags = locales ? TARGET_LOCALES.filter(([code]) => locales.has(code)).map(([, meta]) => meta.flag) : [];
+                return (
+                  <Card key={tool.id} className="p-3">
+                    <div className="flex items-start gap-3">
+                      {tool.logo_url && <img src={tool.logo_url} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-sm truncate">{tool.name}</p>
+                          <Badge variant={statusColor(tool.status) as any} className="text-[10px] shrink-0">{tool.status}</Badge>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{(tool as any).categories?.name ?? "—"}</TableCell>
-                    <TableCell>
-                      <Select value={tool.status} onValueChange={(v) => updateStatusMutation.mutate({ id: tool.id, status: v })}>
-                        <SelectTrigger className="h-7 w-[130px]">
-                          <Badge variant={statusColor(tool.status) as any} className="text-xs">{tool.status}</Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="published">Published</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="pending_review">Pending</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
-                    <TableCell>
-                      {(() => {
-                        const locales = toolTranslationMap.get(tool.id);
-                        if (!locales || locales.size === 0) return <span className="text-xs text-muted-foreground">—</span>;
-                        const flags = TARGET_LOCALES
-                          .filter(([code]) => locales.has(code))
-                          .map(([code, meta]) => meta.flag);
-                        return (
-                          <span className="text-xs" title={`${locales.size}/${TARGET_LOCALES.length} ngôn ngữ`}>
+                        <p className="text-xs text-muted-foreground truncate">{(tool as any).categories?.name ?? "—"} · {tool.pricing_type}</p>
+                        {flags.length > 0 && (
+                          <p className="text-xs mt-1" title={`${locales!.size}/${TARGET_LOCALES.length}`}>
                             {flags.length <= 5 ? flags.join("") : `${flags.slice(0, 4).join("")} +${flags.length - 4}`}
-                          </span>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>{tool.avg_rating ? `${Number(tool.avg_rating).toFixed(1)} ⭐` : "—"}</TableCell>
-                    <TableCell>{tool.view_count}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <GenerateAIScoreButton toolId={tool.id} toolName={tool.name} />
-                        <TranslateButton toolId={tool.id} toolName={tool.name} />
-                        {tool.website_url && (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={tool.website_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4" /></a>
-                          </Button>
+                          </p>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => setEditTool(tool)}>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <TranslateButton toolId={tool.id} toolName={tool.name} />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTool(tool)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa tool này?")) deleteMutation.mutate(tool.id); }}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { if (confirm("Xóa tool này?")) deleteMutation.mutate(tool.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Desktop: Table layout */
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tên</TableHead>
+                  <TableHead>Danh mục</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Pricing</TableHead>
+                  <TableHead>Ngôn ngữ</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Views</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
+                ) : (
+                  paged.map((tool: any) => (
+                    <TableRow key={tool.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {tool.logo_url && <img src={tool.logo_url} alt="" className="h-8 w-8 rounded-md object-cover" />}
+                          <div>
+                            <p className="font-medium">{tool.name}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">{tool.short_description}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{(tool as any).categories?.name ?? "—"}</TableCell>
+                      <TableCell>
+                        <Select value={tool.status} onValueChange={(v) => updateStatusMutation.mutate({ id: tool.id, status: v })}>
+                          <SelectTrigger className="h-7 w-[130px]">
+                            <Badge variant={statusColor(tool.status) as any} className="text-xs">{tool.status}</Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="published">Published</SelectItem>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="pending_review">Pending</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell><Badge variant="outline">{tool.pricing_type}</Badge></TableCell>
+                      <TableCell>
+                        {(() => {
+                          const locales = toolTranslationMap.get(tool.id);
+                          if (!locales || locales.size === 0) return <span className="text-xs text-muted-foreground">—</span>;
+                          const flags = TARGET_LOCALES
+                            .filter(([code]) => locales.has(code))
+                            .map(([code, meta]) => meta.flag);
+                          return (
+                            <span className="text-xs" title={`${locales.size}/${TARGET_LOCALES.length} ngôn ngữ`}>
+                              {flags.length <= 5 ? flags.join("") : `${flags.slice(0, 4).join("")} +${flags.length - 4}`}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
+                      <TableCell>{tool.avg_rating ? `${Number(tool.avg_rating).toFixed(1)} ⭐` : "—"}</TableCell>
+                      <TableCell>{tool.view_count}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <GenerateAIScoreButton toolId={tool.id} toolName={tool.name} />
+                          <TranslateButton toolId={tool.id} toolName={tool.name} />
+                          {tool.website_url && (
+                            <Button variant="ghost" size="icon" asChild>
+                              <a href={tool.website_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4" /></a>
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => setEditTool(tool)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa tool này?")) deleteMutation.mutate(tool.id); }}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between">
@@ -368,6 +524,22 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
   const [autoFillQuery, setAutoFillQuery] = useState("");
   const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState("");
+
+  // Query translation count for badge
+  const { data: translationCount = 0 } = useQuery({
+    queryKey: ["tool-translation-count", tool?.id],
+    queryFn: async () => {
+      if (!tool?.id) return 0;
+      const { data } = await supabase
+        .from("translations")
+        .select("locale")
+        .eq("entity_type", "tool")
+        .eq("entity_id", tool.id);
+      const uniqueLocales = new Set((data ?? []).map((t: any) => t.locale));
+      return uniqueLocales.size;
+    },
+    enabled: !!tool?.id,
+  });
 
   const autoConvert = (text: string) => {
     if (!text) return text;
@@ -426,7 +598,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     enabled: !!tool?.id,
   });
 
-  // Reviews & Q&A for existing tools
   const { data: reviews = [], refetch: refetchReviews } = useQuery({
     queryKey: ["tool-reviews-admin", tool?.id],
     queryFn: async () => {
@@ -447,7 +618,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     enabled: !!tool?.id,
   });
 
-  // Related tools search
   const [relatedSearch, setRelatedSearch] = useState("");
   const [relatedIds, setRelatedIds] = useState<string[]>(tool?.related_tool_ids ?? []);
 
@@ -471,12 +641,9 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     enabled: relatedIds.length > 0,
   });
 
-  // Fake review form
   const [fakeReview, setFakeReview] = useState({ title: "", content: "" });
   const [fakeQuestion, setFakeQuestion] = useState({ title: "", content: "" });
   const [fakeAnswer, setFakeAnswer] = useState({ questionId: "", content: "" });
-
-  // Pricing plan form
   const [newPlan, setNewPlan] = useState({ name: "", price: "", currency: "USD", features: "" });
 
   const pricingPlans = Array.isArray(form.pricing_details) ? form.pricing_details : [];
@@ -495,7 +662,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Map results to form
       setForm(prev => ({
         ...prev,
         name: data.name || prev.name,
@@ -511,14 +677,12 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
         faq: Array.isArray(data.faq) && data.faq.length > 0 ? data.faq : prev.faq,
       }));
 
-      // Try to match category
       if (data.category_suggestion && categories.length > 0) {
         const suggestion = data.category_suggestion.toLowerCase();
         const match = categories.find((c: any) => c.name.toLowerCase().includes(suggestion) || suggestion.includes(c.name.toLowerCase()));
         if (match) updateField("category_id", match.id);
       }
 
-      // Capture AI-suggested tags
       if (Array.isArray(data.tags) && data.tags.length > 0) {
         setSuggestedTags(data.tags);
       }
@@ -564,7 +728,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       savedToolId = newTool?.id;
     }
 
-    // Auto-create and assign suggested tags
     if (savedToolId && suggestedTags.length > 0) {
       await autoCreateAndAssignTags(savedToolId, suggestedTags);
     }
@@ -579,18 +742,13 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     for (const tagName of tagNames) {
       const slug = tagName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
       if (!slug) continue;
-
-      // Find or create tag
       let { data: existing } = await supabase.from("tags").select("id").eq("slug", slug).maybeSingle();
       let tagId = existing?.id;
-
       if (!tagId) {
         const { data: created } = await supabase.from("tags").insert({ name: tagName, slug }).select("id").single();
         tagId = created?.id;
       }
-
       if (tagId) {
-        // Link tag to tool (ignore duplicate errors)
         await supabase.from("tool_tags").upsert({ tool_id: toolId, tag_id: tagId }, { onConflict: "tool_id,tag_id" });
       }
     }
@@ -658,21 +816,31 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{tool ? "Chỉnh sửa Tool" : "Thêm Tool mới"}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="basic">Cơ bản</TabsTrigger>
-            <TabsTrigger value="content">Nội dung</TabsTrigger>
-            <TabsTrigger value="faq">FAQ</TabsTrigger>
-            <TabsTrigger value="stats">Fake Stats</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-            <TabsTrigger value="pricing">Pricing</TabsTrigger>
-            <TabsTrigger value="seo">SEO</TabsTrigger>
-            <TabsTrigger value="translations" disabled={!tool?.id}>Dịch</TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex w-auto min-w-full">
+              <TabsTrigger value="basic">Cơ bản</TabsTrigger>
+              <TabsTrigger value="content">Nội dung</TabsTrigger>
+              <TabsTrigger value="faq">FAQ</TabsTrigger>
+              <TabsTrigger value="stats">Stats</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+              <TabsTrigger value="pricing">Pricing</TabsTrigger>
+              <TabsTrigger value="seo">SEO</TabsTrigger>
+              <TabsTrigger value="translations" disabled={!tool?.id} className="gap-1">
+                Dịch
+                {tool?.id && translationCount > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-5 px-1 text-[10px]">
+                    {translationCount}/{TARGET_LOCALES.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           {/* Tab: Basic */}
           <TabsContent value="basic" className="space-y-4 mt-4">
@@ -683,9 +851,9 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                   <Sparkles className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Thu thập tự động bằng AI</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input
-                    placeholder="Nhập tên tool (VD: Figma) hoặc URL (VD: https://figma.com)"
+                    placeholder="Nhập tên tool hoặc URL"
                     value={autoFillQuery}
                     onChange={(e) => setAutoFillQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && !autoFilling && handleAutoFill()}
@@ -700,7 +868,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tên *</Label>
                 <Input value={form.name} onChange={(e) => { updateField("name", e.target.value); if (!tool) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
@@ -714,7 +882,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <Label>Mô tả ngắn</Label>
               <Input value={form.short_description} onChange={(e) => updateField("short_description", e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Danh mục</Label>
                 <Select value={form.category_id} onValueChange={(v) => updateField("category_id", v)}>
@@ -738,7 +906,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Website URL</Label><Input value={form.website_url} onChange={(e) => updateField("website_url", e.target.value)} /></div>
               <div className="space-y-2"><Label>Affiliate URL</Label><Input value={form.affiliate_url} onChange={(e) => updateField("affiliate_url", e.target.value)} /></div>
             </div>
@@ -755,7 +923,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <div className="flex items-center gap-2"><Switch checked={form.is_featured} onCheckedChange={(v) => updateField("is_featured", v)} /><Label>Featured</Label></div>
               <div className="flex items-center gap-2"><Switch checked={form.is_trending} onCheckedChange={(v) => updateField("is_trending", v)} /><Label>Trending</Label></div>
             </div>
-            {/* Existing tags (for existing tools) */}
             {tool?.id && tags.length > 0 && (
               <div className="space-y-2">
                 <Label>Tags có sẵn</Label>
@@ -767,7 +934,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               </div>
             )}
 
-            {/* AI Suggested Tags */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Sparkles className="h-3.5 w-3.5 text-primary" /> Tags AI gợi ý
@@ -823,7 +989,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" /> Fake Rating & Views</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Avg Rating (0-5)</Label>
                     <Input type="number" min={0} max={5} step={0.1} value={form.avg_rating} onChange={(e) => updateField("avg_rating", parseFloat(e.target.value) || 0)} />
@@ -848,21 +1014,20 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <p className="text-sm text-muted-foreground">Lưu tool trước để quản lý reviews & Q&A.</p>
             ) : (
               <>
-                {/* Fake Reviews */}
                 <Card>
                   <CardHeader><CardTitle className="text-base">Reviews ({reviews.length})</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
                     {reviews.map((r: any) => (
-                      <div key={r.id} className="flex items-start justify-between border-b pb-2 last:border-0">
-                        <div>
-                          <div className="flex items-center gap-2">
+                      <div key={r.id} className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 border-b pb-2 last:border-0">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium">{r.title}</span>
                             {r.is_editor_review && <Badge variant="secondary" className="text-[10px]">Editor</Badge>}
                             <Badge variant={r.status === "published" ? "default" : "outline"} className="text-[10px]">{r.status}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{r.content}</p>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 shrink-0">
                           <Button variant="ghost" size="sm" onClick={() => toggleReviewStatus(r.id, r.status)}>
                             {r.status === "published" ? "Ẩn" : "Hiện"}
                           </Button>
@@ -881,7 +1046,6 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                   </CardContent>
                 </Card>
 
-                {/* Fake Q&A */}
                 <Card>
                   <CardHeader><CardTitle className="text-base">Q&A ({questions.length})</CardTitle></CardHeader>
                   <CardContent className="space-y-3">
@@ -937,7 +1101,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
                 ))}
                 <div className="border-t pt-3 space-y-2">
                   <p className="text-sm font-medium">Thêm plan mới</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <Input placeholder="Tên plan" value={newPlan.name} onChange={(e) => setNewPlan(prev => ({ ...prev, name: e.target.value }))} />
                     <Input placeholder="Giá" type="number" value={newPlan.price} onChange={(e) => setNewPlan(prev => ({ ...prev, price: e.target.value }))} />
                     <Select value={newPlan.currency} onValueChange={(v) => setNewPlan(prev => ({ ...prev, currency: v }))}>
@@ -985,7 +1149,7 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
               <CardHeader><CardTitle className="text-base">SEO Preview</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-blue-600 font-medium">{form.name || "Tool Name"}</p>
-                <p className="text-sm text-green-700">{window.location.origin}/tool/{form.slug || "slug"}</p>
+                <p className="text-sm text-green-700 break-all">{window.location.origin}/tool/{form.slug || "slug"}</p>
                 <p className="text-sm text-muted-foreground line-clamp-2">{form.short_description || "Mô tả ngắn..."}</p>
               </CardContent>
             </Card>
@@ -1066,7 +1230,7 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
           </div>
         </>
       ) : (
-        <div className="space-y-6 rounded-lg border p-6 bg-background">
+        <div className="space-y-6 rounded-lg border p-4 sm:p-6 bg-background">
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Mô tả</h3>
             {form.description ? (
@@ -1214,7 +1378,6 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
         );
       }
 
-      // Small delay between requests to avoid rate limiting
       if (i < items.length - 1) {
         await new Promise((r) => setTimeout(r, 2000));
       }
@@ -1231,7 +1394,7 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !running && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full sm:max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" /> Batch Import Tools
@@ -1252,7 +1415,7 @@ function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 Tối đa 50 URL. AI sẽ tự động thu thập thông tin và tạo tool với trạng thái "pending_review".
               </p>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2">
               <Button variant="outline" onClick={onClose}>Hủy</Button>
               <Button onClick={parseUrls}>
                 <Sparkles className="h-4 w-4 mr-2" /> Chuẩn bị Import ({urlsText.split("\n").filter((l) => l.trim()).length} URL)
@@ -1349,7 +1512,7 @@ function TranslateButton({ toolId, toolName }: { toolId: string; toolName: strin
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={translating} title="Dịch tool">
+        <Button variant="ghost" size="icon" disabled={translating} title="Dịch tool" className="h-8 w-8">
           {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
         </Button>
       </PopoverTrigger>
@@ -1364,7 +1527,7 @@ function TranslateButton({ toolId, toolName }: { toolId: string; toolName: strin
   );
 }
 
-function BatchTranslateButton({ tools }: { tools: any[] }) {
+function BatchTranslateButton({ tools, isMobile }: { tools: any[]; isMobile: boolean }) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [batchLocale, setBatchLocale] = useState<Locale>("en");
@@ -1400,6 +1563,34 @@ function BatchTranslateButton({ tools }: { tools: any[] }) {
     queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
     toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
   };
+
+  if (isMobile) {
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" disabled={running}>
+            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-3 space-y-2" align="end">
+          <p className="text-xs font-medium">Dịch hàng loạt</p>
+          <Select value={batchLocale} onValueChange={(v) => setBatchLocale(v as Locale)}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TARGET_LOCALES.map(([code, meta]) => (
+                <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button size="sm" className="w-full" onClick={handleBatchTranslate} disabled={running}>
+            {running ? `${progress.done}/${progress.total}` : "Bắt đầu dịch"}
+          </Button>
+        </PopoverContent>
+      </Popover>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1">
