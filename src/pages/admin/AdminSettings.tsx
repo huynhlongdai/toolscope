@@ -32,8 +32,8 @@ const FEATURES = [
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
-
-  // Analytics & Scripts
+  const { modulesConfig, saveMutation: saveModulesMutation } = useModules();
+  const [localModules, setLocalModules] = useState<Record<string, boolean>>({});
   const [gaId, setGaId] = useState("");
   const [headScripts, setHeadScripts] = useState("");
   const [bodyScripts, setBodyScripts] = useState("");
