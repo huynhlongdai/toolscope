@@ -326,7 +326,7 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
             <Input type="number" min={1} value={hoursToMigrate} onChange={(e) => setHoursToMigrate(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chi phí/giờ (USD)</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t("compare.costPerHour")}</label>
             <Input type="number" min={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
