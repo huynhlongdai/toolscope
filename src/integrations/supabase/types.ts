@@ -1596,6 +1596,9 @@ export type Database = {
           detailed_content: string | null
           faq: Json | null
           features: Json | null
+          health_checked_at: string | null
+          health_details: string | null
+          health_status: string
           id: string
           is_featured: boolean
           is_trending: boolean
@@ -1624,6 +1627,9 @@ export type Database = {
           detailed_content?: string | null
           faq?: Json | null
           features?: Json | null
+          health_checked_at?: string | null
+          health_details?: string | null
+          health_status?: string
           id?: string
           is_featured?: boolean
           is_trending?: boolean
@@ -1652,6 +1658,9 @@ export type Database = {
           detailed_content?: string | null
           faq?: Json | null
           features?: Json | null
+          health_checked_at?: string | null
+          health_details?: string | null
+          health_status?: string
           id?: string
           is_featured?: boolean
           is_trending?: boolean
