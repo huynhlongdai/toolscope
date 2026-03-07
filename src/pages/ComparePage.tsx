@@ -311,9 +311,9 @@ function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (ke
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <ArrowRightLeft className="h-5 w-5 text-accent" /> Chi phí chuyển đổi (Switching Cost)
+          <ArrowRightLeft className="h-5 w-5 text-accent" /> {t("compare.switchTitle")}
         </CardTitle>
-        <CardDescription>Ước tính chi phí khi chuyển từ tool này sang tool khác</CardDescription>
+        <CardDescription>{t("compare.switchDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
