@@ -283,7 +283,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground py-4">
-                    {tool.pricing_type === "free" ? "🎉 Miễn phí" : "Liên hệ để báo giá"}
+                    {tool.pricing_type === "free" ? t("compare.freeLabel") : t("compare.contactLabel")}
                   </p>
                 )}
               </div>
