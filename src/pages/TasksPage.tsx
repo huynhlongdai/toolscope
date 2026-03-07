@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import { useTranslatedList } from "@/hooks/useTranslatedContent";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -13,6 +15,7 @@ import { ArrowLeft, Search } from "lucide-react";
 import { SEOHead } from "@/components/seo/SEOHead";
 
 export default function TasksPage() {
+  const { t } = useI18n();
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
@@ -27,12 +30,20 @@ export default function TasksPage() {
     },
   });
 
+  const taskIds = useMemo(() => tasks?.map((t) => t.id) || [], [tasks]);
+  const taskFallbacks = useMemo(() => {
+    const fb: Record<string, Record<string, string | null | undefined>> = {};
+    tasks?.forEach((t) => { fb[t.id] = { name: t.name, description: t.description }; });
+    return fb;
+  }, [tasks]);
+
+  const { translationsMap } = useTranslatedList("task", taskIds, ["name", "description"], taskFallbacks);
+
   const selectedTaskData = tasks?.find((t) => t.id === selectedTask);
 
   const { data: toolsForTask, isLoading: toolsLoading } = useQuery({
     queryKey: ["task-tools", selectedTask],
     queryFn: async () => {
-      // Get tool_ids mapped to this task
       const { data: mappings, error: mapErr } = await supabase
         .from("tool_tasks")
         .select("tool_id")
@@ -41,7 +52,6 @@ export default function TasksPage() {
       if (mapErr) throw mapErr;
 
       if (!mappings || mappings.length === 0) {
-        // Fallback: find tools in similar category by keyword match
         const taskName = selectedTaskData?.name || "";
         const { data, error } = await supabase
           .from("tools")
@@ -67,12 +77,12 @@ export default function TasksPage() {
     enabled: !!selectedTask,
   });
 
+  const getTaskName = (task: any) => translationsMap[task.id]?.name || task.name;
+  const getTaskDesc = (task: any) => translationsMap[task.id]?.description || task.description;
+
   return (
     <div className="flex min-h-screen flex-col">
-      <SEOHead
-        title="Tìm tool theo công việc - ToolScope"
-        description="Chọn task bạn cần làm và tìm ngay công cụ phù hợp nhất. Generate images, Write content, Build website và hơn thế nữa."
-      />
+      <SEOHead title={t("tasks.seoTitle")} description={t("tasks.seoDesc")} />
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <div className="container py-8">
@@ -80,10 +90,10 @@ export default function TasksPage() {
             <>
               <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Bạn muốn làm gì?
+                  {t("tasks.title")}
                 </h1>
                 <p className="mt-2 text-lg text-muted-foreground">
-                  Chọn task và tìm ngay công cụ phù hợp nhất
+                  {t("tasks.subtitle")}
                 </p>
               </div>
 
@@ -104,16 +114,16 @@ export default function TasksPage() {
                       <CardContent className="flex flex-col items-center justify-center p-6 text-center">
                         <span className="text-4xl mb-3">{task.icon}</span>
                         <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                          {task.name}
+                          {getTaskName(task)}
                         </h3>
-                        {task.description && (
+                        {getTaskDesc(task) && (
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                            {task.description}
+                            {getTaskDesc(task)}
                           </p>
                         )}
                         {(task.tool_count ?? 0) > 0 && (
                           <span className="mt-2 text-[11px] text-muted-foreground">
-                            {task.tool_count} công cụ
+                            {t("tasks.toolCount").replace("{count}", String(task.tool_count))}
                           </span>
                         )}
                       </CardContent>
@@ -131,7 +141,7 @@ export default function TasksPage() {
                 onClick={() => setSelectedTask(null)}
               >
                 <ArrowLeft className="h-4 w-4" />
-                Quay lại
+                {t("tasks.back")}
               </Button>
 
               <div className="mb-6">
@@ -139,10 +149,10 @@ export default function TasksPage() {
                   <span className="text-3xl">{selectedTaskData?.icon}</span>
                   <div>
                     <h1 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {selectedTaskData?.name}
+                      {selectedTaskData ? getTaskName(selectedTaskData) : ""}
                     </h1>
-                    {selectedTaskData?.description && (
-                      <p className="text-muted-foreground">{selectedTaskData.description}</p>
+                    {selectedTaskData && getTaskDesc(selectedTaskData) && (
+                      <p className="text-muted-foreground">{getTaskDesc(selectedTaskData)}</p>
                     )}
                   </div>
                 </div>
@@ -156,7 +166,9 @@ export default function TasksPage() {
                 </div>
               ) : toolsForTask && toolsForTask.length > 0 ? (
                 <>
-                  <p className="mb-4 text-sm text-muted-foreground">{toolsForTask.length} công cụ phù hợp</p>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    {t("tasks.matchCount").replace("{count}", String(toolsForTask.length))}
+                  </p>
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {toolsForTask.map((tool) => (
                       <ToolCard
@@ -181,10 +193,10 @@ export default function TasksPage() {
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
                   <Search className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                  <p className="mt-3 text-lg font-medium">Chưa có công cụ nào cho task này</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Hãy thử tìm kiếm trên trang khám phá</p>
+                  <p className="mt-3 text-lg font-medium">{t("tasks.noTools")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("tasks.noToolsHint")}</p>
                   <Link to="/tools">
-                    <Button className="mt-4" size="sm">Khám phá công cụ</Button>
+                    <Button className="mt-4" size="sm">{t("tasks.explore")}</Button>
                   </Link>
                 </div>
               )}

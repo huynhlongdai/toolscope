@@ -62,3 +62,53 @@ export function useTranslatedContent(
 
   return { translated, isTranslated: hasTranslation, isLoading };
 }
+
+// Batch-translate a list of entities in a single query
+export interface TranslatedListMap {
+  [entityId: string]: { [field: string]: string | undefined };
+}
+
+export function useTranslatedList(
+  entityType: string,
+  entityIds: string[],
+  fields: string[],
+  fallbacks?: Record<string, Record<string, string | null | undefined>>
+): { translationsMap: TranslatedListMap; isLoading: boolean } {
+  const { locale } = useI18n();
+
+  const sortedIds = [...entityIds].sort();
+  const idsKey = sortedIds.join(",");
+
+  const { data: translations, isLoading } = useQuery({
+    queryKey: ["translated-list", locale, entityType, idsKey, fields.join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("translations")
+        .select("entity_id, field_name, translated_text")
+        .eq("entity_type", entityType)
+        .eq("locale", locale)
+        .in("entity_id", sortedIds)
+        .in("field_name", fields);
+      if (error) throw error;
+      return data;
+    },
+    enabled: sortedIds.length > 0 && locale !== SOURCE_LOCALE && fields.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const translationsMap: TranslatedListMap = {};
+
+  entityIds.forEach((id) => {
+    translationsMap[id] = {};
+    fields.forEach((f) => {
+      if (locale === SOURCE_LOCALE) {
+        translationsMap[id][f] = fallbacks?.[id]?.[f] ?? undefined;
+      } else {
+        const match = translations?.find((t) => t.entity_id === id && t.field_name === f);
+        translationsMap[id][f] = match?.translated_text ?? fallbacks?.[id]?.[f] ?? undefined;
+      }
+    });
+  });
+
+  return { translationsMap, isLoading };
+}

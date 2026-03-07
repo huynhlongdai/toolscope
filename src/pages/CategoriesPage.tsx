@@ -1,5 +1,8 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
+import { useTranslatedList } from "@/hooks/useTranslatedContent";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -10,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 
 export default function CategoriesPage() {
+  const { t } = useI18n();
+
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ["all-categories"],
     queryFn: async () => {
@@ -22,7 +27,6 @@ export default function CategoriesPage() {
     },
   });
 
-  // Fetch tool counts per category
   const { data: toolCounts = {} } = useQuery({
     queryKey: ["category-tool-counts"],
     queryFn: async () => {
@@ -39,8 +43,20 @@ export default function CategoriesPage() {
     },
   });
 
+  const catIds = useMemo(() => categories.map((c) => c.id), [categories]);
+  const catFallbacks = useMemo(() => {
+    const fb: Record<string, Record<string, string | null | undefined>> = {};
+    categories.forEach((c) => { fb[c.id] = { name: c.name, description: c.description }; });
+    return fb;
+  }, [categories]);
+
+  const { translationsMap } = useTranslatedList("category", catIds, ["name", "description"], catFallbacks);
+
   const parentCategories = categories.filter((c) => !c.parent_id);
   const getChildren = (parentId: string) => categories.filter((c) => c.parent_id === parentId);
+
+  const getCatName = (cat: any) => translationsMap[cat.id]?.name || cat.name;
+  const getCatDesc = (cat: any) => translationsMap[cat.id]?.description || cat.description;
 
   const iconMap: Record<string, string> = {
     "image": "🎨", "code": "💻", "pen-tool": "✏️", "megaphone": "📣",
@@ -57,23 +73,21 @@ export default function CategoriesPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <SEOHead
-        title="Danh mục công cụ AI | ToolScope"
-        description="Khám phá tất cả danh mục công cụ AI trên ToolScope — từ thiết kế, lập trình, marketing đến phân tích dữ liệu."
+        title={t("categories.pageSeoTitle")}
+        description={t("categories.pageSeoDesc")}
       />
       <Header />
       <main className="flex-1">
         <div className="container py-10">
-          {/* Hero */}
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Danh mục công cụ AI
+              {t("categories.pageTitle")}
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">
-              Khám phá {categories.length}+ danh mục công cụ AI được phân loại chi tiết, giúp bạn tìm đúng công cụ cho nhu cầu của mình.
+              {t("categories.pageSubtitle").replace("{count}", String(categories.length))}
             </p>
           </div>
 
-          {/* Grid */}
           {isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -97,15 +111,15 @@ export default function CategoriesPage() {
                         <span className="text-3xl">{getIcon(cat.icon)}</span>
                         <div>
                           <h2 className="font-semibold text-lg leading-tight group-hover:text-primary transition-colors">
-                            {cat.name}
+                            {getCatName(cat)}
                           </h2>
                           <Badge variant="secondary" className="mt-1 text-xs font-normal">
-                            {count} công cụ
+                            {count} {t("category.toolCount")}
                           </Badge>
                         </div>
                       </div>
-                      {cat.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{cat.description}</p>
+                      {getCatDesc(cat) && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{getCatDesc(cat)}</p>
                       )}
                     </div>
 
@@ -113,7 +127,7 @@ export default function CategoriesPage() {
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {children.slice(0, 3).map((child) => (
                           <span key={child.id} className="text-xs rounded-full bg-muted px-2.5 py-0.5 text-muted-foreground">
-                            {child.name}
+                            {getCatName(child)}
                           </span>
                         ))}
                         {children.length > 3 && (

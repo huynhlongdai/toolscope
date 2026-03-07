@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useI18n } from "@/lib/i18n";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -29,10 +30,7 @@ const CHART_COLORS = [
   "hsl(var(--destructive))",
 ];
 
-const pricingLabel: Record<string, string> = {
-  free: "Miễn phí", freemium: "Freemium", paid: "Trả phí",
-  open_source: "Open Source", contact: "Liên hệ",
-};
+// pricingLabel removed - now uses t() in component
 
 type ToolWithScores = {
   id: string; name: string; slug: string; logo_url: string | null;
@@ -63,13 +61,13 @@ function ScoreBar({ score, max = 10 }: { score: number | null; max?: number }) {
 }
 
 /* ─── Radar Chart ─── */
-function CompareRadarChart({ tools }: { tools: ToolWithScores[] }) {
+function CompareRadarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const dimensions = [
-    { key: "ease_of_use", label: "Dễ sử dụng" },
-    { key: "features", label: "Tính năng" },
-    { key: "value_for_money", label: "Giá trị" },
-    { key: "performance", label: "Hiệu suất" },
-    { key: "support", label: "Hỗ trợ" },
+    { key: "ease_of_use", label: t("compare.easeOfUse") },
+    { key: "features", label: t("compare.features") },
+    { key: "value_for_money", label: t("compare.value") },
+    { key: "performance", label: t("compare.performance") },
+    { key: "support", label: t("compare.support") },
   ];
 
   const data = dimensions.map((d) => {
@@ -84,9 +82,9 @@ function CompareRadarChart({ tools }: { tools: ToolWithScores[] }) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BarChart3 className="h-5 w-5 text-primary" /> Biểu đồ Radar AI Score
+          <BarChart3 className="h-5 w-5 text-primary" /> {t("compare.radarTitle")}
         </CardTitle>
-        <CardDescription>So sánh trực quan các tiêu chí đánh giá</CardDescription>
+        <CardDescription>{t("compare.radarDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-80">
@@ -122,21 +120,21 @@ function CompareRadarChart({ tools }: { tools: ToolWithScores[] }) {
 }
 
 /* ─── Bar Chart Score Comparison ─── */
-function CompareBarChart({ tools }: { tools: ToolWithScores[] }) {
-  const data = tools.map((t) => ({
-    name: t.name,
-    "AI Score": Number(t.ai_scores?.overall_score) || 0,
-    "Rating": Number(t.avg_rating || 0) * 2, // scale to 10
-    "Lượt xem": Math.min(t.view_count / 100, 10), // normalize
+function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
+  const data = tools.map((t_) => ({
+    name: t_.name,
+    "AI Score": Number(t_.ai_scores?.overall_score) || 0,
+    "Rating": Number(t_.avg_rating || 0) * 2,
+    [t("compare.views")]: Math.min(t_.view_count / 100, 10),
   }));
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <BarChart3 className="h-5 w-5 text-accent" /> So sánh tổng quan
+          <BarChart3 className="h-5 w-5 text-accent" /> {t("compare.overviewTitle")}
         </CardTitle>
-        <CardDescription>AI Score, Rating (×2) và Popularity</CardDescription>
+        <CardDescription>AI Score, Rating (×2) & Popularity</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -154,7 +152,7 @@ function CompareBarChart({ tools }: { tools: ToolWithScores[] }) {
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="AI Score" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Rating" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Lượt xem" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey={t("compare.views")} fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -164,7 +162,7 @@ function CompareBarChart({ tools }: { tools: ToolWithScores[] }) {
 }
 
 /* ─── Pricing Trend Comparison ─── */
-function PricingTrendChart({ toolIds, tools }: { toolIds: string[]; tools: ToolWithScores[] }) {
+function PricingTrendChart({ toolIds, tools, t }: { toolIds: string[]; tools: ToolWithScores[]; t: (key: string) => string }) {
   const { data: allHistory } = useQuery({
     queryKey: ["pricing-history-compare", toolIds],
     queryFn: async () => {
@@ -195,9 +193,9 @@ function PricingTrendChart({ toolIds, tools }: { toolIds: string[]; tools: ToolW
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <TrendingUp className="h-5 w-5 text-primary" /> Xu hướng giá theo thời gian
+          <TrendingUp className="h-5 w-5 text-primary" /> {t("compare.priceTrendTitle")}
         </CardTitle>
-        <CardDescription>So sánh biến động giá của các công cụ</CardDescription>
+        <CardDescription>{t("compare.priceTrendDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-64">
@@ -225,7 +223,7 @@ function PricingTrendChart({ toolIds, tools }: { toolIds: string[]; tools: ToolW
 }
 
 /* ─── ROI Calculator ─── */
-function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
+function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const [teamSize, setTeamSize] = useState(10);
   const [months, setMonths] = useState(12);
 
@@ -233,9 +231,9 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Calculator className="h-5 w-5 text-primary" /> ROI Calculator
+          <Calculator className="h-5 w-5 text-primary" /> {t("compare.roiTitle")}
         </CardTitle>
-        <CardDescription>Tính toán chi phí dựa trên quy mô đội ngũ</CardDescription>
+        <CardDescription>{t("compare.roiDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -244,14 +242,14 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
             <label className="text-sm font-medium">Team:</label>
             <Input type="number" min={1} max={1000} value={teamSize}
               onChange={(e) => setTeamSize(Number(e.target.value) || 1)} className="h-8 w-20" />
-            <span className="text-xs text-muted-foreground">người</span>
+            <span className="text-xs text-muted-foreground">{t("compare.teamLabel")}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <label className="text-sm font-medium">Thời gian:</label>
+            <label className="text-sm font-medium">Time:</label>
             <Input type="number" min={1} max={60} value={months}
               onChange={(e) => setMonths(Number(e.target.value) || 1)} className="h-8 w-20" />
-            <span className="text-xs text-muted-foreground">tháng</span>
+            <span className="text-xs text-muted-foreground">{t("compare.timeLabel")}</span>
           </div>
         </div>
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
@@ -269,23 +267,23 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
                   <div className="space-y-2">
                     <div>
                       <p className="text-3xl font-bold text-primary">${totalCost!.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">tổng {months} tháng</p>
+                      <p className="text-xs text-muted-foreground">{t("compare.totalMonths")} {months} {t("compare.timeLabel")}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="rounded-md bg-muted/50 p-2">
                         <p className="text-sm font-semibold">${monthlyCost.toLocaleString()}</p>
-                        <p className="text-[10px] text-muted-foreground">/tháng</p>
+                        <p className="text-[10px] text-muted-foreground">{t("compare.perMonth")}</p>
                       </div>
                       <div className="rounded-md bg-muted/50 p-2">
                         <p className="text-sm font-semibold">${dailyCost!.toFixed(1)}</p>
-                        <p className="text-[10px] text-muted-foreground">/ngày</p>
+                        <p className="text-[10px] text-muted-foreground">{t("compare.perDay")}</p>
                       </div>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user/tháng</p>
+                    <p className="text-[11px] text-muted-foreground">${monthlyPerUser}/user{t("compare.perMonth")}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground py-4">
-                    {tool.pricing_type === "free" ? "🎉 Miễn phí" : "Liên hệ để báo giá"}
+                    {tool.pricing_type === "free" ? t("compare.freeLabel") : t("compare.contactLabel")}
                   </p>
                 )}
               </div>
@@ -298,7 +296,7 @@ function ROICalculator({ tools }: { tools: ToolWithScores[] }) {
 }
 
 /* ─── Switching Cost Calculator ─── */
-function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
+function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const [currentToolIdx, setCurrentToolIdx] = useState(0);
   const [teamSize, setTeamSize] = useState(10);
   const [hoursToMigrate, setHoursToMigrate] = useState(8);
@@ -313,9 +311,9 @@ function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <ArrowRightLeft className="h-5 w-5 text-accent" /> Chi phí chuyển đổi (Switching Cost)
+          <ArrowRightLeft className="h-5 w-5 text-accent" /> {t("compare.switchTitle")}
         </CardTitle>
-        <CardDescription>Ước tính chi phí khi chuyển từ tool này sang tool khác</CardDescription>
+        <CardDescription>{t("compare.switchDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -324,15 +322,15 @@ function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
             <Input type="number" min={1} value={teamSize} onChange={(e) => setTeamSize(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Giờ migration/người</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t("compare.migrationHours")}</label>
             <Input type="number" min={1} value={hoursToMigrate} onChange={(e) => setHoursToMigrate(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chi phí/giờ (USD)</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t("compare.costPerHour")}</label>
             <Input type="number" min={1} value={hourlyRate} onChange={(e) => setHourlyRate(Number(e.target.value) || 1)} className="h-8" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chuyển từ</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">{t("compare.switchFrom")}</label>
             <select
               value={currentToolIdx}
               onChange={(e) => setCurrentToolIdx(Number(e.target.value))}
@@ -347,17 +345,17 @@ function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg bg-muted/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Chi phí migration</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("compare.migrationCost")}</p>
             <p className="text-xl font-bold text-foreground">${migrationCost.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">{teamSize} người × {hoursToMigrate}h × ${hourlyRate}/h</p>
           </div>
           <div className="rounded-lg bg-muted/50 p-4 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Mất năng suất</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("compare.productivityLoss")}</p>
             <p className="text-xl font-bold text-foreground">${productivityLossCost.toLocaleString()}</p>
-            <p className="text-[10px] text-muted-foreground">~{productivityLossDays} ngày learning curve</p>
+            <p className="text-[10px] text-muted-foreground">~{productivityLossDays} {t("compare.learningCurve")}</p>
           </div>
           <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 text-center">
-            <p className="text-xs font-medium text-primary mb-1">Tổng chi phí chuyển đổi</p>
+            <p className="text-xs font-medium text-primary mb-1">{t("compare.totalSwitchCost")}</p>
             <p className="text-2xl font-bold text-primary">${totalSwitchingCost.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground">từ {tools[currentToolIdx]?.name}</p>
           </div>
@@ -368,7 +366,7 @@ function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
 }
 
 /* ─── Productivity Score ─── */
-function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
+function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const data = tools.map((t) => {
     const ai = t.ai_scores;
     const ease = Number(ai?.ease_of_use) || 5;
@@ -385,9 +383,9 @@ function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-warning" /> Productivity Score
+          <Zap className="h-5 w-5 text-warning" /> {t("compare.productivityTitle")}
         </CardTitle>
-        <CardDescription>Ước tính mức tăng năng suất dựa trên AI Score</CardDescription>
+        <CardDescription>{t("compare.productivityDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
@@ -401,15 +399,15 @@ function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
               <p className="text-[10px] text-muted-foreground">/100 productivity score</p>
               <div className="mt-3 space-y-1 text-left">
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Tiết kiệm ~</span>
-                  <span className="font-medium">{d.timeSaved}h/tuần</span>
+                  <span className="text-muted-foreground">{t("compare.savesPerWeek")}</span>
+                  <span className="font-medium">{d.timeSaved}{t("compare.hrsPerWeek")}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Dễ sử dụng</span>
+                  <span className="text-muted-foreground">{t("compare.easeOfUse")}</span>
                   <span className="font-medium">{d.ease}/10</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Tính năng</span>
+                  <span className="text-muted-foreground">{t("compare.features")}</span>
                   <span className="font-medium">{d.feat}/10</span>
                 </div>
               </div>
@@ -423,6 +421,7 @@ function ProductivityScore({ tools }: { tools: ToolWithScores[] }) {
 
 /* ─── Main Compare Page ─── */
 export default function ComparePage() {
+  const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIds = useMemo(() => {
     const ids = searchParams.get("tools")?.split(",").filter(Boolean) || [];
@@ -477,28 +476,28 @@ export default function ComparePage() {
   const colCount = tools.length;
 
   const compareRows = [
-    { label: "Danh mục", key: "category", render: (t: ToolWithScores) => (t.categories as any)?.name || "—" },
-    { label: "Giá", key: "pricing", render: (t: ToolWithScores) => pricingLabel[t.pricing_type] || t.pricing_type },
-    { label: "Rating", key: "rating", render: (t: ToolWithScores) => (
+    { label: t("compare.category"), key: "category", render: (tool: ToolWithScores) => (tool.categories as any)?.name || "—" },
+    { label: t("compare.price"), key: "pricing", render: (tool: ToolWithScores) => t(`pricing.${tool.pricing_type}`, tool.pricing_type) },
+    { label: "Rating", key: "rating", render: (tool: ToolWithScores) => (
       <span className="flex items-center gap-1">
         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-        {t.avg_rating ? Number(t.avg_rating).toFixed(1) : "—"} ({t.rating_count})
+        {tool.avg_rating ? Number(tool.avg_rating).toFixed(1) : "—"} ({tool.rating_count})
       </span>
     )},
-    { label: "AI Score", key: "ai_score", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.overall_score ?? null} /> },
-    { label: "Dễ sử dụng", key: "ease", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.ease_of_use ?? null} /> },
-    { label: "Tính năng", key: "features", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.features ?? null} /> },
-    { label: "Giá trị", key: "value", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.value_for_money ?? null} /> },
-    { label: "Hiệu suất", key: "perf", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.performance ?? null} /> },
-    { label: "Hỗ trợ", key: "support", render: (t: ToolWithScores) => <ScoreBar score={t.ai_scores?.support ?? null} /> },
-    { label: "Platforms", key: "platforms", render: (t: ToolWithScores) => (
+    { label: "AI Score", key: "ai_score", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.overall_score ?? null} /> },
+    { label: t("compare.easeOfUse"), key: "ease", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.ease_of_use ?? null} /> },
+    { label: t("compare.features"), key: "features", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.features ?? null} /> },
+    { label: t("compare.value"), key: "value", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.value_for_money ?? null} /> },
+    { label: t("compare.performance"), key: "perf", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.performance ?? null} /> },
+    { label: t("compare.support"), key: "support", render: (tool: ToolWithScores) => <ScoreBar score={tool.ai_scores?.support ?? null} /> },
+    { label: "Platforms", key: "platforms", render: (tool: ToolWithScores) => (
       <div className="flex flex-wrap gap-1">
-        {t.platforms?.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>) || "—"}
+        {tool.platforms?.map((p) => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>) || "—"}
       </div>
     )},
-    { label: "Lượt xem", key: "views", render: (t: ToolWithScores) => t.view_count.toLocaleString() },
-    { label: "AI Recommended", key: "recommended", render: (t: ToolWithScores) => (
-      t.ai_scores?.is_recommended
+    { label: t("compare.views"), key: "views", render: (tool: ToolWithScores) => tool.view_count.toLocaleString() },
+    { label: "AI Recommended", key: "recommended", render: (tool: ToolWithScores) => (
+      tool.ai_scores?.is_recommended
         ? <Check className="h-4 w-4 text-accent" />
         : <Minus className="h-4 w-4 text-muted-foreground" />
     )},
@@ -512,9 +511,9 @@ export default function ComparePage() {
           <div className="mb-6">
             <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <GitCompareArrows className="h-8 w-8 text-primary" />
-              So sánh công cụ
+              {t("compare.title")}
             </h1>
-            <p className="mt-1 text-muted-foreground">Chọn 2-4 công cụ để so sánh chi tiết</p>
+            <p className="mt-1 text-muted-foreground">{t("compare.subtitle")}</p>
           </div>
 
           {/* Tool Selector */}
@@ -541,7 +540,7 @@ export default function ComparePage() {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Thêm công cụ..."
+                        placeholder={t("compare.addTool")}
                         className="h-6 w-36 border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
                       />
                     </div>
@@ -578,16 +577,16 @@ export default function ComparePage() {
           ) : tools.length < 2 ? (
             <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
               <GitCompareArrows className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-4 text-lg font-medium">Chọn ít nhất 2 công cụ để bắt đầu so sánh</p>
-              <p className="mt-1 text-sm text-muted-foreground">Tìm kiếm và thêm công cụ ở thanh phía trên</p>
+              <p className="mt-4 text-lg font-medium">{t("compare.selectMin")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("compare.searchHint")}</p>
             </div>
           ) : (
             <Tabs defaultValue="table" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4 max-w-lg">
-                <TabsTrigger value="table">📊 Bảng</TabsTrigger>
-                <TabsTrigger value="charts">📈 Biểu đồ</TabsTrigger>
-                <TabsTrigger value="pricing">💰 Chi phí</TabsTrigger>
-                <TabsTrigger value="tools">🔧 Công cụ</TabsTrigger>
+                <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
+                <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
+                <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
+                <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
               </TabsList>
 
               {/* TAB: Table */}
@@ -644,7 +643,7 @@ export default function ComparePage() {
                       <CardContent className="space-y-3">
                         {tool.ai_scores?.pros && tool.ai_scores.pros.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-accent mb-1">✅ Ưu điểm</p>
+                            <p className="text-xs font-semibold text-accent mb-1">✅ {t("compare.pros")}</p>
                             <ul className="space-y-1">
                               {tool.ai_scores.pros.map((p, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
@@ -656,7 +655,7 @@ export default function ComparePage() {
                         )}
                         {tool.ai_scores?.cons && tool.ai_scores.cons.length > 0 && (
                           <div>
-                            <p className="text-xs font-semibold text-destructive mb-1">❌ Nhược điểm</p>
+                            <p className="text-xs font-semibold text-destructive mb-1">❌ {t("compare.cons")}</p>
                             <ul className="space-y-1">
                               {tool.ai_scores.cons.map((c, i) => (
                                 <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
@@ -675,21 +674,21 @@ export default function ComparePage() {
               {/* TAB: Charts */}
               <TabsContent value="charts" className="space-y-6">
                 <div className="grid gap-6 lg:grid-cols-2">
-                  <CompareRadarChart tools={tools} />
-                  <CompareBarChart tools={tools} />
+                  <CompareRadarChart tools={tools} t={t} />
+                  <CompareBarChart tools={tools} t={t} />
                 </div>
-                <PricingTrendChart toolIds={selectedIds} tools={tools} />
+                <PricingTrendChart toolIds={selectedIds} tools={tools} t={t} />
               </TabsContent>
 
               {/* TAB: Pricing */}
               <TabsContent value="pricing" className="space-y-6">
-                <ROICalculator tools={tools} />
-                <SwitchingCostCalculator tools={tools} />
+                <ROICalculator tools={tools} t={t} />
+                <SwitchingCostCalculator tools={tools} t={t} />
               </TabsContent>
 
               {/* TAB: Tools */}
               <TabsContent value="tools" className="space-y-6">
-                <ProductivityScore tools={tools} />
+                <ProductivityScore tools={tools} t={t} />
               </TabsContent>
             </Tabs>
           )}
