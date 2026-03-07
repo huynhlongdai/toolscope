@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
+import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { marked } from "marked";
 import { Progress } from "@/components/ui/progress";
 import { logAuditAction } from "@/hooks/useAuditLog";
