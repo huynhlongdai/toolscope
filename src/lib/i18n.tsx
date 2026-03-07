@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import vi from "@/lib/translations/vi";
 import en from "@/lib/translations/en";
 
@@ -17,6 +19,8 @@ export const SUPPORTED_LOCALES: Record<Locale, { label: string; flag: string; na
   pt: { label: "Portuguese", flag: "🇧🇷", nativeName: "Português" },
   de: { label: "German", flag: "🇩🇪", nativeName: "Deutsch" },
 };
+
+const SYSTEM_ENTITY_ID = "00000000-0000-0000-0000-000000000001";
 
 const dictionaries: Record<string, Record<string, string>> = { vi, en };
 
@@ -43,12 +47,34 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("locale", l);
   }, []);
 
+  // Load system translation overrides from DB
+  const { data: dbOverrides } = useQuery({
+    queryKey: ["system-translations-override", locale],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("translations")
+        .select("field_name, translated_text")
+        .eq("entity_type", "system")
+        .eq("entity_id", SYSTEM_ENTITY_ID)
+        .eq("locale", locale);
+      if (error) return {};
+      const map: Record<string, string> = {};
+      data?.forEach((row: any) => {
+        map[row.field_name] = row.translated_text;
+      });
+      return map;
+    },
+    enabled: locale !== "vi",
+    staleTime: 5 * 60 * 1000,
+  });
+
   const t = useCallback(
     (key: string, fallback?: string) => {
-      // Try current locale dictionary, then fallback to vi
+      // Priority: DB override > static file > vi fallback > fallback > key
+      if (dbOverrides?.[key]) return dbOverrides[key];
       return dictionaries[locale]?.[key] ?? dictionaries["vi"]?.[key] ?? fallback ?? key;
     },
-    [locale]
+    [locale, dbOverrides]
   );
 
   return (
