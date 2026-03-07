@@ -49,7 +49,7 @@ function NewsletterForm() {
 }
 
 export function Footer() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const defaultFooterColumns = [
     {
@@ -79,20 +79,45 @@ export function Footer() {
     },
   ];
 
-  const { data: dbMenuItems } = useQuery({
-    queryKey: ["menu-footer"],
+  const { data: dbMenuData } = useQuery({
+    queryKey: ["menu-footer-with-id"],
     queryFn: async () => {
-      const { data } = await supabase.from("menus").select("items").eq("location", "footer").maybeSingle();
+      const { data } = await supabase.from("menus").select("id, items").eq("location", "footer").maybeSingle();
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-        return data.items as unknown as FooterColumn[];
+        return { id: data.id, items: data.items as unknown as FooterColumn[] };
       }
       return null;
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const footerColumns = dbMenuItems
-    ? dbMenuItems.map((col: any) => ({ title: col.label, items: col.children ?? [] }))
+  // Load menu translations
+  const menuId = dbMenuData?.id;
+  const { data: menuTranslations } = useQuery({
+    queryKey: ["menu-translations-footer", menuId, locale],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("translations")
+        .select("field_name, translated_text")
+        .eq("entity_type", "menu")
+        .eq("entity_id", menuId!)
+        .eq("locale", locale);
+      const map: Record<string, string> = {};
+      data?.forEach((row: any) => { map[row.field_name] = row.translated_text; });
+      return map;
+    },
+    enabled: !!menuId && locale !== "vi",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const footerColumns = dbMenuData
+    ? dbMenuData.items.map((col: any, colIdx: number) => ({
+        title: menuTranslations?.[`item_${colIdx}_label`] || col.label,
+        items: (col.children ?? []).map((child: any, childIdx: number) => ({
+          ...child,
+          label: menuTranslations?.[`item_${colIdx}_child_${childIdx}_label`] || child.label,
+        })),
+      }))
     : defaultFooterColumns;
 
   const renderLink = (item: MenuItem) => {

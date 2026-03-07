@@ -41,23 +41,48 @@ export function Header() {
   const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
 
-  const { data: dbMenuItems } = useQuery({
-    queryKey: ["menu-header"],
+  const { data: dbMenuData } = useQuery({
+    queryKey: ["menu-header-with-id"],
     queryFn: async () => {
       const { data } = await supabase
         .from("menus")
-        .select("items")
+        .select("id, items")
         .eq("location", "header")
         .maybeSingle();
       if (data?.items && Array.isArray(data.items) && data.items.length > 0) {
-        return data.items as unknown as MenuItem[];
+        return { id: data.id, items: data.items as unknown as MenuItem[] };
       }
       return null;
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  const navItems = dbMenuItems ?? defaultNavItems;
+  // Load menu translations for current locale
+  const menuId = dbMenuData?.id;
+  const { data: menuTranslations } = useQuery({
+    queryKey: ["menu-translations", menuId, locale],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("translations")
+        .select("field_name, translated_text")
+        .eq("entity_type", "menu")
+        .eq("entity_id", menuId!)
+        .eq("locale", locale);
+      const map: Record<string, string> = {};
+      data?.forEach((row: any) => { map[row.field_name] = row.translated_text; });
+      return map;
+    },
+    enabled: !!menuId && locale !== "vi",
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const rawNavItems = dbMenuData?.items ?? defaultNavItems;
+
+  // Apply translations to menu items
+  const navItems = rawNavItems.map((item, i) => ({
+    ...item,
+    label: menuTranslations?.[`item_${i}_label`] || item.label,
+  }));
 
   const toggleTheme = () => {
     setIsDark(!isDark);
@@ -68,25 +93,15 @@ export function Header() {
     const isExternal = item.url.startsWith("http");
     if (isExternal || item.open_new_tab) {
       return (
-        <a
-          key={item.label}
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          onClick={onClick}
-        >
+        <a key={item.label + item.url} href={item.url} target="_blank" rel="noopener noreferrer"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" onClick={onClick}>
           {item.label}
         </a>
       );
     }
     return (
-      <Link
-        key={item.label}
-        to={item.url}
-        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        onClick={onClick}
-      >
+      <Link key={item.label + item.url} to={item.url}
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground" onClick={onClick}>
         {item.label}
       </Link>
     );
@@ -106,7 +121,6 @@ export function Header() {
               ToolScope
             </span>
           </Link>
-
           <nav className="hidden items-center gap-6 md:flex">
             {navItems.map((item) => renderLink(item))}
           </nav>
@@ -116,14 +130,11 @@ export function Header() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex">
             <Search className="h-4 w-4" />
           </Button>
-
           {user && <NotificationDropdown />}
-
           <Button variant="ghost" size="icon" onClick={toggleTheme}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          {/* Language Switcher Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 text-xs font-medium">
@@ -133,11 +144,7 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
               {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
-                <DropdownMenuItem
-                  key={code}
-                  onClick={() => setLocale(code)}
-                  className="flex items-center justify-between"
-                >
+                <DropdownMenuItem key={code} onClick={() => setLocale(code)} className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="text-base">{meta.flag}</span>
                     <span className="text-sm">{meta.nativeName}</span>
@@ -151,33 +158,21 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full"><User className="h-4 w-4" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <User className="mr-2 h-4 w-4" /> {t("header.profile")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")}>
-                  <Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/profile")}><User className="mr-2 h-4 w-4" /> {t("header.profile")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/profile")}><Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {isAdminOrEditor && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <Shield className="mr-2 h-4 w-4" /> {t("header.admin")}
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/admin")}><Shield className="mr-2 h-4 w-4" /> {t("header.admin")}</DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}
-                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button size="sm" onClick={() => navigate("/auth")}>
-              {t("header.login")}
-            </Button>
+            <Button size="sm" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
           )}
 
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -191,7 +186,6 @@ export function Header() {
           <nav className="flex flex-col gap-2">
             {navItems.map((item) => renderLink(item, () => setMobileMenuOpen(false)))}
             <div className="my-2 h-px bg-border" />
-            {/* Mobile Language Switcher */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground w-fit">
@@ -201,14 +195,7 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 max-h-72 overflow-y-auto">
                 {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
-                  <DropdownMenuItem
-                    key={code}
-                    onClick={() => {
-                      setLocale(code);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center justify-between"
-                  >
+                  <DropdownMenuItem key={code} onClick={() => { setLocale(code); setMobileMenuOpen(false); }} className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <span className="text-base">{meta.flag}</span>
                       <span className="text-sm">{meta.nativeName}</span>
@@ -220,22 +207,12 @@ export function Header() {
             </DropdownMenu>
             {user && (
               <>
-                <Link
-                  to="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Bookmark className="h-4 w-4" />
-                  {t("header.saved")}
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  <Bookmark className="h-4 w-4" /> {t("header.saved")}
                 </Link>
                 {isAdminOrEditor && (
-                  <Link
-                    to="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Shield className="h-4 w-4" />
-                    Admin Dashboard
+                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                    <Shield className="h-4 w-4" /> Admin Dashboard
                   </Link>
                 )}
               </>

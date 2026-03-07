@@ -23,6 +23,7 @@ export function ContentTranslationsTab() {
   const [editItem, setEditItem] = useState<any>(null);
   const [diffItem, setDiffItem] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedBlogIds, setSelectedBlogIds] = useState<Set<string>>(new Set());
 
   const { data: tools = [] } = useQuery({
     queryKey: ["admin-tools-for-translation"],
@@ -40,13 +41,20 @@ export function ContentTranslationsTab() {
     },
   });
 
+  const { data: menus = [] } = useQuery({
+    queryKey: ["admin-menus-for-translation"],
+    queryFn: async () => {
+      const { data } = await supabase.from("menus").select("id, name, location, items");
+      return data ?? [];
+    },
+  });
+
   const { data: translations = [], isLoading } = useQuery({
     queryKey: ["admin-translations", entityFilter, targetLocale],
     queryFn: async () => {
       let q = supabase.from("translations").select("*").eq("locale", targetLocale).order("updated_at", { ascending: false });
       if (entityFilter !== "all") q = q.eq("entity_type", entityFilter);
-      // Exclude system translations
-      q = q.in("entity_type", ["tool", "blog"]);
+      q = q.in("entity_type", ["tool", "blog", "menu"]);
       const { data, error } = await q.limit(500);
       if (error) throw error;
       return data;
@@ -55,15 +63,17 @@ export function ContentTranslationsTab() {
 
   const translatedToolIds = new Set(translations.filter((t: any) => t.entity_type === "tool").map((t: any) => t.entity_id));
   const translatedBlogIds = new Set(translations.filter((t: any) => t.entity_type === "blog").map((t: any) => t.entity_id));
+  const translatedMenuIds = new Set(translations.filter((t: any) => t.entity_type === "menu").map((t: any) => t.entity_id));
   const untranslatedTools = tools.filter((t: any) => !translatedToolIds.has(t.id));
   const untranslatedBlogs = blogs.filter((b: any) => !translatedBlogIds.has(b.id));
+  const untranslatedMenus = menus.filter((m: any) => !translatedMenuIds.has(m.id));
 
   const toolPercent = tools.length > 0 ? Math.round((translatedToolIds.size / tools.length) * 100) : 0;
   const blogPercent = blogs.length > 0 ? Math.round((translatedBlogIds.size / blogs.length) * 100) : 0;
   const autoCount = translations.filter((t: any) => t.is_auto).length;
   const manualCount = translations.filter((t: any) => !t.is_auto).length;
 
-  const translateMutation = useMutation({
+  const translateToolMutation = useMutation({
     mutationFn: async (toolId: string) => {
       const { data, error } = await supabase.functions.invoke("translate-tool", {
         body: { tool_id: toolId, locale: targetLocale },
@@ -76,7 +86,39 @@ export function ContentTranslationsTab() {
       queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
       toast.success(`Đã dịch ${data.saved} trường sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
     },
-    onError: (e: any) => toast.error(e.message || "Lỗi dịch"),
+    onError: (e: any) => toast.error(e.message || "Lỗi dịch tool"),
+  });
+
+  const translateBlogMutation = useMutation({
+    mutationFn: async (blogId: string) => {
+      const { data, error } = await supabase.functions.invoke("translate-blog", {
+        body: { blog_id: blogId, locale: targetLocale },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
+      toast.success(`Đã dịch blog sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
+    },
+    onError: (e: any) => toast.error(e.message || "Lỗi dịch blog"),
+  });
+
+  const translateMenuMutation = useMutation({
+    mutationFn: async (menuId: string) => {
+      const { data, error } = await supabase.functions.invoke("translate-menu", {
+        body: { menu_id: menuId, locale: targetLocale },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
+      toast.success(`Đã dịch menu sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
+    },
+    onError: (e: any) => toast.error(e.message || "Lỗi dịch menu"),
   });
 
   const bulkTranslateMutation = useMutation({
@@ -101,6 +143,28 @@ export function ContentTranslationsTab() {
     onError: () => toast.error("Lỗi dịch hàng loạt"),
   });
 
+  const bulkTranslateBlogsMutation = useMutation({
+    mutationFn: async (blogIds: string[]) => {
+      let successCount = 0;
+      for (const id of blogIds) {
+        try {
+          const { data, error } = await supabase.functions.invoke("translate-blog", {
+            body: { blog_id: id, locale: targetLocale },
+          });
+          if (!error && !data?.error) successCount++;
+        } catch { /* skip */ }
+        await new Promise(r => setTimeout(r, 2000));
+      }
+      return successCount;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-translations"] });
+      setSelectedBlogIds(new Set());
+      toast.success(`Đã dịch ${count} blogs sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`);
+    },
+    onError: () => toast.error("Lỗi dịch blog hàng loạt"),
+  });
+
   const updateTranslation = useMutation({
     mutationFn: async ({ id, translated_text }: { id: string; translated_text: string }) => {
       const { error } = await supabase.from("translations").update({
@@ -118,9 +182,12 @@ export function ContentTranslationsTab() {
   });
 
   const filtered = translations.filter((t: any) => {
+    if (entityFilter !== "all" && t.entity_type !== entityFilter) return false;
     const entityName = t.entity_type === "tool"
       ? tools.find((tool: any) => tool.id === t.entity_id)?.name || ""
-      : blogs.find((b: any) => b.id === t.entity_id)?.title || "";
+      : t.entity_type === "blog"
+      ? blogs.find((b: any) => b.id === t.entity_id)?.title || ""
+      : menus.find((m: any) => m.id === t.entity_id)?.name || "";
     return entityName.toLowerCase().includes(search.toLowerCase()) ||
       t.field_name.toLowerCase().includes(search.toLowerCase()) ||
       t.translated_text.toLowerCase().includes(search.toLowerCase());
@@ -129,13 +196,14 @@ export function ContentTranslationsTab() {
   const getOriginalText = (item: any) => {
     if (item.entity_type === "tool") {
       const tool = tools.find((t: any) => t.id === item.entity_id);
-      if (!tool) return "";
-      return (tool as any)[item.field_name] || "";
+      return tool ? (tool as any)[item.field_name] || "" : "";
     }
     if (item.entity_type === "blog") {
       const blog = blogs.find((b: any) => b.id === item.entity_id);
-      if (!blog) return "";
-      return (blog as any)[item.field_name] || "";
+      return blog ? (blog as any)[item.field_name] || "" : "";
+    }
+    if (item.entity_type === "menu") {
+      return item.field_name; // menu field names are like item_0_label
     }
     return "";
   };
@@ -143,6 +211,7 @@ export function ContentTranslationsTab() {
   const getEntityName = (t: any) => {
     if (t.entity_type === "tool") return tools.find((tool: any) => tool.id === t.entity_id)?.name || t.entity_id.slice(0, 8);
     if (t.entity_type === "blog") return blogs.find((b: any) => b.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
+    if (t.entity_type === "menu") return menus.find((m: any) => m.id === t.entity_id)?.name || t.entity_id.slice(0, 8);
     return t.entity_id.slice(0, 8);
   };
 
@@ -156,6 +225,8 @@ export function ContentTranslationsTab() {
     }
   };
 
+  const isAnyTranslating = translateToolMutation.isPending || translateBlogMutation.isPending || translateMenuMutation.isPending || bulkTranslateMutation.isPending || bulkTranslateBlogsMutation.isPending;
+
   return (
     <div className="space-y-4">
       {/* Header controls */}
@@ -165,24 +236,16 @@ export function ContentTranslationsTab() {
         </p>
         <div className="flex items-center gap-2">
           <Select value={targetLocale} onValueChange={(v) => setTargetLocale(v as Locale)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               {TARGET_LOCALES.map(([code, meta]) => (
-                <SelectItem key={code} value={code}>
-                  {meta.flag} {meta.nativeName}
-                </SelectItem>
+                <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <Button
-            onClick={handleBulkTranslate}
-            disabled={bulkTranslateMutation.isPending}
-            size="sm"
-          >
+          <Button onClick={handleBulkTranslate} disabled={isAnyTranslating} size="sm">
             {bulkTranslateMutation.isPending ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <Languages className="mr-1 h-4 w-4" />}
-            {selectedIds.size > 0 ? `Dịch ${selectedIds.size} đã chọn` : `Dịch hàng loạt (${Math.min(untranslatedTools.length, 10)})`}
+            {selectedIds.size > 0 ? `Dịch ${selectedIds.size} đã chọn` : `Dịch tools (${Math.min(untranslatedTools.length, 10)})`}
           </Button>
         </div>
       </div>
@@ -201,11 +264,23 @@ export function ContentTranslationsTab() {
       <UntranslatedSection
         untranslatedTools={untranslatedTools}
         untranslatedBlogs={untranslatedBlogs}
-        onTranslate={(id) => translateMutation.mutate(id)}
-        isTranslating={translateMutation.isPending}
-        selectedIds={selectedIds}
-        onToggleSelect={(id) => {
+        untranslatedMenus={untranslatedMenus}
+        onTranslateTool={(id) => translateToolMutation.mutate(id)}
+        onTranslateBlog={(id) => translateBlogMutation.mutate(id)}
+        onTranslateMenu={(id) => translateMenuMutation.mutate(id)}
+        onBulkTranslateBlogs={(ids) => bulkTranslateBlogsMutation.mutate(ids)}
+        isTranslating={isAnyTranslating}
+        selectedToolIds={selectedIds}
+        onToggleSelectTool={(id) => {
           setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+          });
+        }}
+        selectedBlogIds={selectedBlogIds}
+        onToggleSelectBlog={(id) => {
+          setSelectedBlogIds(prev => {
             const next = new Set(prev);
             next.has(id) ? next.delete(id) : next.add(id);
             return next;
@@ -225,6 +300,7 @@ export function ContentTranslationsTab() {
             <SelectItem value="all">Tất cả</SelectItem>
             <SelectItem value="tool">Tools</SelectItem>
             <SelectItem value="blog">Blog</SelectItem>
+            <SelectItem value="menu">Menu</SelectItem>
           </SelectContent>
         </Select>
       </div>
