@@ -540,7 +540,7 @@ export default function ComparePage() {
                       <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Thêm công cụ..."
+                        placeholder={t("compare.addTool")}
                         className="h-6 w-36 border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
                       />
                     </div>
