@@ -61,18 +61,21 @@ export default function AdminTools() {
   // Pending submissions
   const pendingTools = tools.filter((t: any) => t.status === "pending_review");
 
-  // Translation status per tool
-  const { data: translatedToolIds = new Set<string>() } = useQuery({
-    queryKey: ["admin-tools-translation-ids", translationFilter],
+  // Translation status per tool: Map<toolId, Set<locale>>
+  const { data: toolTranslationMap = new Map<string, Set<string>>() } = useQuery({
+    queryKey: ["admin-tools-translation-map"],
     queryFn: async () => {
-      if (translationFilter === "all") return new Set<string>();
-      const locale = translationFilter === "untranslated" || translationFilter === "translated" ? undefined : translationFilter;
-      let q = supabase.from("translations").select("entity_id").eq("entity_type", "tool");
-      if (locale) q = q.eq("locale", locale);
-      const { data } = await q;
-      return new Set((data ?? []).map((t: any) => t.entity_id));
+      const { data } = await supabase
+        .from("translations")
+        .select("entity_id, locale")
+        .eq("entity_type", "tool");
+      const map = new Map<string, Set<string>>();
+      (data ?? []).forEach((t: any) => {
+        if (!map.has(t.entity_id)) map.set(t.entity_id, new Set());
+        map.get(t.entity_id)!.add(t.locale);
+      });
+      return map;
     },
-    select: (data) => data,
   });
 
   const deleteMutation = useMutation({
