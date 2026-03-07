@@ -296,7 +296,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
 }
 
 /* ─── Switching Cost Calculator ─── */
-function SwitchingCostCalculator({ tools }: { tools: ToolWithScores[] }) {
+function SwitchingCostCalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string) => string }) {
   const [currentToolIdx, setCurrentToolIdx] = useState(0);
   const [teamSize, setTeamSize] = useState(10);
   const [hoursToMigrate, setHoursToMigrate] = useState(8);
