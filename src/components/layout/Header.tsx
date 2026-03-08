@@ -95,8 +95,16 @@ export function Header() {
 
   const rawNavItems = dbMenuData?.items ?? defaultNavItems;
 
+  // Filter nav items by module enabled status
+  const filterByModule = (items: MenuItem[]) =>
+    items.filter((item) => {
+      const moduleId = URL_MODULE_MAP[item.url];
+      if (moduleId === undefined || moduleId === "") return true; // unknown or always-on
+      return isEnabled(moduleId);
+    });
+
   // Apply translations to menu items
-  const navItems = rawNavItems.map((item, i) => ({
+  const navItems = filterByModule(rawNavItems).map((item, i) => ({
     ...item,
     label: menuTranslations?.[`item_${i}_label`] || item.label,
   }));
