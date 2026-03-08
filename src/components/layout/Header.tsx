@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { useI18n, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { useModules } from "@/hooks/useModules";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
