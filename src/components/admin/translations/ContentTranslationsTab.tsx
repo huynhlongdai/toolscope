@@ -247,6 +247,7 @@ export function ContentTranslationsTab() {
     if (t.entity_type === "blog") return blogs.find((b: any) => b.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     if (t.entity_type === "workflow") return workflows.find((w: any) => w.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     if (t.entity_type === "menu") return menus.find((m: any) => m.id === t.entity_id)?.name || t.entity_id.slice(0, 8);
+    if (t.entity_type === "deal") return dealsData.find((d: any) => d.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     return t.entity_id.slice(0, 8);
   }
 
