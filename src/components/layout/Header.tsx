@@ -34,12 +34,28 @@ const defaultNavItems: MenuItem[] = [
   { label: "Blog", url: "/blog" },
 ];
 
+// URL prefix → module ID mapping for nav filtering
+const URL_MODULE_MAP: Record<string, string> = {
+  "/tools": "",       // always on
+  "/trending": "",    // always on
+  "/tasks": "tasks",
+  "/launches": "launches",
+  "/workflows": "workflows",
+  "/deals": "deals",
+  "/blog": "blog",
+  "/collections": "collections",
+  "/compare": "compare",
+  "/leaderboard": "leaderboard",
+  "/submit": "submit_tool",
+};
+
 export function Header() {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
   const { locale, setLocale, t } = useI18n();
+  const { isEnabled } = useModules();
   const navigate = useNavigate();
 
   const { data: dbMenuData } = useQuery({
