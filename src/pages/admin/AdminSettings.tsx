@@ -17,8 +17,9 @@ import { toast } from "sonner";
 import {
   Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2,
   Settings2, Share2, Blocks, RotateCcw, Plus, Trash2, Download, Upload, Zap, BarChart3,
-  Activity, Clock, AlertTriangle
+  Activity, Clock, AlertTriangle, Megaphone
 } from "lucide-react";
+import { AdsSettingsTab } from "@/components/admin/AdsSettingsTab";
 import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -396,6 +397,7 @@ export default function AdminSettings() {
             <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
             <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
             <TabsTrigger value="modules" className="gap-1.5 text-xs md:text-sm"><Blocks className="h-3.5 w-3.5" /> Modules</TabsTrigger>
+            <TabsTrigger value="ads" className="gap-1.5 text-xs md:text-sm"><Megaphone className="h-3.5 w-3.5" /> Quảng cáo</TabsTrigger>
             <TabsTrigger value="danger" className="gap-1.5 text-xs md:text-sm text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> Danger</TabsTrigger>
           </TabsList>
 
@@ -1023,6 +1025,11 @@ export default function AdminSettings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ADS TAB */}
+          <TabsContent value="ads">
+            <AdsSettingsTab />
           </TabsContent>
         </Tabs>
       </div>

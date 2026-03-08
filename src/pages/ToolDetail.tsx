@@ -40,6 +40,7 @@ import { ShareButtons } from "@/components/share/ShareButtons";
 import { UpvoteButton } from "@/components/UpvoteButton";
 import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
 import { VendorResponse } from "@/components/tool-detail/VendorResponse";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -267,6 +268,7 @@ export default function ToolDetail() {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
+              <AdUnit slotId="tool_detail_top" className="mb-4" />
               {displayDesc && (
                 <Card>
                   <CardHeader><CardTitle>{t("tool.introduction")}</CardTitle></CardHeader>
@@ -308,6 +310,8 @@ export default function ToolDetail() {
                   </CardContent>
                 </Card>
               )}
+
+              <AdUnit slotId="tool_detail_mid" className="my-4" />
 
               <Card>
                 <CardHeader><CardTitle>{t("tool.yourRating")}</CardTitle></CardHeader>

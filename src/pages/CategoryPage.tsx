@@ -12,6 +12,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
 import { G2GridChart } from "@/components/category/G2GridChart";
 import { cn } from "@/lib/utils";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -180,6 +181,7 @@ export default function CategoryPage() {
           ) : tools && tools.length > 0 ? (
             <>
               <p className="mb-4 text-sm text-muted-foreground">{tools.length} {t("category.toolCount")}</p>
+              <AdUnit slotId="between_tools" className="mb-4" />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {tools.map((tool) => (
                   <ToolCard

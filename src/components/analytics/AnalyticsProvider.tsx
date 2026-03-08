@@ -12,7 +12,7 @@ export function AnalyticsProvider() {
       const { data } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["ga_measurement_id", "custom_head_scripts", "custom_body_scripts"]);
+        .in("key", ["ga_measurement_id", "custom_head_scripts", "custom_body_scripts", "ads_config"]);
       const map: Record<string, any> = {};
       data?.forEach((row: any) => { map[row.key] = row.value; });
       return map;
@@ -66,6 +66,33 @@ export function AnalyticsProvider() {
       document.querySelectorAll('[data-analytics="custom-head"]').forEach(el => el.remove());
     };
   }, [settings?.custom_head_scripts]);
+
+  // Inject AdSense script
+  useEffect(() => {
+    const raw = settings?.ads_config;
+    const adsConfig = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!adsConfig?.enabled || !adsConfig?.client_id) return;
+
+    // Check if at least one slot uses adsense mode
+    const hasAdsenseSlot = Object.values(adsConfig.slots || {}).some(
+      (s: any) => s.enabled && s.mode === "adsense"
+    );
+    if (!hasAdsenseSlot) return;
+
+    const clientId = adsConfig.client_id;
+    if (document.querySelector(`script[src*="adsbygoogle.js?client=${clientId}"]`)) return;
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${clientId}`;
+    script.setAttribute("data-analytics", "adsense");
+    document.head.appendChild(script);
+
+    return () => {
+      document.querySelectorAll('script[data-analytics="adsense"]').forEach(el => el.remove());
+    };
+  }, [settings?.ads_config]);
 
   // Track page views on route change
   useEffect(() => {
