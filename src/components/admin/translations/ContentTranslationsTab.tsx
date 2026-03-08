@@ -67,7 +67,7 @@ export function ContentTranslationsTab() {
     },
   });
 
-  const entityTypes = entityFilter === "all" ? ["tool", "blog", "menu", "workflow"] : [entityFilter];
+  const entityTypes = entityFilter === "all" ? ["tool", "blog", "menu", "workflow", "deal"] : [entityFilter];
 
   const { data: translations = [], isLoading } = useQuery({
     queryKey: ["admin-translations", entityFilter, targetLocale],
