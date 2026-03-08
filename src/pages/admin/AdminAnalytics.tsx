@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { TrendingUp, Users, FileText, Eye, Download, BarChart3 } from "lucide-react";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { TrendingUp, Users, FileText, Eye, Download, BarChart3, Tag, MousePointerClick } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#8884d8", "#82ca9d", "#ffc658"];
 
@@ -16,6 +17,7 @@ export default function AdminAnalytics() {
 
   const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
   const rangeDate = range === "all" ? undefined : daysAgo(Number(range));
+  const prevRangeDate = range === "all" ? undefined : daysAgo(Number(range) * 2);
 
   // Tools over time
   const { data: toolsData = [] } = useQuery({
@@ -74,9 +76,9 @@ export default function AdminAnalytics() {
     },
   });
 
-  // Summary stats
+  // Summary stats with period comparison
   const { data: stats } = useQuery({
-    queryKey: ["analytics-stats"],
+    queryKey: ["analytics-stats", range],
     queryFn: async () => {
       const [tools, users, reviews, comments] = await Promise.all([
         supabase.from("tools").select("id", { count: "exact", head: true }).eq("status", "published"),
@@ -86,24 +88,54 @@ export default function AdminAnalytics() {
       ]);
       const { data: viewData } = await supabase.from("tools").select("view_count");
       const totalViews = viewData?.reduce((s: number, t: any) => s + (t.view_count || 0), 0) || 0;
+
+      // Period comparison: current vs previous period
+      let currentCount = { tools: 0, users: 0, reviews: 0 };
+      let prevCount = { tools: 0, users: 0, reviews: 0 };
+      if (rangeDate && prevRangeDate) {
+        const [ct, cu, cr, pt, pu, pr] = await Promise.all([
+          supabase.from("tools").select("id", { count: "exact", head: true }).gte("created_at", rangeDate),
+          supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", rangeDate),
+          supabase.from("reviews").select("id", { count: "exact", head: true }).gte("created_at", rangeDate),
+          supabase.from("tools").select("id", { count: "exact", head: true }).gte("created_at", prevRangeDate).lt("created_at", rangeDate),
+          supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", prevRangeDate).lt("created_at", rangeDate),
+          supabase.from("reviews").select("id", { count: "exact", head: true }).gte("created_at", prevRangeDate).lt("created_at", rangeDate),
+        ]);
+        currentCount = { tools: ct.count || 0, users: cu.count || 0, reviews: cr.count || 0 };
+        prevCount = { tools: pt.count || 0, users: pu.count || 0, reviews: pr.count || 0 };
+      }
+
       return {
-        tools: tools.count || 0,
-        users: users.count || 0,
-        reviews: reviews.count || 0,
-        comments: comments.count || 0,
-        totalViews,
+        tools: tools.count || 0, users: users.count || 0, reviews: reviews.count || 0,
+        comments: comments.count || 0, totalViews,
+        currentCount, prevCount,
       };
     },
   });
 
+  // Deals analytics
+  const { data: dealsStats } = useQuery({
+    queryKey: ["analytics-deals"],
+    queryFn: async () => {
+      const { data: deals } = await supabase.from("deals").select("id, title, click_count, upvotes, discount_value, discount_type, is_active, tool_id, tools(name)").order("click_count", { ascending: false }).limit(10);
+      const { count: activeCount } = await supabase.from("deals").select("id", { count: "exact", head: true }).eq("is_active", true);
+      const { count: totalCount } = await supabase.from("deals").select("id", { count: "exact", head: true });
+      const totalClicks = deals?.reduce((s, d: any) => s + (d.click_count || 0), 0) || 0;
+      return { topDeals: deals ?? [], activeCount: activeCount || 0, totalCount: totalCount || 0, totalClicks };
+    },
+  });
+
+  const calcChange = (cur: number, prev: number) => {
+    if (prev === 0) return cur > 0 ? 100 : 0;
+    return Math.round(((cur - prev) / prev) * 100);
+  };
+
   const exportReport = () => {
-    const report = { stats, toolsData, usersData, reviewsData, categoryData, topTools, exportedAt: new Date().toISOString() };
+    const report = { stats, toolsData, usersData, reviewsData, categoryData, topTools, dealsStats, exportedAt: new Date().toISOString() };
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `analytics-report-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
+    a.href = url; a.download = `analytics-report-${new Date().toISOString().slice(0, 10)}.json`; a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -132,14 +164,14 @@ export default function AdminAnalytics() {
           </div>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards with comparison */}
         <div className="grid gap-4 md:grid-cols-5">
           {[
-            { label: "Tools", value: stats?.tools ?? 0, icon: FileText },
-            { label: "Users", value: stats?.users ?? 0, icon: Users },
-            { label: "Reviews", value: stats?.reviews ?? 0, icon: TrendingUp },
-            { label: "Comments", value: stats?.comments ?? 0, icon: FileText },
-            { label: "Total Views", value: stats?.totalViews?.toLocaleString() ?? 0, icon: Eye },
+            { label: "Tools", value: stats?.tools ?? 0, icon: FileText, change: stats?.currentCount ? calcChange(stats.currentCount.tools, stats.prevCount.tools) : null },
+            { label: "Users", value: stats?.users ?? 0, icon: Users, change: stats?.currentCount ? calcChange(stats.currentCount.users, stats.prevCount.users) : null },
+            { label: "Reviews", value: stats?.reviews ?? 0, icon: TrendingUp, change: stats?.currentCount ? calcChange(stats.currentCount.reviews, stats.prevCount.reviews) : null },
+            { label: "Comments", value: stats?.comments ?? 0, icon: FileText, change: null },
+            { label: "Total Views", value: stats?.totalViews?.toLocaleString() ?? 0, icon: Eye, change: null },
           ].map((s) => (
             <Card key={s.label}>
               <CardContent className="pt-4">
@@ -147,6 +179,11 @@ export default function AdminAnalytics() {
                   <div>
                     <p className="text-sm text-muted-foreground">{s.label}</p>
                     <p className="text-2xl font-bold">{s.value}</p>
+                    {s.change !== null && range !== "all" && (
+                      <p className={`text-xs mt-1 ${s.change >= 0 ? "text-green-600" : "text-red-500"}`}>
+                        {s.change >= 0 ? "↑" : "↓"} {Math.abs(s.change)}% vs kỳ trước
+                      </p>
+                    )}
                   </div>
                   <s.icon className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -158,9 +195,7 @@ export default function AdminAnalytics() {
         {/* Charts */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Tools mới theo ngày</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Tools mới theo ngày</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={toolsData}>
@@ -175,9 +210,7 @@ export default function AdminAnalytics() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">User đăng ký theo ngày</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">User đăng ký theo ngày</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={usersData}>
@@ -192,9 +225,7 @@ export default function AdminAnalytics() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Reviews theo ngày</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Reviews theo ngày</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={reviewsData}>
@@ -209,9 +240,7 @@ export default function AdminAnalytics() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Phân bố theo Category</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-base">Phân bố theo Category</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
@@ -227,11 +256,64 @@ export default function AdminAnalytics() {
           </Card>
         </div>
 
+        {/* Deals Analytics */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Deals</p>
+                  <p className="text-2xl font-bold">{dealsStats?.activeCount ?? 0} <span className="text-sm font-normal text-muted-foreground">/ {dealsStats?.totalCount ?? 0}</span></p>
+                </div>
+                <Tag className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Deal Clicks</p>
+                  <p className="text-2xl font-bold">{dealsStats?.totalClicks?.toLocaleString() ?? 0}</p>
+                </div>
+                <MousePointerClick className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg Clicks/Deal</p>
+                  <p className="text-2xl font-bold">{dealsStats?.totalCount ? Math.round(dealsStats.totalClicks / dealsStats.totalCount) : 0}</p>
+                </div>
+                <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Deals by clicks */}
+        {dealsStats?.topDeals && dealsStats.topDeals.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Top Deals theo lượt click</CardTitle></CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={dealsStats.topDeals.slice(0, 8)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="title" width={180} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="click_count" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Top Tools */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top 10 tools được xem nhiều nhất</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Top 10 tools được xem nhiều nhất</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={topTools} layout="vertical">
