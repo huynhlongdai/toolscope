@@ -206,6 +206,8 @@ export default function BlogDetail() {
                 )}
               </div>
 
+              <AdUnit slotId="blog_mid" className="my-6" />
+
               {/* Related tools - mobile only */}
               {relatedTools.length > 0 && (
                 <div className="mt-12 border-t pt-8 lg:hidden">
