@@ -25,6 +25,7 @@ export function ContentTranslationsTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedBlogIds, setSelectedBlogIds] = useState<Set<string>>(new Set());
   const [selectedWorkflowIds, setSelectedWorkflowIds] = useState<Set<string>>(new Set());
+  const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
 
   const { data: tools = [] } = useQuery({
     queryKey: ["admin-tools-for-translation"],
