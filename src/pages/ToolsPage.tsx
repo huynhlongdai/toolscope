@@ -14,6 +14,7 @@ import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, Ch
 import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
 import { useI18n } from "@/lib/i18n";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 type SortOption = "popular" | "newest" | "rating" | "name";
 type ViewMode = "grid" | "list";
