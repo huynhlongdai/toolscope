@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useCollections } from "@/hooks/useCollections";
+import { FollowButton } from "@/components/follow/FollowButton";
 
 const badgeLabels: Record<string, { label: string; color: string; icon: string }> = {
   top_reviewer: { label: "Top Reviewer", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: "⭐" },
