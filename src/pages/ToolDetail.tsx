@@ -40,6 +40,7 @@ import { ShareButtons } from "@/components/share/ShareButtons";
 import { UpvoteButton } from "@/components/UpvoteButton";
 import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
 import { VendorResponse } from "@/components/tool-detail/VendorResponse";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
