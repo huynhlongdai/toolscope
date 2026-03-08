@@ -397,6 +397,7 @@ export default function AdminSettings() {
             <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
             <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
             <TabsTrigger value="modules" className="gap-1.5 text-xs md:text-sm"><Blocks className="h-3.5 w-3.5" /> Modules</TabsTrigger>
+            <TabsTrigger value="ads" className="gap-1.5 text-xs md:text-sm"><Megaphone className="h-3.5 w-3.5" /> Quảng cáo</TabsTrigger>
             <TabsTrigger value="danger" className="gap-1.5 text-xs md:text-sm text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> Danger</TabsTrigger>
           </TabsList>
 
