@@ -29,7 +29,9 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const selectFields = entityType === "workflow"
+    const selectFields = entityType === "deal"
+      ? "id, title, description"
+      : entityType === "workflow"
       ? "id, title, description, seo_title, seo_description, seo_content, steps"
       : "id, title, excerpt, content";
 
