@@ -297,6 +297,9 @@ export function ContentTranslationsTab() {
         workflowPercent={workflowPercent}
         translatedWorkflowCount={translatedWorkflowIds.size}
         totalWorkflows={workflows.length}
+        dealPercent={dealPercent}
+        translatedDealCount={translatedDealIds.size}
+        totalDeals={dealsData.length}
       />
 
       <UntranslatedSection
