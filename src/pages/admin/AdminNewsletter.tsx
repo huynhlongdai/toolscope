@@ -233,7 +233,10 @@ export default function AdminNewsletter() {
                 filtered.map((s: any) => (
                   <TableRow key={s.id} className={selectedIds.has(s.id) ? "bg-muted/50" : ""}>
                     <TableCell><Checkbox checked={selectedIds.has(s.id)} onCheckedChange={() => toggleSelect(s.id)} /></TableCell>
-                    <TableCell className="font-medium flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" /> {s.email}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" /> {s.email}
+                      {duplicateEmails.has(s.email.toLowerCase()) && <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Trùng</Badge>}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch checked={s.is_active} onCheckedChange={(v) => toggleActive.mutate({ id: s.id, is_active: v })} />
