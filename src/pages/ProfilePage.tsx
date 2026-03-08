@@ -18,11 +18,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Star, MessageSquare, Award, BookOpen, Calendar, Pencil, Save, Bookmark, Layers, Plus, Globe, Lock, Trash2, FolderOpen } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Star, MessageSquare, Award, BookOpen, Calendar, Pencil, Save, Bookmark, Layers, Plus, Globe, Lock, Trash2, FolderOpen, Flag, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useCollections } from "@/hooks/useCollections";
+import { FollowButton } from "@/components/follow/FollowButton";
 
 const badgeLabels: Record<string, { label: string; color: string; icon: string }> = {
   top_reviewer: { label: "Top Reviewer", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400", icon: "⭐" },
@@ -75,11 +77,16 @@ function ProfileHeader({ profile, badges, isOwnProfile, editing, onStartEdit, ed
               </div>
             )}
           </div>
-          {isOwnProfile && !editing && (
-            <Button variant="outline" size="sm" onClick={onStartEdit}>
-              <Pencil className="mr-1 h-3 w-3" /> {t("profile.editBtn")}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isOwnProfile && profile.id && (
+              <FollowButton targetType="user" targetId={profile.id} showCount />
+            )}
+            {isOwnProfile && !editing && (
+              <Button variant="outline" size="sm" onClick={onStartEdit}>
+                <Pencil className="mr-1 h-3 w-3" /> {t("profile.editBtn")}
+              </Button>
+            )}
+          </div>
         </div>
 
         {editing && isOwnProfile && (
@@ -237,6 +244,31 @@ const ProfilePage = () => {
   const isOwnProfile = !id || id === user?.id;
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ display_name: "", username: "", bio: "", website: "" });
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
+
+  // Warnings for own profile
+  const { data: myWarnings = [] } = useQuery({
+    queryKey: ["my-warnings", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase.from("user_warnings").select("*").eq("user_id", profileId).order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!profileId && isOwnProfile,
+  });
+
+  const submitUserReport = async () => {
+    if (!user?.id || !profileId) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: user.id, target_type: "user", target_id: profileId,
+      reason: reportReason, details: reportDetails || null,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Đã gửi báo cáo");
+    setShowReportDialog(false); setReportDetails("");
+  };
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", profileId],
@@ -339,6 +371,28 @@ const ProfilePage = () => {
             <>
               <ProfileHeader profile={profile} badges={badges} isOwnProfile={isOwnProfile} editing={editing} onStartEdit={startEditing} editForm={editForm} setEditForm={setEditForm} onSave={() => updateProfile.mutate()} onCancel={() => setEditing(false)} isSaving={updateProfile.isPending} />
 
+              {/* Warnings banner for own profile */}
+              {isOwnProfile && myWarnings.length > 0 && (
+                <Card className="mb-4 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Bạn có {myWarnings.length} cảnh báo từ Admin</p>
+                      <p className="text-xs text-amber-600/80 dark:text-amber-400/60 mt-0.5">{myWarnings[0]?.reason}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Report user button for other profiles */}
+              {!isOwnProfile && user && (
+                <div className="flex justify-end mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => setShowReportDialog(true)} className="text-muted-foreground">
+                    <Flag className="mr-1 h-3 w-3" /> Báo cáo
+                  </Button>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-4 mb-6">
                 {[
                   { icon: BookOpen, label: t("profile.statReviews"), value: stats?.reviews || 0 },
@@ -416,6 +470,25 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+      {/* Report User Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Báo cáo người dùng</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Select value={reportReason} onValueChange={setReportReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Quấy rối</SelectItem>
+                <SelectItem value="inappropriate">Hành vi không phù hợp</SelectItem>
+                <SelectItem value="fake_account">Tài khoản giả</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
+            <Button size="sm" onClick={submitUserReport} className="w-full">Gửi báo cáo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Footer />
       <MobileBottomNav />
     </div>

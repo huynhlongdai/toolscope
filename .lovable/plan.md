@@ -1,117 +1,278 @@
 
 
-## Plan nang cap cac module cong dong: Users, Reviews, Reports, Moderation
+## ToolScope - Kế hoạch triển khai đầy đủ
 
-### Hien trang
+### Tổng quan
+Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
 
-**AdminUsers**: Search, filter role/ban, edit profile, activity timeline, bulk ban/role change, CSV export. Chua co: stats cards, email user, warn user, filter by activity level.
+---
 
-**AdminReviews**: Search, filter status, bulk approve/delete, detail dialog voi structured ratings, CSV export. Chua co: admin reply (vendor response), edit review, stats cards, filter by rating/tool.
+### 🏠 TRANG CÔNG KHAI
 
-**AdminReports**: Filter status, search, detail dialog, resolve/dismiss. Chua co: stats cards, bulk actions, filter by target_type, link to target content, admin notes, export.
+**1. Trang chủ**
+- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
+- Section "AI Recommended Tools" với badge
+- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
+- Tool nổi bật / trending / mới nhất
+- Bộ lọc theo danh mục, rating, giá, tags
+- "For You" feed cá nhân hóa
+- Nút chuyển ngôn ngữ + Dark/Light mode
 
-**AdminModeration**: Tabs pending tools/reviews/comments/flagged, blacklist keywords. Chua co: stats overview, pending questions, pending launch comments, auto-action on flagged content.
+**2. Trang chi tiết công cụ**
+- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
+- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
+- Badge "AI Recommended" nếu đạt chuẩn
+- Bài review chi tiết từ editor (markdown, ảnh, video embed)
+- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
+- Bình luận threaded (trả lời lồng nhau)
+- Q&A section với upvote câu trả lời hay nhất
+- Danh sách alternatives (tool tương tự)
+- "Works well with" integrations
+- Nút Bookmark, Share, Follow
+- Pricing history chart + alert giảm giá
 
-**ProfilePage**: Edit profile, tabs reviews/activity/bookmarks/collections, stats, badges. Chua co: follow button on other profiles, report user.
+**3. Trang so sánh công cụ**
+- Chọn 2-4 tool để so sánh side-by-side
+- Bảng so sánh tính năng, giá, rating, AI score
+- AI tự động tạo kết luận & đề xuất
+- ROI Calculator: nhập team size → tính chi phí
 
-**Public components**: CommentSection (replies, report, votes), QASection (questions/answers, votes), StructuredReviewForm, VoteButtons. Chua co: edit/delete own comments, sort comments.
+**4. Trang danh sách & tìm kiếm**
+- Grid/list view toggle
+- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
+- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
+- Infinite scroll + skeleton loading
+- Search history, auto-complete, popular searches
+- Voice search (Web Speech API)
 
-### Thay doi de xuat
+**5. Trang danh mục**
+- Mỗi danh mục có landing page riêng + mô tả + top tools
+- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
 
-#### 1. Database migration
+**6. Trang Trending**
+- Tools đang trending tuần/tháng
+- "Rising Stars" - tools mới nổi tăng rating nhanh
+- Biểu đồ xu hướng popularity theo thời gian
 
-```sql
--- Them admin_note vao reports
-ALTER TABLE reports ADD COLUMN admin_note text;
+**7. Trang Use Cases & Workflows**
+- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
+- Mỗi use case gợi ý combo tools phù hợp
+- User submit workflow + tools đang dùng
 
--- Bang user_warnings: canh bao nguoi dung
-CREATE TABLE public.user_warnings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  warned_by uuid NOT NULL,
-  reason text NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-ALTER TABLE public.user_warnings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins manage warnings" ON user_warnings FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'));
-CREATE POLICY "Users view own warnings" ON user_warnings FOR SELECT TO authenticated USING (auth.uid() = user_id);
-```
+**8. Trang Collections & Lists**
+- User tạo collection tool theo chủ đề
+- Editor tạo "Curated Lists" (Top 10 AI Tools...)
+- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
+- Collections công khai có thể upvote
 
-#### 2. AdminUsers — nang cap
+**9. Trang Profile người dùng**
+- Reviews đã viết, câu hỏi, tools bookmarked, collections
+- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
+- Lịch sử hoạt động
+- Recently viewed tools
 
-- **Stats cards**: Tong users, active (khong ban), banned, new this month
-- **Warn user**: Dialog gui canh bao (insert `user_warnings`) — hien thi so warnings trong table
-- **Filter by activity**: "Active contributors" (co >= 1 review/comment), "Inactive" (0 activity)
-- **Send notification**: Admin gui notification truc tiep toi user (insert `notifications`)
-- **View warnings**: Trong activity timeline dialog, them tab warnings
+**10. Trang Blog/Tin tức**
+- Bài viết về xu hướng công cụ mới
+- AI tóm tắt tin tự động
+- Weekly digest
 
-#### 3. AdminReviews — nang cap
+---
 
-- **Stats cards**: Tong reviews, published, pending, avg ratings
-- **Admin reply**: Admin co the reply truc tiep vao review (insert vao `comments` voi tool_id tuong ung, hoac field vendor_response trong review — su dung VendorResponse component co san)
-- **Edit review**: Admin co the sua title, content, status cua review
-- **Filter nang cao**: Filter theo tool (search), rating range (1-5), has pros/cons, is_editor_review
-- **Quick approve**: Approve review ngay tu table (khong can vao detail)
+### 🤖 TÍNH NĂNG AI
 
-#### 4. AdminReports — nang cap
+**1. AI Search thông minh**
+- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
+- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
+- "Similar to [tool X]" search
 
-- **Stats cards**: Tong reports, pending, resolved, dismissed
-- **Bulk actions**: Chon nhieu reports → resolve/dismiss tat ca
-- **Filter by target_type**: Filter theo comment, review, tool, user
-- **Admin note**: Ghi chu noi bo khi xu ly report (field `admin_note`)
-- **Link to target**: Trong detail, hien thi noi dung bi bao cao (load comment/review/tool tuong ung tu target_id)
-- **Export CSV**: Xuat danh sach reports
-- **Auto-action**: Khi resolve report type=comment → option xoa comment luon
+**2. Chatbot tư vấn AI**
+- Widget chat floating trên mọi trang
+- Hỏi đáp, so sánh, tư vấn lựa chọn tool
+- Streaming response token-by-token
+- Trả lời dựa trên dữ liệu tools trong database
 
-#### 5. AdminModeration — nang cap
+**3. AI Thu thập dữ liệu tự động**
+- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
+- Tự điền form thêm tool mới
+- Scheduled re-scrape hàng tuần phát hiện thay đổi
+- User submit URL tool → AI thu thập → Admin duyệt
 
-- **Stats overview**: Cards tong hop pending tools + reviews + flagged comments + pending reports
-- **Pending questions tab**: Hien thi questions moi can review
-- **Launch comments tab**: Hien thi launch_comments moi
-- **Quick ban user**: Tu flagged comment → ban user ngay
-- **Bulk approve tools/reviews**: Chon nhieu → approve tat ca
-- **Auto-action settings**: Cau hinh so lan bi flag truoc khi tu dong an content
+**4. AI Hỗ trợ viết bài review**
+- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
+- Editor chỉnh sửa → xuất bản
+- AI dịch tự động sang ngôn ngữ khác
 
-#### 6. Public ProfilePage — nang cap
+**5. AI Đánh giá & chấm điểm**
+- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
+- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
+- Tóm tắt ưu/nhược bằng AI
+- Badge "AI Recommended"
 
-- **Report user**: Button bao cao user khac (insert `reports` voi target_type='user')
-- **Follow/Unfollow**: Tich hop FollowButton co san cho other profiles (target_type='user')
-- **Warnings banner**: Neu user co warnings, hien thi thong bao nhe cho chinh ho
+**6. AI Spam Detection**
+- Tự động phát hiện comment/review spam
+- Flag nội dung nghi vấn cho admin
 
-#### 7. CommentSection — nang cap
+**7. AI Personalization**
+- Onboarding quiz → gợi ý tools theo lĩnh vực
+- "Because you liked [X]" recommendations
 
-- **Edit own comment**: User co the sua comment cua minh
-- **Delete own comment**: User co the xoa comment cua minh
-- **Sort options**: Moi nhat, Cu nhat, Nhieu vote nhat
-- **Load more**: "Xem them" thay vi gioi han 20
+---
 
-#### 8. QASection — nang cap
+### 🔐 HỆ THỐNG NGƯỜI DÙNG
 
-- **Mark as resolved**: Nguoi hoi co the danh dau cau hoi da giai quyet
-- **Report question/answer**: Button bao cao
-- **Sort questions**: Moi nhat, Nhieu vote nhat, Chua tra loi
+- Đăng ký/đăng nhập: Email + Google OAuth
+- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
+- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
+- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
+- **Admin**: toàn quyền
 
-### Files thay doi
+**Gamification**
+- Điểm reputation (viết review, Q&A, upvote nhận được)
+- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
+- Leaderboard contributors hàng tháng
 
-| File | Thay doi |
-|---|---|
-| Migration SQL | `user_warnings` table, `admin_note` column on `reports` |
-| `src/pages/admin/AdminUsers.tsx` | Stats cards, warn user, filter activity, send notification |
-| `src/pages/admin/AdminReviews.tsx` | Stats cards, edit review, filter nang cao, quick approve |
-| `src/pages/admin/AdminReports.tsx` | Stats, bulk actions, filter target_type, admin note, link target, export, auto-action |
-| `src/pages/admin/AdminModeration.tsx` | Stats overview, pending questions, launch comments, quick ban, bulk approve |
-| `src/pages/ProfilePage.tsx` | Report user, follow button, warnings banner |
-| `src/components/tool-detail/CommentSection.tsx` | Edit/delete own, sort, load more |
-| `src/components/tool-detail/QASection.tsx` | Mark resolved, report, sort |
+---
 
-### Thu tu trien khai
+### 📊 ADMIN DASHBOARD
 
-1. Migration (user_warnings + admin_note)
-2. AdminUsers nang cap (stats, warn, filter, notify)
-3. AdminReviews nang cap (stats, edit, filter, quick approve)
-4. AdminReports nang cap (stats, bulk, filter, admin note, link target, export)
-5. AdminModeration nang cap (stats, questions, launch comments, quick ban)
-6. ProfilePage nang cap (report, follow, warnings)
-7. CommentSection nang cap (edit, delete, sort, load more)
-8. QASection nang cap (mark resolved, report, sort)
+**Quản lý cơ bản**
+- CRUD tools, categories, tags, blog posts
+- Quản lý users, phân quyền role
+- Quản lý reviews, bình luận, Q&A
+- Bulk import tools từ CSV
 
+**Analytics & Dashboard**
+- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
+- Top tools phổ biến, user activity, đăng ký mới
+- Top contributors
+- Revenue tracking (nếu affiliate)
+
+**Content Moderation**
+- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
+- Hệ thống báo cáo spam/vi phạm
+- Approve/reject/flag + AI spam detection
+- Audit log mọi thao tác admin/editor
+
+**AI Management**
+- Nút "Auto-collect từ URL" khi thêm tool
+- Nút "Generate AI Draft" khi tạo review
+- Xem/chỉnh sửa AI scores
+- Log các lần AI scrape/generate
+- Scheduled re-scrape settings
+
+**Quản lý đa ngôn ngữ**
+- Trạng thái dịch mỗi bài (đã dịch/chưa)
+- Trigger dịch lại khi nội dung thay đổi
+- Chỉnh sửa bản dịch thủ công
+
+---
+
+### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
+
+- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
+- Editor viết 1 ngôn ngữ → AI dịch tự động
+- URL routing: `/vi/tool/...`, `/en/tool/...`
+- Bảng `translations` lưu bản dịch
+- Hreflang tags + canonical URLs cho SEO
+
+---
+
+### 🔔 THÔNG BÁO & FOLLOW
+
+- Follow tool → thông báo review mới, thay đổi pricing
+- Follow user/editor → thông báo review mới
+- Follow category → tool mới trong danh mục
+- Thông báo in-app + email digest tùy chọn
+- Price drop alerts
+
+---
+
+### 📱 MOBILE RESPONSIVE
+
+- Mobile-first responsive design
+- Bottom navigation bar (Home, Search, Bookmarks, Profile)
+- Collapsible filters
+- Pull-to-refresh, infinite scroll
+- Skeleton loading states
+- Touch-friendly rating, buttons
+- Share sheet native
+- "Quick Rate" swipe cards
+- Lazy loading images
+- Sticky header thu gọn khi scroll
+
+---
+
+### 📈 SEO & GROWTH
+
+- Auto-generate sitemap XML
+- Structured data JSON-LD cho Rich Snippets
+- Open Graph social cards tự động
+- Hreflang tags đa ngôn ngữ
+- Canonical URLs
+- Newsletter đăng ký email weekly digest
+
+---
+
+### 🏗️ BACKEND (Lovable Cloud + Supabase)
+
+**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
+
+**Edge Functions**:
+- `collect-tool-data`: Firecrawl scrape + AI parse
+- `generate-review`: AI tạo draft review
+- `evaluate-tool`: AI chấm điểm
+- `translate-content`: AI dịch đa ngôn ngữ
+- `ai-search`: Tìm kiếm thông minh
+- `ai-chat`: Chatbot tư vấn (streaming)
+- `detect-spam`: AI phát hiện spam
+
+**Auth + RLS**: Phân quyền theo role, security definer functions
+
+---
+
+### 📋 THỨ TỰ TRIỂN KHAI
+
+1. ✅ Database schema + Auth + Roles
+2. ✅ Trang chủ + Danh sách tools + Chi tiết tool (responsive)
+3. ✅ Review, Rating, Bình luận, Q&A, Upvote/Downvote
+4. ✅ AI Search + Chatbot tư vấn
+5. ✅ AI thu thập + viết bài + đánh giá (Firecrawl)
+6. ✅ So sánh tools + Pricing tracker
+7. ✅ Collections, Bookmarks, Follow, Notifications
+8. ✅ Admin dashboard đầy đủ + Moderation
+9. ✅ Đa ngôn ngữ tự động
+10. ✅ Trending, Gamification, Personalization
+11. ✅ Use Cases, Integrations map, Blog
+12. ✅ SEO optimization + Mobile polish
+
+---
+
+### 🆕 TÍNH NĂNG MỞ RỘNG (Học hỏi G2, Capterra, Product Hunt, AlternativeTo, TAAFT)
+
+13. ✅ Structured Review Form (đánh giá theo tiêu chí ease_of_use, value_for_money, customer_support, NPS)
+14. ✅ Alternatives Section (AI gợi ý + user vote "I switched from X to Y")
+15. ✅ G2 Grid Quadrant Chart (Satisfaction vs Market Presence trên Category page)
+16. ✅ Screenshot Gallery (slider + lightbox trên Tool Detail)
+17. ✅ AI Score Auto-Generation (Edge Function + Admin button)
+18. ✅ Task-Based Discovery (/tasks - chọn task tìm tool phù hợp)
+19. ✅ Product Launch (/launches - submit + upvote sản phẩm mới mỗi ngày)
+20. ✅ Vendor/Maker Profiles (claim tool, respond to reviews)
+21. ✅ Analytics & Tracking Scripts (GA, custom scripts, admin settings page)
+22. ✅ Newsletter Subscription (footer form + newsletter_subscribers table)
+23. ✅ SEOHead nâng cao (hreflang tags + twitter:card meta tags)
+24. ✅ Audit Logs table (tracking admin actions)
+25. ✅ Reports table (user spam/content reporting)
+
+### 📌 BACKLOG (Chưa triển khai)
+
+- Seasonal Awards / Best Of (auto-generate top tools theo quý/năm)
+- Discussion Forum / Threads
+- AI Agents Directory
+- Tool Changelog / Update Timeline
+- Company Profiles
+- AI Model Directory
+- Job Impact Index
+- Fundraise Tracker
+- Mini Tools / Interactive Demos
+- Comparison Advisor (AI chatbot chuyên so sánh)
+- Verified Reviews (badge "Verified User")

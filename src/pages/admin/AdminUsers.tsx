@@ -15,17 +15,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle } from "lucide-react";
+import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle, Users, UserCheck, UserX, AlertTriangle, Bell, Send } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { useAuth } from "@/lib/auth";
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
+  const { user: adminUser } = useAuth();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [banFilter, setBanFilter] = useState("all");
+  const [activityFilter, setActivityFilter] = useState("all");
   const [editUser, setEditUser] = useState<any>(null);
   const [viewUser, setViewUser] = useState<any>(null);
   const [activityUser, setActivityUser] = useState<any>(null);
+  const [warnUser, setWarnUser] = useState<any>(null);
+  const [warnReason, setWarnReason] = useState("");
+  const [notifyUser, setNotifyUser] = useState<any>(null);
+  const [notifyTitle, setNotifyTitle] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const pageSize = 50;
@@ -36,6 +44,7 @@ export default function AdminUsers() {
       const { data: profiles, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       const { data: roles } = await supabase.from("user_roles").select("*");
+      const { data: warnings } = await supabase.from("user_warnings").select("user_id");
       const [reviewsRes, commentsRes, questionsRes] = await Promise.all([
         supabase.from("reviews").select("author_id"),
         supabase.from("comments").select("user_id"),
@@ -47,9 +56,20 @@ export default function AdminUsers() {
         reviewCount: reviewsRes.data?.filter((r: any) => r.author_id === p.id).length ?? 0,
         commentCount: commentsRes.data?.filter((c: any) => c.user_id === p.id).length ?? 0,
         questionCount: questionsRes.data?.filter((q: any) => q.user_id === p.id).length ?? 0,
+        warningCount: warnings?.filter((w: any) => w.user_id === p.id).length ?? 0,
       }));
     },
   });
+
+  // Stats
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u: any) => !u.is_banned).length;
+  const bannedUsers = users.filter((u: any) => u.is_banned).length;
+  const newThisMonth = users.filter((u: any) => {
+    const d = new Date(u.created_at);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
 
   // Activity timeline for selected user
   const { data: userActivity = [], isLoading: activityLoading } = useQuery({
@@ -66,6 +86,17 @@ export default function AdminUsers() {
       comments.data?.forEach((c: any) => items.push({ type: "comment", icon: "💬", text: c.content?.slice(0, 80), tool: c.tools?.name, time: c.created_at }));
       questions.data?.forEach((q: any) => items.push({ type: "question", icon: "❓", text: q.title, tool: q.tools?.name, time: q.created_at }));
       return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    },
+    enabled: !!activityUser?.id,
+  });
+
+  // Warnings for activity dialog
+  const { data: userWarnings = [] } = useQuery({
+    queryKey: ["user-warnings", activityUser?.id],
+    queryFn: async () => {
+      if (!activityUser?.id) return [];
+      const { data } = await supabase.from("user_warnings").select("*").eq("user_id", activityUser.id).order("created_at", { ascending: false });
+      return data ?? [];
     },
     enabled: !!activityUser?.id,
   });
@@ -124,6 +155,35 @@ export default function AdminUsers() {
     },
   });
 
+  const submitWarning = async () => {
+    if (!warnUser || !warnReason.trim() || !adminUser?.id) return;
+    const { error } = await supabase.from("user_warnings").insert({
+      user_id: warnUser.id, warned_by: adminUser.id, reason: warnReason.trim(),
+    });
+    if (error) { toast.error(error.message); return; }
+    // Also send notification
+    await supabase.from("notifications").insert({
+      user_id: warnUser.id, type: "warning", title: "⚠️ Cảnh báo từ Admin",
+      message: warnReason.trim(),
+    });
+    logAuditAction("user_warn", "user", warnUser.id, { reason: warnReason });
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    toast.success("Đã gửi cảnh báo");
+    setWarnUser(null); setWarnReason("");
+  };
+
+  const submitNotification = async () => {
+    if (!notifyUser || !notifyTitle.trim()) return;
+    const { error } = await supabase.from("notifications").insert({
+      user_id: notifyUser.id, type: "admin_message", title: notifyTitle.trim(),
+      message: notifyMessage.trim() || null,
+    });
+    if (error) { toast.error(error.message); return; }
+    logAuditAction("user_notify", "user", notifyUser.id, { title: notifyTitle });
+    toast.success("Đã gửi thông báo");
+    setNotifyUser(null); setNotifyTitle(""); setNotifyMessage("");
+  };
+
   const bulkBan = async (banned: boolean) => {
     if (!confirm(`${banned ? "Ban" : "Unban"} ${selectedIds.length} users?`)) return;
     for (const userId of selectedIds) {
@@ -154,15 +214,17 @@ export default function AdminUsers() {
     const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) || (u.username ?? "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
     const matchBan = banFilter === "all" || (banFilter === "banned" ? u.is_banned : !u.is_banned);
-    return matchSearch && matchRole && matchBan;
+    const totalActivity = u.reviewCount + u.commentCount + u.questionCount;
+    const matchActivity = activityFilter === "all" || (activityFilter === "active" ? totalActivity > 0 : totalActivity === 0);
+    return matchSearch && matchRole && matchBan && matchActivity;
   });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   const exportCSV = () => {
-    const headers = ["Display Name", "Username", "Role", "Reputation", "Reviews", "Comments", "Banned", "Created"];
-    const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
+    const headers = ["Display Name", "Username", "Role", "Reputation", "Reviews", "Comments", "Warnings", "Banned", "Created"];
+    const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.warningCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
     const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -182,6 +244,26 @@ export default function AdminUsers() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Users</h1>
           <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+        </div>
+
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><Users className="h-4 w-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">Tổng users</span></div>
+            <p className="text-2xl font-bold mt-1">{totalUsers}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-emerald-500" /><span className="text-xs text-muted-foreground">Active</span></div>
+            <p className="text-2xl font-bold mt-1">{activeUsers}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><UserX className="h-4 w-4 text-destructive" /><span className="text-xs text-muted-foreground">Banned</span></div>
+            <p className="text-2xl font-bold mt-1">{bannedUsers}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><Star className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">Mới tháng này</span></div>
+            <p className="text-2xl font-bold mt-1">{newThisMonth}</p>
+          </CardContent></Card>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
@@ -204,6 +286,14 @@ export default function AdminUsers() {
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="banned">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Mọi hoạt động</SelectItem>
+              <SelectItem value="active">Có đóng góp</SelectItem>
+              <SelectItem value="inactive">Chưa đóng góp</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -254,7 +344,10 @@ export default function AdminUsers() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8"><AvatarImage src={user.avatar_url} /><AvatarFallback>{(user.display_name ?? "U")[0]}</AvatarFallback></Avatar>
-                        <span className="font-medium">{user.display_name ?? "—"}</span>
+                        <div>
+                          <span className="font-medium">{user.display_name ?? "—"}</span>
+                          {user.warningCount > 0 && <Badge variant="outline" className="ml-1.5 text-[10px] border-amber-400 text-amber-600">⚠ {user.warningCount}</Badge>}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.username ?? "—"}</TableCell>
@@ -284,7 +377,8 @@ export default function AdminUsers() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => setActivityUser(user)} title="Timeline"><Clock className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => setViewUser(user)} title="Xem"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setWarnUser(user)} title="Cảnh báo"><AlertTriangle className="h-4 w-4 text-amber-500" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setNotifyUser(user)} title="Gửi thông báo"><Bell className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => setEditUser({ ...user })} title="Sửa"><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => banUserMutation.mutate({ userId: user.id, banned: !user.is_banned })} title={user.is_banned ? "Unban" : "Ban"}>
                           {user.is_banned ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <Ban className="h-4 w-4 text-destructive" />}
@@ -310,29 +404,78 @@ export default function AdminUsers() {
         )}
       </div>
 
-      {/* Activity Timeline Dialog */}
+      {/* Activity Timeline Dialog with Warnings tab */}
       <Dialog open={!!activityUser} onOpenChange={(v) => !v && setActivityUser(null)}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Lịch sử hoạt động — {activityUser?.display_name}</DialogTitle></DialogHeader>
-          {activityLoading ? (
-            <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
-          ) : userActivity.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">Chưa có hoạt động</p>
-          ) : (
-            <div className="space-y-3">
-              {userActivity.map((item: any, i: number) => (
-                <div key={i} className="flex items-start gap-3 border-b border-border/50 pb-3 last:border-0">
-                  <span className="text-lg mt-0.5">{item.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.text}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.type} • {item.tool ?? "—"} • {new Date(item.time).toLocaleDateString("vi-VN")}
-                    </p>
-                  </div>
+          <DialogHeader><DialogTitle>Lịch sử — {activityUser?.display_name}</DialogTitle></DialogHeader>
+          <Tabs defaultValue="activity">
+            <TabsList className="w-full">
+              <TabsTrigger value="activity" className="flex-1">Hoạt động</TabsTrigger>
+              <TabsTrigger value="warnings" className="flex-1">Cảnh báo ({userWarnings.length})</TabsTrigger>
+            </TabsList>
+            <TabsContent value="activity" className="mt-3">
+              {activityLoading ? (
+                <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
+              ) : userActivity.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">Chưa có hoạt động</p>
+              ) : (
+                <div className="space-y-3">
+                  {userActivity.map((item: any, i: number) => (
+                    <div key={i} className="flex items-start gap-3 border-b border-border/50 pb-3 last:border-0">
+                      <span className="text-lg mt-0.5">{item.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{item.text}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.type} • {item.tool ?? "—"} • {new Date(item.time).toLocaleDateString("vi-VN")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
+            </TabsContent>
+            <TabsContent value="warnings" className="mt-3">
+              {userWarnings.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">Chưa có cảnh báo nào</p>
+              ) : (
+                <div className="space-y-3">
+                  {userWarnings.map((w: any) => (
+                    <div key={w.id} className="border rounded-lg p-3">
+                      <p className="text-sm">{w.reason}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{new Date(w.created_at).toLocaleString("vi-VN")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warn User Dialog */}
+      <Dialog open={!!warnUser} onOpenChange={(v) => !v && setWarnUser(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Cảnh báo — {warnUser?.display_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Textarea placeholder="Lý do cảnh báo..." value={warnReason} onChange={(e) => setWarnReason(e.target.value)} rows={3} />
+            <Button className="w-full" onClick={submitWarning} disabled={!warnReason.trim()}>
+              <AlertTriangle className="mr-1 h-4 w-4" /> Gửi cảnh báo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Notification Dialog */}
+      <Dialog open={!!notifyUser} onOpenChange={(v) => !v && setNotifyUser(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Gửi thông báo — {notifyUser?.display_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Tiêu đề..." value={notifyTitle} onChange={(e) => setNotifyTitle(e.target.value)} />
+            <Textarea placeholder="Nội dung (tùy chọn)..." value={notifyMessage} onChange={(e) => setNotifyMessage(e.target.value)} rows={3} />
+            <Button className="w-full" onClick={submitNotification} disabled={!notifyTitle.trim()}>
+              <Send className="mr-1 h-4 w-4" /> Gửi thông báo
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
