@@ -1026,6 +1026,11 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ADS TAB */}
+          <TabsContent value="ads">
+            <AdsSettingsTab />
+          </TabsContent>
         </Tabs>
       </div>
     </AdminLayout>
