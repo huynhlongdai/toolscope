@@ -54,8 +54,102 @@ import AdminBackup from "./pages/admin/AdminBackup";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
+import { useModules } from "./hooks/useModules";
 
 const queryClient = new QueryClient();
+
+/** Maps module IDs to their public routes */
+const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNode }>> = {
+  blog: [
+    { path: "/blog", element: <BlogPage /> },
+    { path: "/blog/:slug", element: <BlogDetail /> },
+  ],
+  workflows: [
+    { path: "/workflows", element: <WorkflowsPage /> },
+    { path: "/workflow/:slug", element: <WorkflowDetail /> },
+  ],
+  deals: [
+    { path: "/deals", element: <DealsPage /> },
+  ],
+  launches: [
+    { path: "/launches", element: <LaunchesPage /> },
+    { path: "/launch/:id", element: <LaunchDetailPage /> },
+  ],
+  tasks: [
+    { path: "/tasks", element: <TasksPage /> },
+  ],
+  collections: [
+    { path: "/collections", element: <CollectionsPage /> },
+    { path: "/collection/:id", element: <CollectionDetail /> },
+  ],
+  compare: [
+    { path: "/compare", element: <ComparePage /> },
+  ],
+  leaderboard: [
+    { path: "/leaderboard", element: <LeaderboardPage /> },
+  ],
+  submit_tool: [
+    { path: "/submit", element: <SubmitToolPage /> },
+  ],
+};
+
+function AppRoutes() {
+  const { isEnabled } = useModules();
+
+  return (
+    <>
+      <Routes>
+        {/* Always-on routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/tools" element={<ToolsPage />} />
+        <Route path="/tool/:slug" element={<ToolDetail />} />
+        <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/category/:slug" element={<CategoryPage />} />
+        <Route path="/trending" element={<TrendingPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/:id" element={<ProfilePage />} />
+        <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="/p/:slug" element={<DynamicPage />} />
+
+        {/* Module-gated routes */}
+        {Object.entries(MODULE_ROUTES).map(([moduleId, routes]) =>
+          isEnabled(moduleId)
+            ? routes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)
+            : routes.map((r) => <Route key={r.path} path={r.path} element={<NotFound />} />)
+        )}
+
+        {/* Admin routes (always available) */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/tools" element={<AdminTools />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/reviews" element={<AdminReviews />} />
+        <Route path="/admin/moderation" element={<AdminModeration />} />
+        <Route path="/admin/blog" element={<AdminBlog />} />
+        <Route path="/admin/categories" element={<AdminCategories />} />
+        <Route path="/admin/menus" element={<AdminMenus />} />
+        <Route path="/admin/pages" element={<AdminPages />} />
+        <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
+        <Route path="/admin/collect" element={<AdminCollectAI />} />
+        <Route path="/admin/workflows" element={<AdminWorkflows />} />
+        <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
+        <Route path="/admin/deals" element={<AdminDeals />} />
+        <Route path="/admin/launches" element={<AdminLaunches />} />
+        <Route path="/admin/tasks" element={<AdminTasks />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin/reports" element={<AdminReports />} />
+        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+        <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+        <Route path="/admin/translations" element={<AdminTranslations />} />
+        <Route path="/admin/backup" element={<AdminBackup />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <AnalyticsProvider />
+      {isEnabled("ai_chat") && <AIChatWidget />}
+    </>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -65,58 +159,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/tools" element={<ToolsPage />} />
-            <Route path="/tool/:slug" element={<ToolDetail />} />
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/category/:slug" element={<CategoryPage />} />
-            <Route path="/blog" element={<BlogPage />} />
-            <Route path="/blog/:slug" element={<BlogDetail />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="/collections" element={<CollectionsPage />} />
-            <Route path="/collection/:id" element={<CollectionDetail />} />
-            <Route path="/trending" element={<TrendingPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/:id" element={<ProfilePage />} />
-            <Route path="/bookmarks" element={<BookmarksPage />} />
-            <Route path="/workflows" element={<WorkflowsPage />} />
-            <Route path="/workflow/:slug" element={<WorkflowDetail />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/deals" element={<DealsPage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/launches" element={<LaunchesPage />} />
-            <Route path="/launch/:id" element={<LaunchDetailPage />} />
-            <Route path="/p/:slug" element={<DynamicPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/tools" element={<AdminTools />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/reviews" element={<AdminReviews />} />
-            <Route path="/admin/moderation" element={<AdminModeration />} />
-            <Route path="/admin/blog" element={<AdminBlog />} />
-            <Route path="/admin/categories" element={<AdminCategories />} />
-            <Route path="/admin/menus" element={<AdminMenus />} />
-            <Route path="/admin/pages" element={<AdminPages />} />
-            <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
-            <Route path="/admin/collect" element={<AdminCollectAI />} />
-            <Route path="/admin/workflows" element={<AdminWorkflows />} />
-            <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
-            <Route path="/admin/deals" element={<AdminDeals />} />
-            <Route path="/admin/launches" element={<AdminLaunches />} />
-            <Route path="/admin/tasks" element={<AdminTasks />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
-            <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-            <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-            <Route path="/admin/translations" element={<AdminTranslations />} />
-            <Route path="/admin/backup" element={<AdminBackup />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            <Route path="/submit" element={<SubmitToolPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <AnalyticsProvider />
-          <AIChatWidget />
+          <AppRoutes />
         </BrowserRouter>
         </I18nProvider>
       </AuthProvider>

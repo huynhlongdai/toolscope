@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { useI18n, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { useModules } from "@/hooks/useModules";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -33,12 +34,28 @@ const defaultNavItems: MenuItem[] = [
   { label: "Blog", url: "/blog" },
 ];
 
+// URL prefix → module ID mapping for nav filtering
+const URL_MODULE_MAP: Record<string, string> = {
+  "/tools": "",       // always on
+  "/trending": "",    // always on
+  "/tasks": "tasks",
+  "/launches": "launches",
+  "/workflows": "workflows",
+  "/deals": "deals",
+  "/blog": "blog",
+  "/collections": "collections",
+  "/compare": "compare",
+  "/leaderboard": "leaderboard",
+  "/submit": "submit_tool",
+};
+
 export function Header() {
   const [isDark, setIsDark] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
   const { locale, setLocale, t } = useI18n();
+  const { isEnabled } = useModules();
   const navigate = useNavigate();
 
   const { data: dbMenuData } = useQuery({
@@ -78,8 +95,16 @@ export function Header() {
 
   const rawNavItems = dbMenuData?.items ?? defaultNavItems;
 
+  // Filter nav items by module enabled status
+  const filterByModule = (items: MenuItem[]) =>
+    items.filter((item) => {
+      const moduleId = URL_MODULE_MAP[item.url];
+      if (moduleId === undefined || moduleId === "") return true; // unknown or always-on
+      return isEnabled(moduleId);
+    });
+
   // Apply translations to menu items
-  const navItems = rawNavItems.map((item, i) => ({
+  const navItems = filterByModule(rawNavItems).map((item, i) => ({
     ...item,
     label: menuTranslations?.[`item_${i}_label`] || item.label,
   }));
