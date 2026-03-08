@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -49,7 +50,7 @@ type ModulesConfig = Record<string, boolean>;
 export function useModules() {
   const queryClient = useQueryClient();
 
-  const { data: modulesConfig, isLoading } = useQuery({
+  const { data: rawConfig, isLoading } = useQuery({
     queryKey: ["modules-config"],
     queryFn: async () => {
       const { data } = await supabase
@@ -62,7 +63,7 @@ export function useModules() {
   });
 
   const getEnabled = (moduleId: string): boolean => {
-    if (modulesConfig && moduleId in modulesConfig) return modulesConfig[moduleId];
+    if (rawConfig && moduleId in rawConfig) return rawConfig[moduleId];
     const def = MODULE_DEFINITIONS.find((m) => m.id === moduleId);
     return def?.defaultEnabled ?? false;
   };
@@ -81,13 +82,13 @@ export function useModules() {
     },
   });
 
-  const currentConfig = (): ModulesConfig => {
+  const modulesConfig = useMemo(() => {
     const config: ModulesConfig = {};
     MODULE_DEFINITIONS.forEach((m) => {
       config[m.id] = getEnabled(m.id);
     });
     return config;
-  };
+  }, [rawConfig]);
 
-  return { isEnabled, isLoading, modulesConfig: currentConfig(), saveMutation };
+  return { isEnabled, isLoading, modulesConfig, saveMutation };
 }
