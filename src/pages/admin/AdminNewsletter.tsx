@@ -182,6 +182,13 @@ export default function AdminNewsletter() {
           </Card>
         </div>
 
+        {duplicateEmails.size > 0 && (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Phát hiện {duplicateEmails.size} email trùng lặp
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -191,6 +198,13 @@ export default function AdminNewsletter() {
             {(["all", "active", "inactive"] as const).map((f) => (
               <Button key={f} variant={activeFilter === f ? "secondary" : "ghost"} size="sm" onClick={() => setActiveFilter(f)}>
                 {f === "all" ? "Tất cả" : f === "active" ? "Active" : "Inactive"}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1 rounded-md border border-border p-0.5">
+            {(["all", "7d", "30d"] as const).map((f) => (
+              <Button key={f} variant={segmentFilter === f ? "secondary" : "ghost"} size="sm" onClick={() => setSegmentFilter(f)}>
+                {f === "all" ? "Tất cả" : f === "7d" ? "Mới 7d" : "Mới 30d"}
               </Button>
             ))}
           </div>
