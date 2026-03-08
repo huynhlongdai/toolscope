@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Search, Download, Mail, Users, UserCheck, UserX, Send, Eye } from "lucide-react";
+import { Search, Download, Upload, Mail, Users, UserCheck, UserX, Send, Eye, History, AlertTriangle } from "lucide-react";
 
 export default function AdminNewsletter() {
   const queryClient = useQueryClient();
