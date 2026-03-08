@@ -421,7 +421,7 @@ export default function AdminSettings() {
                             <Select value={fc.model || ""} onValueChange={(v) => updateFeatureConfig(feature.id, { model: v || undefined })}>
                               <SelectTrigger className="h-9"><SelectValue placeholder="Mặc định" /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Mặc định</SelectItem>
+                                <SelectItem value="default">Mặc định</SelectItem>
                                 {models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                               </SelectContent>
                             </Select>
