@@ -964,6 +964,8 @@ export default function AdminSettings() {
             >
               <Save className="mr-2 h-4 w-4" /> {saveModulesMutation.isPending ? "Đang lưu..." : "Lưu cấu hình Module"}
             </Button>
+          </TabsContent>
+
           {/* DANGER ZONE TAB */}
           <TabsContent value="danger" className="space-y-6">
             <Card className="border-destructive/50">
