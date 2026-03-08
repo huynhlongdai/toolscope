@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,11 +22,11 @@ export function TaskSuggestDialog() {
     if (!name.trim()) { toast.error("Vui lòng nhập tên task"); return; }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("task_suggestions" as any).insert({
+      const { error } = await supabase.from("task_suggestions").insert({
         user_id: user.id,
         name: name.trim(),
         description: description.trim() || null,
-      } as any);
+      });
       if (error) throw error;
       toast.success("Đã gửi đề xuất! Admin sẽ xem xét.");
       setName("");
@@ -44,12 +44,13 @@ export function TaskSuggestDialog() {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5">
           <Lightbulb className="h-4 w-4" />
-          {t("tasks.suggest") || "Đề xuất task"}
+          {t("tasks.suggest")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("tasks.suggestTitle") || "Đề xuất task mới"}</DialogTitle>
+          <DialogTitle>{t("tasks.suggestTitle")}</DialogTitle>
+          <DialogDescription>{t("tasks.suggestDesc")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div>

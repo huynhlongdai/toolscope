@@ -321,6 +321,10 @@ const vi: Record<string, string> = {
   "tasks.noTools": "Chưa có công cụ nào cho task này",
   "tasks.noToolsHint": "Hãy thử tìm kiếm trên trang khám phá",
   "tasks.explore": "Khám phá công cụ",
+  "tasks.suggest": "Đề xuất task",
+  "tasks.suggestTitle": "Đề xuất task mới",
+  "tasks.suggestDesc": "Đề xuất một task mới để admin xem xét thêm vào hệ thống.",
+  "tasks.searchPlaceholder": "Tìm task...",
 
   // Bookmarks page
   "bookmarks.title": "Đã lưu",

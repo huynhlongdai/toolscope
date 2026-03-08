@@ -321,6 +321,10 @@ const en: Record<string, string> = {
   "tasks.noTools": "No tools for this task yet",
   "tasks.noToolsHint": "Try searching on the explore page",
   "tasks.explore": "Explore tools",
+  "tasks.suggest": "Suggest task",
+  "tasks.suggestTitle": "Suggest a new task",
+  "tasks.suggestDesc": "Suggest a new task for admin to review and add to the system.",
+  "tasks.searchPlaceholder": "Search tasks...",
 
   // Bookmarks page
   "bookmarks.title": "Saved",
