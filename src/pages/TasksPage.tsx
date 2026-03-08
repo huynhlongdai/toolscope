@@ -267,18 +267,27 @@ export default function TasksPage() {
 
                   {/* Regular Tasks (grouped) */}
                   {groupedTasks.length > 0 ? (
-                    groupedTasks.map((group, gi) => (
-                      <div key={gi} className="mb-6">
-                        {group.parent && (
+                    <>
+                      {/* Groups with parent headings */}
+                      {groupedTasks.filter(g => g.parent).map((group, gi) => (
+                        <div key={`headed-${gi}`} className="mb-6">
                           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold">
                             <span>{group.parent.icon}</span> {getTaskName(group.parent)}
                           </h2>
-                        )}
-                        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                          {group.items.map((task) => renderTaskCard(task))}
+                          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                            {group.items.map((task) => renderTaskCard(task))}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                      {/* Standalone cards in one grid */}
+                      {groupedTasks.filter(g => !g.parent).flatMap(g => g.items).length > 0 && (
+                        <div className="mb-6">
+                          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                            {groupedTasks.filter(g => !g.parent).flatMap(g => g.items).map((task) => renderTaskCard(task))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     !featuredTasks.length && (
                       <div className="text-center py-16 text-muted-foreground">
