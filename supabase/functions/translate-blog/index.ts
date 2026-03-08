@@ -22,7 +22,7 @@ serve(async (req) => {
     const entityType = deal_id ? "deal" : workflow_id ? "workflow" : "blog";
     const tableName = deal_id ? "deals" : workflow_id ? "workflows" : "blog_posts";
 
-    if (!entityId) return new Response(JSON.stringify({ error: "blog_id or workflow_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!entityId) return new Response(JSON.stringify({ error: "blog_id, workflow_id or deal_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const targetLang = LOCALE_NAMES[locale];
     if (!targetLang) return new Response(JSON.stringify({ error: `Unsupported locale: ${locale}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
