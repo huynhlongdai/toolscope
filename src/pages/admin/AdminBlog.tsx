@@ -11,12 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages, ShieldCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
@@ -173,6 +174,14 @@ export default function AdminBlog() {
               seo_description: data.seo_description,
               seo_keywords: data.seo_keywords,
               _isNew: true,
+              _seoExtra: {
+                primary_keyword: data.primary_keyword,
+                secondary_keywords: data.secondary_keywords,
+                lsi_keywords: data.lsi_keywords,
+                search_intent: data.search_intent,
+                reading_time_minutes: data.reading_time_minutes,
+                word_count: data.word_count,
+              },
             });
           }} />
         )}
@@ -236,6 +245,178 @@ function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose:
   );
 }
 
+/* ---------- SEO Score Panel ---------- */
+function SEOScorePanel({ form, onSuggestionApply }: { form: any; onSuggestionApply?: (key: string, value: string) => void }) {
+  const [auditResult, setAuditResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleAudit = async () => {
+    if (!form.content && !form.title) { toast.error("Cần có tiêu đề hoặc nội dung để phân tích"); return; }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: {
+          action: "seo_audit",
+          title: form.title,
+          content: form.content,
+          seo_title: form.seo_title,
+          seo_description: form.seo_description,
+          primary_keyword: form.seo_keywords?.split(",")[0]?.trim() || "",
+          tags: form.tags,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAuditResult(data);
+      toast.success("Phân tích SEO hoàn tất!");
+    } catch (e: any) {
+      toast.error(e.message || "Lỗi phân tích SEO");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getScoreProgressColor = (score: number) => {
+    if (score >= 80) return "bg-green-500";
+    if (score >= 50) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
+  const getStatusIcon = (status: string) => {
+    if (status === "good") return <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />;
+    if (status === "ok") return <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 shrink-0" />;
+    return <XCircle className="h-3.5 w-3.5 text-red-600 shrink-0" />;
+  };
+
+  // Quick local checks (before AI audit)
+  const quickChecks = [
+    { label: "Tiêu đề (50-60 ký tự)", ok: form.title.length >= 40 && form.title.length <= 70 },
+    { label: "SEO Title đã điền", ok: !!form.seo_title },
+    { label: "SEO Title ≤ 60 ký tự", ok: form.seo_title.length > 0 && form.seo_title.length <= 60 },
+    { label: "Meta Description đã điền", ok: !!form.seo_description },
+    { label: "Meta Description 150-160 ký tự", ok: form.seo_description.length >= 140 && form.seo_description.length <= 165 },
+    { label: "Có SEO Keywords", ok: !!form.seo_keywords },
+    { label: "Có Tags", ok: !!form.tags },
+    { label: "Có Excerpt", ok: !!form.excerpt },
+    { label: "Nội dung > 300 từ", ok: (form.content?.replace(/<[^>]*>/g, "").split(/\s+/).filter(Boolean).length || 0) > 300 },
+    { label: "Có ảnh bìa", ok: !!form.cover_image_url },
+  ];
+  const quickScore = Math.round((quickChecks.filter(c => c.ok).length / quickChecks.length) * 100);
+
+  return (
+    <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4" /> SEO Score
+        </h3>
+        <Button variant="outline" size="sm" onClick={handleAudit} disabled={loading}>
+          {loading ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+          Phân tích SEO (AI)
+        </Button>
+      </div>
+
+      {/* Quick Score */}
+      <div className="flex items-center gap-4">
+        <div className="text-center">
+          <div className={`text-3xl font-bold ${getScoreColor(auditResult?.overall_score ?? quickScore)}`}>
+            {auditResult?.overall_score ?? quickScore}
+          </div>
+          <div className="text-xs text-muted-foreground">{auditResult ? "AI Score" : "Quick Check"}</div>
+        </div>
+        <div className="flex-1">
+          <Progress
+            value={auditResult?.overall_score ?? quickScore}
+            className="h-2.5"
+            style={{
+              ["--progress-background" as any]: getScoreProgressColor(auditResult?.overall_score ?? quickScore),
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Quick Checklist */}
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Checklist nhanh</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+          {quickChecks.map((check, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-xs">
+              {check.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" /> : <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+              <span className={check.ok ? "text-muted-foreground" : "text-foreground font-medium"}>{check.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* AI Audit Details */}
+      {auditResult?.scores && (
+        <div className="space-y-3 border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phân tích chi tiết (AI)</p>
+          <div className="space-y-2">
+            {Object.entries(auditResult.scores).map(([key, val]: [string, any]) => (
+              <div key={key} className="flex items-start gap-2 text-xs">
+                {getStatusIcon(val.status)}
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium capitalize">{key.replace(/_/g, " ")}</span>
+                    <span className={`font-bold ${getScoreColor(val.score)}`}>{val.score}</span>
+                  </div>
+                  <p className="text-muted-foreground">{val.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Keyword Analysis */}
+      {auditResult?.keyword_analysis && (
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Từ khóa</p>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span>Primary keyword:</span>
+              <Badge variant="outline" className="text-xs h-5">{auditResult.keyword_analysis.detected_primary}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span>Mật độ:</span>
+              <span className="font-medium">{auditResult.keyword_analysis.density_percent}%</span>
+            </div>
+            {auditResult.keyword_analysis.appearances && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {Object.entries(auditResult.keyword_analysis.appearances).map(([pos, found]: [string, any]) => (
+                  <Badge key={pos} variant={found ? "default" : "secondary"} className="text-[10px] h-4 capitalize">
+                    {found ? "✓" : "✗"} {pos.replace(/_/g, " ")}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Top Suggestions */}
+      {auditResult?.top_suggestions && auditResult.top_suggestions.length > 0 && (
+        <div className="space-y-2 border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Gợi ý cải thiện</p>
+          <div className="space-y-1.5">
+            {auditResult.top_suggestions.map((s: string, i: number) => (
+              <div key={i} className="text-xs p-2 rounded bg-background border">
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- Blog Form Dialog ---------- */
 function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: boolean; onClose: () => void; userId?: string }) {
   const queryClient = useQueryClient();
@@ -281,7 +462,12 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       updateField("seo_description", data.seo_description || "");
       if (data.seo_keywords) updateField("seo_keywords", data.seo_keywords.join(", "));
       if (data.suggested_tags && !form.tags) updateField("tags", data.suggested_tags.join(", "));
-      toast.success("Đã tạo SEO metadata!");
+      // Show improvement suggestions if available
+      if (data.improvement_suggestions?.length) {
+        toast.success(`Đã tạo SEO metadata! (Score: ${data.content_score || "N/A"}/100)`);
+      } else {
+        toast.success("Đã tạo SEO metadata!");
+      }
     } catch (e: any) {
       toast.error(e.message || "Lỗi tạo SEO");
     } finally {
@@ -426,6 +612,9 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
           </TabsContent>
 
           <TabsContent value="seo" className="space-y-4 mt-4">
+            {/* SEO Score Panel */}
+            <SEOScorePanel form={form} />
+
             {/* Related Tools */}
             <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
               <div className="flex items-center justify-between">
@@ -472,15 +661,33 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
               <div className="space-y-2">
                 <Label>SEO Title <span className="text-muted-foreground text-xs">({form.seo_title.length}/60)</span></Label>
                 <Input value={form.seo_title} onChange={(e) => updateField("seo_title", e.target.value)} placeholder="Tiêu đề tối ưu cho SEO" maxLength={70} />
+                {form.seo_title.length > 60 && <p className="text-xs text-destructive">Vượt quá 60 ký tự — có thể bị cắt trên Google</p>}
               </div>
               <div className="space-y-2">
                 <Label>SEO Description <span className="text-muted-foreground text-xs">({form.seo_description.length}/160)</span></Label>
                 <Input value={form.seo_description} onChange={(e) => updateField("seo_description", e.target.value)} placeholder="Mô tả meta cho công cụ tìm kiếm" maxLength={170} />
+                {form.seo_description.length > 0 && form.seo_description.length < 140 && <p className="text-xs text-yellow-600">Nên dài hơn 140 ký tự để tối ưu hiển thị</p>}
               </div>
               <div className="space-y-2">
                 <Label>SEO Keywords (phẩy phân cách)</Label>
                 <Input value={form.seo_keywords} onChange={(e) => updateField("seo_keywords", e.target.value)} placeholder="keyword1, keyword2, ..." />
               </div>
+
+              {/* SERP Preview */}
+              {(form.seo_title || form.title) && (
+                <div className="border rounded p-3 bg-background">
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">📱 SERP Preview</p>
+                  <div className="space-y-0.5">
+                    <p className="text-blue-700 text-sm font-medium truncate hover:underline cursor-default">
+                      {(form.seo_title || form.title).slice(0, 60)}
+                    </p>
+                    <p className="text-green-700 text-xs">toolscope.com/blog/{form.slug || "..."}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {(form.seo_description || form.excerpt || "Chưa có mô tả...").slice(0, 160)}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
