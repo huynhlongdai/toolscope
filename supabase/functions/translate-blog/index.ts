@@ -17,10 +17,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { blog_id, workflow_id, locale = "en" } = await req.json();
-    const entityId = blog_id || workflow_id;
-    const entityType = workflow_id ? "workflow" : "blog";
-    const tableName = workflow_id ? "workflows" : "blog_posts";
+    const { blog_id, workflow_id, deal_id, locale = "en" } = await req.json();
+    const entityId = deal_id || blog_id || workflow_id;
+    const entityType = deal_id ? "deal" : workflow_id ? "workflow" : "blog";
+    const tableName = deal_id ? "deals" : workflow_id ? "workflows" : "blog_posts";
 
     if (!entityId) return new Response(JSON.stringify({ error: "blog_id or workflow_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
