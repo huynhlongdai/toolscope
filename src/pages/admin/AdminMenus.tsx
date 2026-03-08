@@ -236,13 +236,70 @@ export default function AdminMenus() {
           </div>
         </div>
 
-        <Select value={location} onValueChange={setLocation}>
-          <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="header">Header</SelectItem>
-            <SelectItem value="footer">Footer</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={location} onValueChange={setLocation}>
+            <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="header">Header</SelectItem>
+              <SelectItem value="footer">Footer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Badge variant="outline" className="text-xs">{items.length} items · {items.reduce((acc, it) => acc + (it.children?.length || 0), 0)} children</Badge>
+          <Button size="sm" variant="ghost" onClick={() => {
+            const other = location === "header" ? "footer" : "header";
+            if (confirm(`Copy menu ${location} → ${other}?`)) {
+              (async () => {
+                const { data: existing } = await supabase.from("menus").select("*").eq("location", other).maybeSingle();
+                if (existing) {
+                  await supabase.from("menus").update({ items: items as any, updated_at: new Date().toISOString() }).eq("id", existing.id);
+                } else {
+                  await supabase.from("menus").insert({ name: other, location: other, items: items as any });
+                }
+                queryClient.invalidateQueries({ queryKey: ["admin-menu"] });
+                toast.success(`Đã copy menu sang ${other}`);
+              })();
+            }
+          }}>
+            <LinkIcon className="mr-1 h-3.5 w-3.5" /> Duplicate → {location === "header" ? "Footer" : "Header"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => {
+            if (confirm("Reset menu về mặc định?")) {
+              setItems(location === "header" ? defaultHeaderItems : defaultFooterItems);
+              toast.info("Đã reset về mặc định. Nhấn Lưu để áp dụng.");
+            }
+          }}>
+            <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reset
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => {
+            const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = `menu-${location}-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+            URL.revokeObjectURL(url);
+            toast.success("Đã export menu JSON");
+          }}>
+            <Download className="mr-1 h-3.5 w-3.5" /> Export
+          </Button>
+          <div className="relative">
+            <Button size="sm" variant="ghost">
+              <Upload className="mr-1 h-3.5 w-3.5" /> Import
+            </Button>
+            <input type="file" accept=".json" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                if (!Array.isArray(parsed)) throw new Error("Invalid");
+                setItems(parsed);
+                toast.success("Đã import menu. Nhấn Lưu để áp dụng.");
+              } catch {
+                toast.error("File JSON không hợp lệ");
+              }
+              e.target.value = "";
+            }} />
+          </div>
+        </div>
 
         {/* Preview */}
         {showPreview && (
