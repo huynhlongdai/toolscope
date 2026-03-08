@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Megaphone, Eye, EyeOff, Code, Monitor } from "lucide-react";
+import { Save, Megaphone, Eye, EyeOff, Code, Monitor, X } from "lucide-react";
 
 const AD_SLOTS = [
   { id: "hero_below", label: "Dưới Hero (Trang chủ)", page: "Index", defaultFormat: "horizontal" },
