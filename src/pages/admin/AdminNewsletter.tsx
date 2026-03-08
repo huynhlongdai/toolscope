@@ -62,11 +62,61 @@ export default function AdminNewsletter() {
     toast.success(`Đã xóa ${ids.length} subscribers`);
   };
 
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["newsletter-campaigns"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("value").eq("key", "newsletter_campaigns").maybeSingle();
+      return (data?.value as any[]) || [];
+    },
+  });
+
+  // Detect duplicate emails
+  const emailCounts: Record<string, number> = {};
+  subscribers.forEach((s: any) => { emailCounts[s.email.toLowerCase()] = (emailCounts[s.email.toLowerCase()] || 0) + 1; });
+  const duplicateEmails = new Set(Object.entries(emailCounts).filter(([_, c]) => c > 1).map(([e]) => e));
+
   const filtered = subscribers.filter((s: any) => {
     const matchSearch = s.email.toLowerCase().includes(search.toLowerCase());
     const matchActive = activeFilter === "all" || (activeFilter === "active" ? s.is_active : !s.is_active);
-    return matchSearch && matchActive;
+    const matchSegment = segmentFilter === "all" || (segmentFilter === "7d" ? new Date(s.subscribed_at) > new Date(Date.now() - 7 * 86400000) : new Date(s.subscribed_at) > new Date(Date.now() - 30 * 86400000));
+    return matchSearch && matchActive && matchSegment;
   });
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingCSV(true);
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      const emails: string[] = [];
+      for (const line of lines) {
+        const parts = line.split(",");
+        const email = parts[0].replace(/["']/g, "").trim().toLowerCase();
+        if (email.includes("@") && email !== "email") emails.push(email);
+      }
+      if (emails.length === 0) { toast.error("Không tìm thấy email hợp lệ"); return; }
+      let added = 0;
+      for (const email of emails) {
+        const { error } = await supabase.from("newsletter_subscribers").insert({ email }).select();
+        if (!error) added++;
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-newsletter"] });
+      toast.success(`Đã import ${added}/${emails.length} subscribers`);
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi import CSV");
+    } finally {
+      setImportingCSV(false);
+      e.target.value = "";
+    }
+  };
+
+  const saveCampaign = async () => {
+    const campaign = { subject: emailForm.subject, content: emailForm.content, created_at: new Date().toISOString(), recipients: getRecipients().length };
+    const updated = [campaign, ...campaigns].slice(0, 50);
+    await supabase.from("site_settings").upsert({ key: "newsletter_campaigns", value: updated as any, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+  };
 
   const activeCount = subscribers.filter((s: any) => s.is_active).length;
   const inactiveCount = subscribers.length - activeCount;
