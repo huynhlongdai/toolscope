@@ -142,6 +142,30 @@ export function ContentTranslationsTab() {
     onError: (e: any) => toast.error(e.message || "Lỗi dịch workflow"),
   });
 
+  const translateDealMutation = useMutation({
+    mutationFn: async (dealId: string) => {
+      const { data, error } = await supabase.functions.invoke("translate-blog", { body: { deal_id: dealId, locale: targetLocale } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-translations"] }); toast.success(`Đã dịch deal sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`); },
+    onError: (e: any) => toast.error(e.message || "Lỗi dịch deal"),
+  });
+
+  const bulkTranslateDealsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      let c = 0;
+      for (const id of ids) {
+        try { const { data, error } = await supabase.functions.invoke("translate-blog", { body: { deal_id: id, locale: targetLocale } }); if (!error && !data?.error) c++; } catch {}
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      return c;
+    },
+    onSuccess: (count) => { queryClient.invalidateQueries({ queryKey: ["admin-translations"] }); setSelectedDealIds(new Set()); toast.success(`Đã dịch ${count} deals`); },
+    onError: () => toast.error("Lỗi dịch deal hàng loạt"),
+  });
+
   const bulkTranslateMutation = useMutation({
     mutationFn: async (toolIds: string[]) => {
       let successCount = 0;
