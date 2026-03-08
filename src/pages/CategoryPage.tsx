@@ -181,6 +181,7 @@ export default function CategoryPage() {
           ) : tools && tools.length > 0 ? (
             <>
               <p className="mb-4 text-sm text-muted-foreground">{tools.length} {t("category.toolCount")}</p>
+              <AdUnit slotId="between_tools" className="mb-4" />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {tools.map((tool) => (
                   <ToolCard

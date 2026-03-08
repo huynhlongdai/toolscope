@@ -311,6 +311,8 @@ export default function ToolDetail() {
                 </Card>
               )}
 
+              <AdUnit slotId="tool_detail_mid" className="my-4" />
+
               <Card>
                 <CardHeader><CardTitle>{t("tool.yourRating")}</CardTitle></CardHeader>
                 <CardContent>

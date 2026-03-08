@@ -47,6 +47,7 @@ const Index = () => {
       <Header />
       <main className="flex-1 pb-20 md:pb-0">
         <HeroSection />
+        <AdUnit slotId="hero_below" className="container my-4" />
         <CategoryGrid />
         <FeaturedTools />
         <StatsCounter />
@@ -54,6 +55,7 @@ const Index = () => {
         <TrendingDeals />
         <BlogPreview />
         <NewsletterCTA />
+        <AdUnit slotId="footer_above" className="container my-4" />
       </main>
       <Footer />
       <MobileBottomNav />
