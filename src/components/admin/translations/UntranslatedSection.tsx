@@ -8,12 +8,15 @@ interface UntranslatedSectionProps {
   untranslatedBlogs: any[];
   untranslatedMenus?: any[];
   untranslatedWorkflows?: any[];
+  untranslatedDeals?: any[];
   onTranslateTool: (id: string) => void;
   onTranslateBlog: (id: string) => void;
   onTranslateMenu?: (id: string) => void;
   onTranslateWorkflow?: (id: string) => void;
+  onTranslateDeal?: (id: string) => void;
   onBulkTranslateBlogs?: (ids: string[]) => void;
   onBulkTranslateWorkflows?: (ids: string[]) => void;
+  onBulkTranslateDeals?: (ids: string[]) => void;
   isTranslating: boolean;
   selectedToolIds: Set<string>;
   onToggleSelectTool: (id: string) => void;
@@ -21,20 +24,23 @@ interface UntranslatedSectionProps {
   onToggleSelectBlog: (id: string) => void;
   selectedWorkflowIds?: Set<string>;
   onToggleSelectWorkflow?: (id: string) => void;
+  selectedDealIds?: Set<string>;
+  onToggleSelectDeal?: (id: string) => void;
   targetLocale: Locale;
 }
 
 export function UntranslatedSection({
-  untranslatedTools, untranslatedBlogs, untranslatedMenus = [], untranslatedWorkflows = [],
-  onTranslateTool, onTranslateBlog, onTranslateMenu, onTranslateWorkflow,
-  onBulkTranslateBlogs, onBulkTranslateWorkflows,
+  untranslatedTools, untranslatedBlogs, untranslatedMenus = [], untranslatedWorkflows = [], untranslatedDeals = [],
+  onTranslateTool, onTranslateBlog, onTranslateMenu, onTranslateWorkflow, onTranslateDeal,
+  onBulkTranslateBlogs, onBulkTranslateWorkflows, onBulkTranslateDeals,
   isTranslating,
   selectedToolIds, onToggleSelectTool,
   selectedBlogIds, onToggleSelectBlog,
   selectedWorkflowIds = new Set(), onToggleSelectWorkflow,
+  selectedDealIds = new Set(), onToggleSelectDeal,
   targetLocale,
 }: UntranslatedSectionProps) {
-  if (untranslatedTools.length === 0 && untranslatedBlogs.length === 0 && untranslatedMenus.length === 0 && untranslatedWorkflows.length === 0) return null;
+  if (untranslatedTools.length === 0 && untranslatedBlogs.length === 0 && untranslatedMenus.length === 0 && untranslatedWorkflows.length === 0 && untranslatedDeals.length === 0) return null;
 
   const targetName = SUPPORTED_LOCALES[targetLocale]?.nativeName || targetLocale;
 
