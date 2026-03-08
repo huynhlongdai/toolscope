@@ -275,7 +275,6 @@ export default function TasksPage() {
                           </h2>
                         )}
                         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                          {group.parent && !group.parent.parent_id && renderTaskCard(group.parent)}
                           {group.items.map((task) => renderTaskCard(task))}
                         </div>
                       </div>
