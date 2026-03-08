@@ -219,6 +219,7 @@ export default function ToolsPage() {
               ) : tools && tools.length > 0 ? (
                 <>
                   <p className="mb-4 text-sm text-muted-foreground">{totalCount} {t("tools.count")}</p>
+                  <AdUnit slotId="between_tools" className="mb-4" />
                   <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {tools.map((tool) => (
                       <ToolCard key={tool.id} id={tool.id} name={tool.name} slug={tool.slug} shortDescription={tool.short_description || undefined} logoUrl={tool.logo_url || undefined} websiteUrl={tool.website_url || undefined} pricingType={tool.pricing_type} avgRating={Number(tool.avg_rating) || 0} ratingCount={tool.rating_count} categoryName={(tool.categories as any)?.name} isTrending={tool.is_trending} isAiRecommended={(tool.ai_scores as any)?.is_recommended} aiScore={(tool.ai_scores as any)?.overall_score ? Number((tool.ai_scores as any).overall_score) : undefined} />
