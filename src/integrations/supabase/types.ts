@@ -1372,6 +1372,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          admin_note: string | null
           created_at: string | null
           details: string | null
           id: string
@@ -1384,6 +1385,7 @@ export type Database = {
           target_type: string
         }
         Insert: {
+          admin_note?: string | null
           created_at?: string | null
           details?: string | null
           id?: string
@@ -1396,6 +1398,7 @@ export type Database = {
           target_type: string
         }
         Update: {
+          admin_note?: string | null
           created_at?: string | null
           details?: string | null
           id?: string
@@ -2019,6 +2022,30 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_warnings: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string
+          user_id: string
+          warned_by: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason: string
+          user_id: string
+          warned_by: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string
+          user_id?: string
+          warned_by?: string
         }
         Relationships: []
       }
