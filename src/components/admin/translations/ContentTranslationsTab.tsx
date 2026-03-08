@@ -235,6 +235,10 @@ export function ContentTranslationsTab() {
       return wf ? (wf as any)[item.field_name] || "" : "";
     }
     if (item.entity_type === "menu") return item.field_name;
+    if (item.entity_type === "deal") {
+      const deal = dealsData.find((d: any) => d.id === item.entity_id);
+      return deal ? (deal as any)[item.field_name] || "" : "";
+    }
     return "";
   }
 
