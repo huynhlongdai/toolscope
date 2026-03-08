@@ -370,6 +370,28 @@ const ProfilePage = () => {
             <>
               <ProfileHeader profile={profile} badges={badges} isOwnProfile={isOwnProfile} editing={editing} onStartEdit={startEditing} editForm={editForm} setEditForm={setEditForm} onSave={() => updateProfile.mutate()} onCancel={() => setEditing(false)} isSaving={updateProfile.isPending} />
 
+              {/* Warnings banner for own profile */}
+              {isOwnProfile && myWarnings.length > 0 && (
+                <Card className="mb-4 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20">
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Bạn có {myWarnings.length} cảnh báo từ Admin</p>
+                      <p className="text-xs text-amber-600/80 dark:text-amber-400/60 mt-0.5">{myWarnings[0]?.reason}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Report user button for other profiles */}
+              {!isOwnProfile && user && (
+                <div className="flex justify-end mb-4">
+                  <Button variant="ghost" size="sm" onClick={() => setShowReportDialog(true)} className="text-muted-foreground">
+                    <Flag className="mr-1 h-3 w-3" /> Báo cáo
+                  </Button>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-4 mb-6">
                 {[
                   { icon: BookOpen, label: t("profile.statReviews"), value: stats?.reviews || 0 },
