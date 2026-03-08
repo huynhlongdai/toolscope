@@ -70,6 +70,42 @@ export type Database = {
           },
         ]
       }
+      ai_usage_logs: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          feature: string
+          id: string
+          model: string | null
+          provider: string
+          status: string | null
+          tokens_used: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          feature: string
+          id?: string
+          model?: string | null
+          provider: string
+          status?: string | null
+          tokens_used?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          feature?: string
+          id?: string
+          model?: string | null
+          provider?: string
+          status?: string | null
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           content: string
