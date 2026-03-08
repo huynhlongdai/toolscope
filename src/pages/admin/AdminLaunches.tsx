@@ -319,6 +319,9 @@ export default function AdminLaunches() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create launch dialog */}
+      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
     </AdminLayout>
   );
 }
