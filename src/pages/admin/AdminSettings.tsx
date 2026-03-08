@@ -418,10 +418,10 @@ export default function AdminSettings() {
                         <div className="space-y-1">
                           <Label className="text-xs">Model</Label>
                           {models.length > 0 ? (
-                            <Select value={fc.model || ""} onValueChange={(v) => updateFeatureConfig(feature.id, { model: v || undefined })}>
+                            <Select value={fc.model || "default"} onValueChange={(v) => updateFeatureConfig(feature.id, { model: v === "default" ? undefined : v })}>
                               <SelectTrigger className="h-9"><SelectValue placeholder="Mặc định" /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="">Mặc định</SelectItem>
+                                <SelectItem value="default">Mặc định</SelectItem>
                                 {models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                               </SelectContent>
                             </Select>
