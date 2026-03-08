@@ -74,7 +74,7 @@ Yêu cầu bài viết:
 Viết chuyên nghiệp, khách quan, có chiều sâu. Dùng markdown formatting (headers, bold, lists, blockquotes).`;
 
     const response = await callAI({
-      feature: "content_generation",
+      feature: "review_generation",
       messages: [
         { role: "system", content: "Bạn là chuyên gia review công cụ công nghệ. Viết bài review chuyên sâu, khách quan." },
         { role: "user", content: prompt },

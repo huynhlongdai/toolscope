@@ -1,17 +1,42 @@
 // Shared AI provider routing for multi-provider support
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-export interface AIProviderConfig {
-  ai_chat: string;
-  ai_search: string;
-  content_generation: string;
+export type AIFeature =
+  | "ai_chat"
+  | "ai_search"
+  | "blog_generation"
+  | "tool_article"
+  | "review_generation"
+  | "workflow_generation"
+  | "translation"
+  | "content_generation";
+
+export interface FeatureConfig {
+  provider: string;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
 }
+
+export type AIProviderConfig = Record<AIFeature, string | FeatureConfig>;
 
 export interface AIKeys {
   openai_api_key?: string;
+  openai_api_key_2?: string;
   gemini_api_key?: string;
+  gemini_api_key_2?: string;
   cometapi_api_key?: string;
+  cometapi_api_key_2?: string;
   perplexity_api_key?: string;
+  perplexity_api_key_2?: string;
+  anthropic_api_key?: string;
+  anthropic_api_key_2?: string;
+  openrouter_api_key?: string;
+  openrouter_api_key_2?: string;
+  xai_api_key?: string;
+  xai_api_key_2?: string;
+  cerebras_api_key?: string;
+  cerebras_api_key_2?: string;
 }
 
 const PROVIDER_ENDPOINTS: Record<string, string> = {
@@ -20,6 +45,10 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
   gemini: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   cometapi: "", // user configures endpoint
   perplexity: "https://api.perplexity.ai/chat/completions",
+  anthropic: "https://api.anthropic.com/v1/messages",
+  openrouter: "https://openrouter.ai/api/v1/chat/completions",
+  xai: "https://api.x.ai/v1/chat/completions",
+  cerebras: "https://api.cerebras.ai/v1/chat/completions",
 };
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -28,7 +57,38 @@ const DEFAULT_MODELS: Record<string, string> = {
   gemini: "gemini-2.5-flash",
   cometapi: "gpt-4o-mini",
   perplexity: "sonar",
+  anthropic: "claude-sonnet-4-20250514",
+  openrouter: "google/gemini-2.5-flash",
+  xai: "grok-3-mini",
+  cerebras: "llama-4-scout-17b-16e-instruct",
 };
+
+export const MODEL_CATALOG: Record<string, string[]> = {
+  lovable: [
+    "google/gemini-2.5-pro", "google/gemini-3.1-pro-preview", "google/gemini-3-flash-preview",
+    "google/gemini-2.5-flash", "google/gemini-2.5-flash-lite",
+    "openai/gpt-5", "openai/gpt-5-mini", "openai/gpt-5-nano", "openai/gpt-5.2",
+  ],
+  openai: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1", "o1-mini", "o3-mini"],
+  gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+  anthropic: ["claude-sonnet-4-20250514", "claude-opus-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"],
+  openrouter: ["google/gemini-2.5-flash", "openai/gpt-4o", "anthropic/claude-sonnet-4-20250514", "meta-llama/llama-4-maverick", "deepseek/deepseek-r1"],
+  xai: ["grok-3", "grok-3-mini", "grok-2", "grok-2-mini"],
+  cerebras: ["llama-4-scout-17b-16e-instruct", "llama3.3-70b", "llama3.1-8b"],
+  perplexity: ["sonar", "sonar-pro", "sonar-reasoning", "sonar-reasoning-pro"],
+  cometapi: ["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet-20241022"],
+};
+
+function parseFeatureConfig(raw: any): { provider: string; model?: string; temperature?: number; max_tokens?: number } {
+  if (!raw) return { provider: "lovable" };
+  if (typeof raw === "string") return { provider: raw };
+  return {
+    provider: raw.provider || "lovable",
+    model: raw.model,
+    temperature: raw.temperature,
+    max_tokens: raw.max_tokens,
+  };
+}
 
 export async function getProviderConfig(): Promise<{ config: AIProviderConfig; keys: AIKeys }> {
   const supabase = createClient(
@@ -46,69 +106,100 @@ export async function getProviderConfig(): Promise<{ config: AIProviderConfig; k
     settings[row.key] = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
   });
 
+  const rawConfig = settings.ai_provider_config || {};
   const config: AIProviderConfig = {
-    ai_chat: settings.ai_provider_config?.ai_chat || "lovable",
-    ai_search: settings.ai_provider_config?.ai_search || "lovable",
-    content_generation: settings.ai_provider_config?.content_generation || "lovable",
+    ai_chat: rawConfig.ai_chat || "lovable",
+    ai_search: rawConfig.ai_search || "lovable",
+    blog_generation: rawConfig.blog_generation || rawConfig.content_generation || "lovable",
+    tool_article: rawConfig.tool_article || rawConfig.content_generation || "lovable",
+    review_generation: rawConfig.review_generation || rawConfig.content_generation || "lovable",
+    workflow_generation: rawConfig.workflow_generation || rawConfig.content_generation || "lovable",
+    translation: rawConfig.translation || rawConfig.content_generation || "lovable",
+    content_generation: rawConfig.content_generation || "lovable",
   };
 
   const keys: AIKeys = settings.ai_keys || {};
-
   return { config, keys };
 }
 
-function getApiKey(provider: string, keys: AIKeys): string | null {
-  switch (provider) {
-    case "lovable": return Deno.env.get("LOVABLE_API_KEY") || null;
-    case "openai": return keys.openai_api_key || null;
-    case "gemini": return keys.gemini_api_key || null;
-    case "cometapi": return keys.cometapi_api_key || null;
-    case "perplexity": return keys.perplexity_api_key || null;
-    default: return null;
+const KEY_FIELDS: Record<string, string> = {
+  openai: "openai_api_key",
+  gemini: "gemini_api_key",
+  cometapi: "cometapi_api_key",
+  perplexity: "perplexity_api_key",
+  anthropic: "anthropic_api_key",
+  openrouter: "openrouter_api_key",
+  xai: "xai_api_key",
+  cerebras: "cerebras_api_key",
+};
+
+function getApiKeys(provider: string, keys: AIKeys): string[] {
+  if (provider === "lovable") {
+    const k = Deno.env.get("LOVABLE_API_KEY");
+    return k ? [k] : [];
   }
+  const field = KEY_FIELDS[provider];
+  if (!field) return [];
+  const primary = (keys as any)[field];
+  const backup = (keys as any)[field + "_2"];
+  const result: string[] = [];
+  if (primary) result.push(primary);
+  if (backup) result.push(backup);
+  return result;
 }
 
 export async function callAI(opts: {
-  feature: keyof AIProviderConfig;
+  feature: AIFeature;
   messages: Array<{ role: string; content: string }>;
   model?: string;
   stream?: boolean;
   tools?: any[];
   tool_choice?: any;
+  temperature?: number;
+  max_tokens?: number;
 }): Promise<Response> {
   const { config, keys } = await getProviderConfig();
-  const provider = config[opts.feature] || "lovable";
-  const apiKey = getApiKey(provider, keys);
+  const featureRaw = config[opts.feature] || config.content_generation || "lovable";
+  const fc = parseFeatureConfig(featureRaw);
+  const provider = fc.provider || "lovable";
+  const model = opts.model || fc.model;
+  const temperature = opts.temperature ?? fc.temperature;
+  const max_tokens = opts.max_tokens ?? fc.max_tokens;
 
-  if (!apiKey) {
-    // Fallback to Lovable
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableKey) throw new Error("No AI provider configured");
-    return callProvider("lovable", lovableKey, opts);
-  }
+  const apiKeys = getApiKeys(provider, keys);
 
-  try {
-    const response = await callProvider(provider, apiKey, opts);
-    if (!response.ok && provider !== "lovable") {
-      // Fallback to Lovable on error
-      console.warn(`Provider ${provider} failed (${response.status}), falling back to Lovable`);
-      const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-      if (lovableKey) return callProvider("lovable", lovableKey, opts);
+  // Try each key for the selected provider
+  for (const apiKey of apiKeys) {
+    try {
+      const response = await callProvider(provider, apiKey, { ...opts, model, temperature, max_tokens });
+      if (response.ok) return response;
+      console.warn(`Provider ${provider} failed (${response.status})`);
+    } catch (e) {
+      console.warn(`Provider ${provider} error:`, e);
     }
-    return response;
-  } catch (e) {
-    console.warn(`Provider ${provider} error, falling back to Lovable:`, e);
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (lovableKey) return callProvider("lovable", lovableKey, opts);
-    throw e;
   }
+
+  // Fallback to Lovable
+  if (provider !== "lovable") {
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (lovableKey) {
+      console.warn(`Falling back to Lovable from ${provider}`);
+      return callProvider("lovable", lovableKey, { ...opts, model: undefined, temperature, max_tokens });
+    }
+  }
+
+  throw new Error("No AI provider configured or all providers failed");
 }
 
 async function callProvider(
   provider: string,
   apiKey: string,
-  opts: { messages: any[]; model?: string; stream?: boolean; tools?: any[]; tool_choice?: any }
+  opts: { messages: any[]; model?: string; stream?: boolean; tools?: any[]; tool_choice?: any; temperature?: number; max_tokens?: number }
 ): Promise<Response> {
+  if (provider === "anthropic") {
+    return callAnthropicProvider(apiKey, opts);
+  }
+
   const endpoint = PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.lovable;
   const model = opts.model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
 
@@ -126,6 +217,67 @@ async function callProvider(
   if (opts.stream) body.stream = true;
   if (opts.tools) body.tools = opts.tools;
   if (opts.tool_choice) body.tool_choice = opts.tool_choice;
+  if (opts.temperature !== undefined) body.temperature = opts.temperature;
+  if (opts.max_tokens !== undefined) body.max_tokens = opts.max_tokens;
 
   return fetch(endpoint, { method: "POST", headers, body: JSON.stringify(body) });
+}
+
+async function callAnthropicProvider(
+  apiKey: string,
+  opts: { messages: any[]; model?: string; stream?: boolean; temperature?: number; max_tokens?: number }
+): Promise<Response> {
+  const model = opts.model || DEFAULT_MODELS.anthropic;
+
+  // Extract system message
+  let systemText = "";
+  const messages = opts.messages.filter((m) => {
+    if (m.role === "system") {
+      systemText += (systemText ? "\n" : "") + m.content;
+      return false;
+    }
+    return true;
+  });
+
+  const body: any = {
+    model,
+    messages,
+    max_tokens: opts.max_tokens || 4096,
+  };
+  if (systemText) body.system = systemText;
+  if (opts.temperature !== undefined) body.temperature = opts.temperature;
+
+  const response = await fetch(PROVIDER_ENDPOINTS.anthropic, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) return response;
+
+  // Convert Anthropic response to OpenAI format
+  const data = await response.json();
+  const text = data.content?.map((c: any) => c.text).join("") || "";
+
+  const openaiFormat = {
+    choices: [{
+      message: { role: "assistant", content: text },
+      finish_reason: data.stop_reason === "end_turn" ? "stop" : data.stop_reason,
+    }],
+    model: data.model,
+    usage: {
+      prompt_tokens: data.usage?.input_tokens || 0,
+      completion_tokens: data.usage?.output_tokens || 0,
+      total_tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+    },
+  };
+
+  return new Response(JSON.stringify(openaiFormat), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }

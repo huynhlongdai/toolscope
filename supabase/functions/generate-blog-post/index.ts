@@ -242,7 +242,7 @@ ${content?.substring(0, 5000) || "(no content)"}`
       return new Response(JSON.stringify({ error: "Invalid action" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const response = await callAI({ feature: "content_generation", messages });
+    const response = await callAI({ feature: "blog_generation", messages });
 
     if (!response.ok) {
       if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });

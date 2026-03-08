@@ -36,7 +36,7 @@ Categories: Design, Marketing, Development, Content, Productivity, Business, AI,
       : `Based on the provided tools, create a practical workflow that combines them effectively.`;
 
     const response = await callAI({
-      feature: "content_generation",
+      feature: "workflow_generation",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
