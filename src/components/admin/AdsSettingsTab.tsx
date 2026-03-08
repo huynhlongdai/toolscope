@@ -253,6 +253,22 @@ export function AdsSettingsTab() {
                         </p>
                       </div>
                     )}
+
+                    {/* Preview button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setPreviewSlot(previewSlot === adSlot.id ? null : adSlot.id)}
+                    >
+                      {previewSlot === adSlot.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      {previewSlot === adSlot.id ? "Ẩn preview" : "Xem preview"}
+                    </Button>
+
+                    {/* Preview panel */}
+                    {previewSlot === adSlot.id && (
+                      <AdPreviewPanel slot={slot} clientId={config.client_id} slotDef={adSlot} />
+                    )}
                   </div>
                 )}
               </div>
