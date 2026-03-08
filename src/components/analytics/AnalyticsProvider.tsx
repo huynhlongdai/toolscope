@@ -12,7 +12,7 @@ export function AnalyticsProvider() {
       const { data } = await supabase
         .from("site_settings")
         .select("key, value")
-        .in("key", ["ga_measurement_id", "custom_head_scripts", "custom_body_scripts"]);
+        .in("key", ["ga_measurement_id", "custom_head_scripts", "custom_body_scripts", "ads_config"]);
       const map: Record<string, any> = {};
       data?.forEach((row: any) => { map[row.key] = row.value; });
       return map;
