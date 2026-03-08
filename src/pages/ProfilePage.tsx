@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Star, MessageSquare, Award, BookOpen, Calendar, Pencil, Save, Bookmark, Layers, Plus, Globe, Lock, Trash2, FolderOpen } from "lucide-react";
+import { Star, MessageSquare, Award, BookOpen, Calendar, Pencil, Save, Bookmark, Layers, Plus, Globe, Lock, Trash2, FolderOpen, Flag, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ToolCard } from "@/components/tools/ToolCard";
