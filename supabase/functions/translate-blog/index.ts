@@ -45,20 +45,22 @@ serve(async (req) => {
 
     const fieldEntries: { field: string; text: string }[] = [];
 
-    if (entityType === "workflow") {
+    if (entityType === "deal") {
+      const e = entity as any;
+      if (e.title) fieldEntries.push({ field: "title", text: e.title });
+      if (e.description) fieldEntries.push({ field: "description", text: e.description });
+    } else if (entityType === "workflow") {
       const e = entity as any;
       if (e.title) fieldEntries.push({ field: "title", text: e.title });
       if (e.description) fieldEntries.push({ field: "description", text: e.description });
       if (e.seo_title) fieldEntries.push({ field: "seo_title", text: e.seo_title });
       if (e.seo_description) fieldEntries.push({ field: "seo_description", text: e.seo_description });
 
-      // seo_content fields
       const seo = e.seo_content || {};
       if (seo.problem) fieldEntries.push({ field: "seo_content_problem", text: seo.problem });
       if (seo.solution) fieldEntries.push({ field: "seo_content_solution", text: seo.solution });
       if (seo.target_audience) fieldEntries.push({ field: "seo_content_target_audience", text: seo.target_audience });
 
-      // steps
       const steps = (e.steps as any[]) || [];
       steps.forEach((step: any, i: number) => {
         if (step.title) fieldEntries.push({ field: `step_${i}_title`, text: step.title });
