@@ -59,6 +59,14 @@ export function ContentTranslationsTab() {
     },
   });
 
+  const { data: dealsData = [] } = useQuery({
+    queryKey: ["admin-deals-for-translation"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("deals") as any).select("id, title, description, tools(name)").eq("is_active", true).order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
   const entityTypes = entityFilter === "all" ? ["tool", "blog", "menu", "workflow"] : [entityFilter];
 
   const { data: translations = [], isLoading } = useQuery({
