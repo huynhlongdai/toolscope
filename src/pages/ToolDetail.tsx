@@ -268,6 +268,7 @@ export default function ToolDetail() {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
+              <AdUnit slotId="tool_detail_top" className="mb-4" />
               {displayDesc && (
                 <Card>
                   <CardHeader><CardTitle>{t("tool.introduction")}</CardTitle></CardHeader>
