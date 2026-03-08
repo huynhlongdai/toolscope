@@ -104,19 +104,21 @@ export default function TasksPage() {
     });
 
     const parentIds = new Set(parents.map((p) => p.id));
-    // Orphan children (parent not in list)
     const orphans = children.filter((c) => !parentIds.has(c.parent_id!));
 
     parents.forEach((p) => {
-      groups.push({ parent: p, items: childMap[p.id] || [] });
+      const kids = childMap[p.id] || [];
+      if (kids.length > 0) {
+        // Parent has children → show parent as heading, children as cards
+        groups.push({ parent: p, items: kids });
+      } else {
+        // Parent without children → show as standalone card (no heading)
+        groups.push({ parent: null, items: [p] });
+      }
     });
 
-    if (orphans.length > 0 || parents.length === 0) {
-      // Add items without parent grouping
-      const ungrouped = parents.length === 0 ? regularTasks : orphans;
-      if (ungrouped.length > 0) {
-        groups.push({ parent: null, items: ungrouped });
-      }
+    if (orphans.length > 0) {
+      groups.push({ parent: null, items: orphans });
     }
 
     return groups;
