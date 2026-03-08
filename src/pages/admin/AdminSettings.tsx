@@ -17,8 +17,9 @@ import { toast } from "sonner";
 import {
   Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2,
   Settings2, Share2, Blocks, RotateCcw, Plus, Trash2, Download, Upload, Zap, BarChart3,
-  Activity, Clock, AlertTriangle
+  Activity, Clock, AlertTriangle, Megaphone
 } from "lucide-react";
+import { AdsSettingsTab } from "@/components/admin/AdsSettingsTab";
 import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
