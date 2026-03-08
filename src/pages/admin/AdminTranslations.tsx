@@ -31,10 +31,6 @@ export default function AdminTranslations() {
       return data || [];
     },
   });
-      const { data } = await supabase.from("tools").select("id").eq("status", "approved");
-      return data || [];
-    },
-  });
 
   const { data: blogs = [] } = useQuery({
     queryKey: ["admin-blogs-count"],
