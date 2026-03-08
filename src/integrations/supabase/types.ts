@@ -853,6 +853,86 @@ export type Database = {
           },
         ]
       }
+      launch_comments: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          launch_id: string
+          parent_id: string | null
+          upvotes: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          launch_id: string
+          parent_id?: string | null
+          upvotes?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          launch_id?: string
+          parent_id?: string | null
+          upvotes?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_comments_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "launch_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_subscribers: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          launch_id: string
+          notified_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          launch_id: string
+          notified_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          launch_id?: string
+          notified_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_subscribers_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       launches: {
         Row: {
           category_id: string | null
@@ -861,16 +941,20 @@ export type Database = {
           description: string | null
           features: string[] | null
           id: string
+          is_coming_soon: boolean | null
           launch_date: string
           logo_url: string | null
           maker_comment: string | null
           maker_id: string
           pricing_type: string | null
           product_name: string | null
+          scheduled_at: string | null
           screenshots: string[] | null
           status: string
+          subscriber_count: number | null
           tagline: string
           tool_id: string | null
+          trial_url: string | null
           updated_at: string | null
           upvotes: number | null
           video_url: string | null
@@ -883,16 +967,20 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           id?: string
+          is_coming_soon?: boolean | null
           launch_date?: string
           logo_url?: string | null
           maker_comment?: string | null
           maker_id: string
           pricing_type?: string | null
           product_name?: string | null
+          scheduled_at?: string | null
           screenshots?: string[] | null
           status?: string
+          subscriber_count?: number | null
           tagline: string
           tool_id?: string | null
+          trial_url?: string | null
           updated_at?: string | null
           upvotes?: number | null
           video_url?: string | null
@@ -905,16 +993,20 @@ export type Database = {
           description?: string | null
           features?: string[] | null
           id?: string
+          is_coming_soon?: boolean | null
           launch_date?: string
           logo_url?: string | null
           maker_comment?: string | null
           maker_id?: string
           pricing_type?: string | null
           product_name?: string | null
+          scheduled_at?: string | null
           screenshots?: string[] | null
           status?: string
+          subscriber_count?: number | null
           tagline?: string
           tool_id?: string | null
+          trial_url?: string | null
           updated_at?: string | null
           upvotes?: number | null
           video_url?: string | null
