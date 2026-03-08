@@ -46,6 +46,7 @@ const DEFAULT_SLOT: SlotConfig = {
 
 export function AdsSettingsTab() {
   const queryClient = useQueryClient();
+  const [previewSlot, setPreviewSlot] = useState<string | null>(null);
   const [config, setConfig] = useState<AdsConfig>({
     enabled: false,
     client_id: "",
