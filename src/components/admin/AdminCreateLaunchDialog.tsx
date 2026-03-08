@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,9 +21,26 @@ import { logAuditAction } from "@/hooks/useAuditLog";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editLaunch?: any; // pass launch object to enable edit mode
 }
 
-export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
+const defaultForm = {
+  product_name: "",
+  tagline: "",
+  description: "",
+  website_url: "",
+  logo_url: "",
+  category_id: "",
+  pricing_type: "free",
+  features: [] as string[],
+  video_url: "",
+  maker_comment: "",
+  trial_url: "",
+  is_coming_soon: false,
+  status: "approved",
+};
+
+export function AdminCreateLaunchDialog({ open, onOpenChange, editLaunch }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
@@ -31,22 +48,36 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const [featureInput, setFeatureInput] = useState("");
   const [scheduledDate, setScheduledDate] = useState<Date>();
+  const [form, setForm] = useState({ ...defaultForm });
 
-  const [form, setForm] = useState({
-    product_name: "",
-    tagline: "",
-    description: "",
-    website_url: "",
-    logo_url: "",
-    category_id: "",
-    pricing_type: "free",
-    features: [] as string[],
-    video_url: "",
-    maker_comment: "",
-    trial_url: "",
-    is_coming_soon: false,
-    status: "approved",
-  });
+  const isEdit = !!editLaunch;
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editLaunch && open) {
+      setForm({
+        product_name: editLaunch.product_name || "",
+        tagline: editLaunch.tagline || "",
+        description: editLaunch.description || "",
+        website_url: editLaunch.website_url || "",
+        logo_url: editLaunch.logo_url || "",
+        category_id: editLaunch.category_id || "",
+        pricing_type: editLaunch.pricing_type || "free",
+        features: editLaunch.features || [],
+        video_url: editLaunch.video_url || "",
+        maker_comment: editLaunch.maker_comment || "",
+        trial_url: editLaunch.trial_url || "",
+        is_coming_soon: editLaunch.is_coming_soon || false,
+        status: editLaunch.status || "approved",
+      });
+      setSelectedToolId(editLaunch.tool_id || null);
+      setToolSearch(editLaunch.tools?.name || "");
+      setScheduledDate(editLaunch.scheduled_at ? new Date(editLaunch.scheduled_at) : undefined);
+      setFeatureInput("");
+    } else if (!editLaunch && open) {
+      resetForm();
+    }
+  }, [editLaunch, open]);
 
   const { data: categories } = useQuery({
     queryKey: ["categories-select"],
@@ -85,14 +116,16 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
   const selectTool = (tool: any) => {
     setSelectedToolId(tool.id);
     setToolSearch(tool.name);
-    setForm({
-      ...form,
-      product_name: tool.name,
-      website_url: tool.website_url || "",
-      logo_url: tool.logo_url || "",
-      category_id: tool.category_id || "",
-      pricing_type: tool.pricing_type || "free",
-    });
+    if (!isEdit) {
+      setForm({
+        ...form,
+        product_name: tool.name,
+        website_url: tool.website_url || "",
+        logo_url: tool.logo_url || "",
+        category_id: tool.category_id || "",
+        pricing_type: tool.pricing_type || "free",
+      });
+    }
   };
 
   const clearToolLink = () => {
@@ -101,11 +134,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
   };
 
   const resetForm = () => {
-    setForm({
-      product_name: "", tagline: "", description: "", website_url: "", logo_url: "",
-      category_id: "", pricing_type: "free", features: [], video_url: "",
-      maker_comment: "", trial_url: "", is_coming_soon: false, status: "approved",
-    });
+    setForm({ ...defaultForm });
     setSelectedToolId(null);
     setToolSearch("");
     setFeatureInput("");
@@ -119,8 +148,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.from("launches").insert({
-        maker_id: user.id,
+      const payload = {
         tool_id: selectedToolId,
         product_name: form.product_name.trim(),
         tagline: form.tagline.trim(),
@@ -136,16 +164,28 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
         scheduled_at: scheduledDate?.toISOString() || null,
         is_coming_soon: form.is_coming_soon,
         status: form.status,
-      }).select("id").single();
-      if (error) throw error;
+      };
 
-      logAuditAction("launch_created", "launch", data?.id, { product_name: form.product_name, status: form.status });
-      toast.success("Đã tạo launch thành công!");
+      if (isEdit) {
+        const { error } = await supabase.from("launches").update(payload).eq("id", editLaunch.id);
+        if (error) throw error;
+        logAuditAction("launch_updated", "launch", editLaunch.id, { product_name: form.product_name, status: form.status });
+        toast.success("Đã cập nhật launch!");
+      } else {
+        const { data, error } = await supabase.from("launches").insert({
+          ...payload,
+          maker_id: user.id,
+        }).select("id").single();
+        if (error) throw error;
+        logAuditAction("launch_created", "launch", data?.id, { product_name: form.product_name, status: form.status });
+        toast.success("Đã tạo launch thành công!");
+      }
+
       queryClient.invalidateQueries({ queryKey: ["admin-launches"] });
       resetForm();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e.message || "Lỗi khi tạo launch");
+      toast.error(e.message || (isEdit ? "Lỗi khi cập nhật" : "Lỗi khi tạo launch"));
     }
     setSubmitting(false);
   };
@@ -154,7 +194,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tạo Launch mới</DialogTitle>
+          <DialogTitle>{isEdit ? "Chỉnh sửa Launch" : "Tạo Launch mới"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-5 pr-1">
           {/* Link existing tool */}
@@ -188,7 +228,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
             {selectedToolId && <p className="text-xs text-green-600 mt-1">✓ Đã liên kết với tool có sẵn</p>}
           </div>
 
-          {/* Status - Admin only */}
+          {/* Status */}
           <div>
             <Label>Trạng thái</Label>
             <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
@@ -197,6 +237,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
                 <SelectItem value="approved">Đã duyệt</SelectItem>
                 <SelectItem value="featured">Featured</SelectItem>
                 <SelectItem value="pending">Chờ duyệt</SelectItem>
+                <SelectItem value="rejected">Từ chối</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -316,7 +357,7 @@ export function AdminCreateLaunchDialog({ open, onOpenChange }: Props) {
           </div>
 
           <Button onClick={handleSubmit} disabled={submitting} className="w-full">
-            {submitting ? "Đang tạo..." : "🚀 Tạo Launch"}
+            {submitting ? (isEdit ? "Đang lưu..." : "Đang tạo...") : (isEdit ? "💾 Lưu thay đổi" : "🚀 Tạo Launch")}
           </Button>
         </div>
       </DialogContent>

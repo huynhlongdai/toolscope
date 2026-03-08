@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send, Plus } from "lucide-react";
+import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { logAuditAction } from "@/hooks/useAuditLog";
@@ -26,6 +26,7 @@ export default function AdminLaunches() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [commentsLaunchId, setCommentsLaunchId] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editLaunch, setEditLaunch] = useState<any>(null);
   const { data: launches = [], isLoading } = useQuery({
     queryKey: ["admin-launches", filter],
     queryFn: async () => {
@@ -174,6 +175,7 @@ export default function AdminLaunches() {
                 <TableCell>
                   <div className="flex justify-end gap-1 flex-wrap">
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailLaunch(launch)}><Eye className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditLaunch(launch); setShowCreateDialog(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setCommentsLaunchId(launch.id)}><MessageSquare className="h-3.5 w-3.5" /></Button>
                     {(launch.subscriber_count || 0) > 0 && (
                       <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => notifySubscribers(launch.id, name)}>
@@ -321,7 +323,7 @@ export default function AdminLaunches() {
       </Dialog>
 
       {/* Create launch dialog */}
-      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
+      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={(v) => { setShowCreateDialog(v); if (!v) setEditLaunch(null); }} editLaunch={editLaunch} />
     </AdminLayout>
   );
 }
