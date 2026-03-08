@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { X, Plus, Search, Link2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, Plus, Search, Link2, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface LaunchSubmitFormProps {
   onSuccess: () => void;
@@ -21,6 +26,7 @@ export function LaunchSubmitForm({ onSuccess }: LaunchSubmitFormProps) {
   const [toolSearch, setToolSearch] = useState("");
   const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const [featureInput, setFeatureInput] = useState("");
+  const [scheduledDate, setScheduledDate] = useState<Date>();
 
   const [form, setForm] = useState({
     product_name: "",
@@ -33,6 +39,8 @@ export function LaunchSubmitForm({ onSuccess }: LaunchSubmitFormProps) {
     features: [] as string[],
     video_url: "",
     maker_comment: "",
+    trial_url: "",
+    is_coming_soon: false,
   });
 
   const { data: categories } = useQuery({
@@ -107,6 +115,9 @@ export function LaunchSubmitForm({ onSuccess }: LaunchSubmitFormProps) {
         features: form.features.length > 0 ? form.features : null,
         video_url: form.video_url.trim() || null,
         maker_comment: form.maker_comment.trim() || null,
+        trial_url: form.trial_url.trim() || null,
+        scheduled_at: scheduledDate?.toISOString() || null,
+        is_coming_soon: form.is_coming_soon,
         status: "pending",
       });
       if (error) throw error;
@@ -148,7 +159,7 @@ export function LaunchSubmitForm({ onSuccess }: LaunchSubmitFormProps) {
             ))}
           </div>
         )}
-        {selectedToolId && <p className="text-xs text-green-600 mt-1">✓ Đã liên kết với tool có sẵn — thông tin được tự động điền</p>}
+        {selectedToolId && <p className="text-xs text-green-600 mt-1">✓ Đã liên kết với tool có sẵn</p>}
       </div>
 
       {/* Basic info */}
@@ -196,6 +207,36 @@ export function LaunchSubmitForm({ onSuccess }: LaunchSubmitFormProps) {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Schedule & Coming Soon */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label>Lịch ra mắt (tuỳ chọn)</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("w-full mt-1.5 justify-start text-left font-normal", !scheduledDate && "text-muted-foreground")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {scheduledDate ? format(scheduledDate, "dd/MM/yyyy") : "Chọn ngày ra mắt"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar mode="single" selected={scheduledDate} onSelect={setScheduledDate} disabled={(date) => date < new Date()} initialFocus className="p-3 pointer-events-auto" />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="flex items-end gap-3 pb-1">
+          <div className="flex items-center gap-2">
+            <Switch checked={form.is_coming_soon} onCheckedChange={(v) => setForm({ ...form, is_coming_soon: v })} />
+            <Label className="text-sm">Đánh dấu "Sắp ra mắt"</Label>
+          </div>
+        </div>
+      </div>
+
+      {/* Trial URL */}
+      <div>
+        <Label>Link dùng thử (tuỳ chọn)</Label>
+        <Input value={form.trial_url} onChange={(e) => setForm({ ...form, trial_url: e.target.value })} placeholder="https://app.example.com/trial" className="mt-1.5" />
       </div>
 
       {/* Features */}

@@ -44,6 +44,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import DealsPage from "./pages/DealsPage";
 import TasksPage from "./pages/TasksPage";
 import LaunchesPage from "./pages/LaunchesPage";
+import LaunchDetailPage from "./pages/LaunchDetailPage";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/deals" element={<DealsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/launches" element={<LaunchesPage />} />
+            <Route path="/launch/:id" element={<LaunchDetailPage />} />
             <Route path="/p/:slug" element={<DynamicPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/tools" element={<AdminTools />} />
