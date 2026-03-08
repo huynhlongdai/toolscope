@@ -78,7 +78,7 @@ Return ONLY a valid JSON object like:
 Important: Preserve all HTML tags, Markdown formatting, URLs, and technical terms. Only translate human-readable text.`;
 
     const response = await callAI({
-      feature: "content_generation",
+      feature: "translation",
       messages: [
         { role: "system", content: `You are a professional translator. Translate Vietnamese to ${targetLang} accurately while preserving all formatting.` },
         { role: "user", content: prompt },

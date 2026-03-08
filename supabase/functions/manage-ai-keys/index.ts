@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { MODEL_CATALOG } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,35 +39,31 @@ serve(async (req) => {
     const { action, keys, provider_config, test_provider, test_key } = await req.json();
 
     if (action === "get") {
-      // Return masked keys + provider config
       const { data } = await supabase.from("site_settings").select("key, value").in("key", ["ai_keys", "ai_provider_config", "site_info"]);
       const result: Record<string, any> = {};
       data?.forEach((row: any) => {
         const val = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
         if (row.key === "ai_keys") {
-          // Mask all keys
           const masked: Record<string, string> = {};
-          for (const [k, v] of Object.entries(val)) {
-            masked[k] = v ? maskKey(v as string) : "";
-          }
-          result.ai_keys_masked = masked;
-          // Also indicate which keys are configured
           const configured: Record<string, boolean> = {};
           for (const [k, v] of Object.entries(val)) {
+            masked[k] = v ? maskKey(v as string) : "";
             configured[k] = !!(v as string);
           }
+          result.ai_keys_masked = masked;
           result.ai_keys_configured = configured;
         } else {
           result[row.key] = val;
         }
       });
+      // Include model catalog
+      result.model_catalog = MODEL_CATALOG;
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action === "save_keys") {
-      // Merge with existing keys (only update non-empty values)
       const { data: existing } = await supabase.from("site_settings").select("value").eq("key", "ai_keys").maybeSingle();
       const currentKeys = existing?.value ? (typeof existing.value === "string" ? JSON.parse(existing.value) : existing.value) : {};
       
@@ -97,13 +94,16 @@ serve(async (req) => {
     }
 
     if (action === "test") {
-      // Test a provider connection
       const endpoints: Record<string, string> = {
         openai: "https://api.openai.com/v1/models",
         gemini: "https://generativelanguage.googleapis.com/v1beta/models?key=" + (test_key || ""),
         perplexity: "https://api.perplexity.ai/chat/completions",
         cometapi: "https://api.cometapi.com/v1/models",
         firecrawl: "https://api.firecrawl.dev/v1/scrape",
+        anthropic: "https://api.anthropic.com/v1/models",
+        openrouter: "https://openrouter.ai/api/v1/models",
+        xai: "https://api.x.ai/v1/models",
+        cerebras: "https://api.cerebras.ai/v1/models",
       };
 
       const endpoint = endpoints[test_provider];
@@ -122,6 +122,11 @@ serve(async (req) => {
             method: "POST",
             headers: { Authorization: `Bearer ${test_key}`, "Content-Type": "application/json" },
             body: JSON.stringify({ model: "sonar", messages: [{ role: "user", content: "test" }], max_tokens: 5 }),
+          });
+        } else if (test_provider === "anthropic") {
+          resp = await fetch(endpoint, {
+            method: "GET",
+            headers: { "x-api-key": test_key, "anthropic-version": "2023-06-01" },
           });
         } else {
           resp = await fetch(endpoint, {

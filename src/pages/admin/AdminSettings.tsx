@@ -9,26 +9,61 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2, Blocks } from "lucide-react";
+import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2, Blocks, RotateCcw, Plus } from "lucide-react";
 import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
 const AI_PROVIDERS = [
   { id: "openai", name: "OpenAI", keyField: "openai_api_key", placeholder: "sk-..." },
+  { id: "anthropic", name: "Anthropic (Claude)", keyField: "anthropic_api_key", placeholder: "sk-ant-..." },
   { id: "gemini", name: "Google Gemini", keyField: "gemini_api_key", placeholder: "AIza..." },
+  { id: "openrouter", name: "OpenRouter", keyField: "openrouter_api_key", placeholder: "sk-or-..." },
+  { id: "xai", name: "xAI (Grok)", keyField: "xai_api_key", placeholder: "xai-..." },
+  { id: "cerebras", name: "Cerebras", keyField: "cerebras_api_key", placeholder: "csk-..." },
   { id: "cometapi", name: "CometAPI", keyField: "cometapi_api_key", placeholder: "sk-..." },
   { id: "perplexity", name: "Perplexity", keyField: "perplexity_api_key", placeholder: "pplx-..." },
   { id: "firecrawl", name: "Firecrawl", keyField: "firecrawl_api_key", placeholder: "fc-..." },
 ];
 
-const FEATURES = [
-  { id: "ai_chat", label: "AI Chat" },
-  { id: "ai_search", label: "AI Search" },
-  { id: "content_generation", label: "Tạo nội dung (Blog, Review, Article)" },
+const PROVIDER_OPTIONS = [
+  { id: "lovable", name: "Lovable Gateway" },
+  { id: "openai", name: "OpenAI" },
+  { id: "anthropic", name: "Anthropic (Claude)" },
+  { id: "gemini", name: "Google Gemini" },
+  { id: "openrouter", name: "OpenRouter" },
+  { id: "xai", name: "xAI (Grok)" },
+  { id: "cerebras", name: "Cerebras" },
+  { id: "cometapi", name: "CometAPI" },
+  { id: "perplexity", name: "Perplexity" },
 ];
+
+const FEATURES = [
+  { id: "ai_chat", label: "AI Chat", desc: "Chatbot tư vấn" },
+  { id: "ai_search", label: "AI Search", desc: "Tìm kiếm thông minh" },
+  { id: "blog_generation", label: "Blog Generation", desc: "Tạo bài viết blog" },
+  { id: "tool_article", label: "Tool Article", desc: "Bài giới thiệu công cụ" },
+  { id: "review_generation", label: "Review Generation", desc: "Tạo review tự động" },
+  { id: "workflow_generation", label: "Workflow Generation", desc: "Tạo workflow" },
+  { id: "translation", label: "Translation", desc: "Dịch nội dung" },
+  { id: "content_generation", label: "Content (Fallback)", desc: "Fallback chung" },
+];
+
+interface FeatureConfig {
+  provider: string;
+  model?: string;
+  temperature?: number;
+  max_tokens?: number;
+}
+
+function parseFeatureConfig(raw: any): FeatureConfig {
+  if (!raw) return { provider: "lovable" };
+  if (typeof raw === "string") return { provider: raw };
+  return { provider: raw.provider || "lovable", model: raw.model, temperature: raw.temperature, max_tokens: raw.max_tokens };
+}
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
@@ -39,16 +74,16 @@ export default function AdminSettings() {
   const [bodyScripts, setBodyScripts] = useState("");
   const [defaultCategoryId, setDefaultCategoryId] = useState("");
 
-  // AI Keys
+  // AI Keys (primary + backup)
   const [aiKeys, setAiKeys] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [keyConfigured, setKeyConfigured] = useState<Record<string, boolean>>({});
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [showBackupKeys, setShowBackupKeys] = useState<Record<string, boolean>>({});
 
-  // Provider config
-  const [providerConfig, setProviderConfig] = useState<Record<string, string>>({
-    ai_chat: "lovable", ai_search: "lovable", content_generation: "lovable",
-  });
+  // Provider config per feature
+  const [featureConfigs, setFeatureConfigs] = useState<Record<string, FeatureConfig>>({});
+  const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
 
   // Site info
   const [siteInfo, setSiteInfo] = useState({
@@ -75,7 +110,6 @@ export default function AdminSettings() {
     },
   });
 
-  // Load AI keys info from edge function
   const { data: aiKeyData } = useQuery({
     queryKey: ["admin-ai-keys"],
     queryFn: async () => {
@@ -96,19 +130,23 @@ export default function AdminSettings() {
     }
   }, [settings]);
 
-  useEffect(() => {
-    setLocalModules(modulesConfig);
-  }, [modulesConfig]);
+  useEffect(() => { setLocalModules(modulesConfig); }, [modulesConfig]);
 
   useEffect(() => {
     if (aiKeyData) {
       setKeyConfigured(aiKeyData.ai_keys_configured || {});
-      if (aiKeyData.ai_provider_config) setProviderConfig(aiKeyData.ai_provider_config);
+      if (aiKeyData.model_catalog) setModelCatalog(aiKeyData.model_catalog);
+      if (aiKeyData.ai_provider_config) {
+        const configs: Record<string, FeatureConfig> = {};
+        for (const f of FEATURES) {
+          configs[f.id] = parseFeatureConfig(aiKeyData.ai_provider_config[f.id]);
+        }
+        setFeatureConfigs(configs);
+      }
       if (aiKeyData.site_info) setSiteInfo(prev => ({ ...prev, ...aiKeyData.site_info }));
     }
   }, [aiKeyData]);
 
-  // Save general settings
   const saveGeneralMutation = useMutation({
     mutationFn: async () => {
       const entries = [
@@ -133,7 +171,6 @@ export default function AdminSettings() {
     onError: () => toast.error("Lỗi khi lưu cài đặt"),
   });
 
-  // Save AI keys
   const saveAIKeysMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.functions.invoke("manage-ai-keys", {
@@ -149,30 +186,28 @@ export default function AdminSettings() {
     onError: () => toast.error("Lỗi khi lưu API keys"),
   });
 
-  // Save provider config
   const saveProviderMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.functions.invoke("manage-ai-keys", {
-        body: { action: "save_provider_config", provider_config: providerConfig },
+        body: { action: "save_provider_config", provider_config: featureConfigs },
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-ai-keys"] });
-      toast.success("Đã lưu cấu hình provider");
+      toast.success("Đã lưu cấu hình AI");
     },
     onError: () => toast.error("Lỗi khi lưu"),
   });
 
-  // Test connection
-  const testConnection = async (providerId: string) => {
-    const keyField = AI_PROVIDERS.find(p => p.id === providerId)?.keyField;
-    const key = aiKeys[keyField || ""] || "";
+  const testConnection = async (providerId: string, keyFieldOverride?: string) => {
+    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || "";
+    const key = aiKeys[keyField] || "";
     if (!key || key.includes("...")) {
       toast.error("Nhập API key trước khi test");
       return;
     }
-    setTestingProvider(providerId);
+    setTestingProvider(providerId + (keyFieldOverride ? "_2" : ""));
     try {
       const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
         body: { action: "test", test_provider: providerId, test_key: key },
@@ -186,6 +221,15 @@ export default function AdminSettings() {
       setTestingProvider(null);
     }
   };
+
+  const updateFeatureConfig = (featureId: string, updates: Partial<FeatureConfig>) => {
+    setFeatureConfigs(prev => ({
+      ...prev,
+      [featureId]: { ...(prev[featureId] || { provider: "lovable" }), ...updates },
+    }));
+  };
+
+  const getModelsForProvider = (provider: string) => modelCatalog[provider] || [];
 
   return (
     <AdminLayout>
@@ -206,13 +250,99 @@ export default function AdminSettings() {
 
           {/* AI PROVIDERS TAB */}
           <TabsContent value="ai" className="space-y-6">
+            {/* API Keys Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> API Keys</CardTitle>
-                <CardDescription>Cấu hình API keys cho các AI provider. Keys được mã hóa và lưu an toàn.</CardDescription>
+                <CardDescription>Cấu hình API keys cho các AI provider. Hỗ trợ primary + backup key cho mỗi provider.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {AI_PROVIDERS.map((provider) => (
+                {AI_PROVIDERS.filter(p => p.id !== "firecrawl").map((provider) => {
+                  const backupField = provider.keyField + "_2";
+                  const hasBackup = showBackupKeys[provider.id] || keyConfigured[backupField];
+                  return (
+                    <div key={provider.id} className="p-3 rounded-lg border border-border space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Label className="font-medium">{provider.name}</Label>
+                            {keyConfigured[provider.keyField] ? (
+                              <Badge variant="default" className="text-xs gap-1"><CheckCircle2 className="h-3 w-3" /> Primary</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs gap-1"><XCircle className="h-3 w-3" /> Chưa cấu hình</Badge>
+                            )}
+                            {keyConfigured[backupField] && (
+                              <Badge variant="outline" className="text-xs gap-1"><CheckCircle2 className="h-3 w-3" /> Backup</Badge>
+                            )}
+                          </div>
+                          <div className="relative max-w-md">
+                            <Input
+                              type={showKeys[provider.id] ? "text" : "password"}
+                              placeholder={keyConfigured[provider.keyField] ? aiKeyData?.ai_keys_masked?.[provider.keyField] || "••••••••" : provider.placeholder}
+                              value={aiKeys[provider.keyField] || ""}
+                              onChange={(e) => setAiKeys(prev => ({ ...prev, [provider.keyField]: e.target.value }))}
+                              className="pr-10 font-mono text-sm"
+                            />
+                            <Button
+                              variant="ghost" size="icon"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                              onClick={() => setShowKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                            >
+                              {showKeys[provider.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline" size="sm"
+                            disabled={!!testingProvider || !aiKeys[provider.keyField]}
+                            onClick={() => testConnection(provider.id)}
+                          >
+                            {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                          </Button>
+                          {!hasBackup && (
+                            <Button variant="ghost" size="sm" onClick={() => setShowBackupKeys(prev => ({ ...prev, [provider.id]: true }))}>
+                              <Plus className="h-3.5 w-3.5 mr-1" /> Backup
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {/* Backup key row */}
+                      {hasBackup && (
+                        <div className="flex items-center gap-3 pl-4 border-l-2 border-muted">
+                          <div className="flex-1">
+                            <Label className="text-xs text-muted-foreground">Backup Key</Label>
+                            <div className="relative max-w-md">
+                              <Input
+                                type={showKeys[provider.id + "_2"] ? "text" : "password"}
+                                placeholder={keyConfigured[backupField] ? aiKeyData?.ai_keys_masked?.[backupField] || "••••••••" : provider.placeholder}
+                                value={aiKeys[backupField] || ""}
+                                onChange={(e) => setAiKeys(prev => ({ ...prev, [backupField]: e.target.value }))}
+                                className="pr-10 font-mono text-sm"
+                              />
+                              <Button
+                                variant="ghost" size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                onClick={() => setShowKeys(prev => ({ ...prev, [provider.id + "_2"]: !prev[provider.id + "_2"] }))}
+                              >
+                                {showKeys[provider.id + "_2"] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </Button>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline" size="sm"
+                            disabled={!!testingProvider || !aiKeys[backupField]}
+                            onClick={() => testConnection(provider.id, backupField)}
+                          >
+                            {testingProvider === provider.id + "_2" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {/* Firecrawl separate */}
+                {AI_PROVIDERS.filter(p => p.id === "firecrawl").map((provider) => (
                   <div key={provider.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
@@ -231,20 +361,14 @@ export default function AdminSettings() {
                           onChange={(e) => setAiKeys(prev => ({ ...prev, [provider.keyField]: e.target.value }))}
                           className="pr-10 font-mono text-sm"
                         />
-                        <Button
-                          variant="ghost" size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                          onClick={() => setShowKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                        >
+                        <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                          onClick={() => setShowKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}>
                           {showKeys[provider.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
                     </div>
-                    <Button
-                      variant="outline" size="sm"
-                      disabled={testingProvider === provider.id || !aiKeys[provider.keyField]}
-                      onClick={() => testConnection(provider.id)}
-                    >
+                    <Button variant="outline" size="sm" disabled={!!testingProvider || !aiKeys[provider.keyField]}
+                      onClick={() => testConnection(provider.id)}>
                       {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
                     </Button>
                   </div>
@@ -255,32 +379,81 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
 
+            {/* Per-feature AI Config */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5" /> Provider mặc định</CardTitle>
-                <CardDescription>Chọn AI provider cho từng tính năng. Lovable Gateway là mặc định (không cần API key).</CardDescription>
+                <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5" /> Cấu hình AI theo tính năng</CardTitle>
+                <CardDescription>Chọn provider, model, và tham số cho từng tính năng. Lovable Gateway là mặc định (không cần API key).</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {FEATURES.map((feature) => (
-                  <div key={feature.id} className="flex items-center justify-between max-w-lg">
-                    <Label>{feature.label}</Label>
-                    <Select
-                      value={providerConfig[feature.id] || "lovable"}
-                      onValueChange={(v) => setProviderConfig(prev => ({ ...prev, [feature.id]: v }))}
-                    >
-                      <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="lovable">Lovable Gateway</SelectItem>
-                        <SelectItem value="openai">OpenAI</SelectItem>
-                        <SelectItem value="gemini">Google Gemini</SelectItem>
-                        <SelectItem value="cometapi">CometAPI</SelectItem>
-                        <SelectItem value="perplexity">Perplexity</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
+              <CardContent className="space-y-5">
+                {FEATURES.map((feature) => {
+                  const fc = featureConfigs[feature.id] || { provider: "lovable" };
+                  const models = getModelsForProvider(fc.provider);
+                  return (
+                    <div key={feature.id} className="p-4 rounded-lg border border-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="font-medium">{feature.label}</Label>
+                          <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7"
+                          onClick={() => updateFeatureConfig(feature.id, { provider: "lovable", model: undefined, temperature: undefined, max_tokens: undefined })}>
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {/* Provider */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Provider</Label>
+                          <Select value={fc.provider} onValueChange={(v) => updateFeatureConfig(feature.id, { provider: v, model: undefined })}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {PROVIDER_OPTIONS.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {/* Model */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Model</Label>
+                          {models.length > 0 ? (
+                            <Select value={fc.model || ""} onValueChange={(v) => updateFeatureConfig(feature.id, { model: v || undefined })}>
+                              <SelectTrigger className="h-9"><SelectValue placeholder="Mặc định" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">Mặc định</SelectItem>
+                                {models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input value={fc.model || ""} onChange={(e) => updateFeatureConfig(feature.id, { model: e.target.value || undefined })}
+                              placeholder="Mặc định" className="h-9 text-sm" />
+                          )}
+                        </div>
+                        {/* Temperature */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Temperature: {fc.temperature ?? "auto"}</Label>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Slider
+                              value={[fc.temperature ?? 0.7]}
+                              min={0} max={1} step={0.1}
+                              onValueChange={([v]) => updateFeatureConfig(feature.id, { temperature: v })}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        {/* Max Tokens */}
+                        <div className="space-y-1">
+                          <Label className="text-xs">Max Tokens</Label>
+                          <Input type="number" value={fc.max_tokens || ""} onChange={(e) => updateFeatureConfig(feature.id, { max_tokens: e.target.value ? parseInt(e.target.value) : undefined })}
+                            placeholder="Auto" className="h-9 text-sm" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
                 <Button onClick={() => saveProviderMutation.mutate()} disabled={saveProviderMutation.isPending}>
-                  <Save className="mr-2 h-4 w-4" /> Lưu cấu hình
+                  <Save className="mr-2 h-4 w-4" /> {saveProviderMutation.isPending ? "Đang lưu..." : "Lưu cấu hình AI"}
                 </Button>
               </CardContent>
             </Card>

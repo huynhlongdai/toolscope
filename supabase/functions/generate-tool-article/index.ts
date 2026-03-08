@@ -26,7 +26,7 @@ Thông tin: Tên: ${tool.name}, Mô tả: ${tool.short_description || "N/A"}, We
 Viết theo cấu trúc: ## Là gì?, ## Tính năng chính, ## Đặc điểm nổi bật, ## Bảng giá, ## Ai nên sử dụng?, ## Hướng dẫn, ## Ưu nhược điểm (bảng), ## Kết luận, ## FAQ (dùng ### cho câu hỏi)`;
 
     const response = await callAI({
-      feature: "content_generation",
+      feature: "tool_article",
       messages: [
         { role: "system", content: "Bạn là chuyên gia công nghệ, viết bài giới thiệu công cụ chi tiết, chuyên nghiệp, chuẩn SEO." },
         { role: "user", content: prompt },

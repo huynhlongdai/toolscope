@@ -66,7 +66,7 @@ ${JSON.stringify(labelsObj, null, 2)}
 Return ONLY a valid JSON object with the same keys and translated string values.`;
 
     const response = await callAI({
-      feature: "content_generation",
+      feature: "translation",
       messages: [
         { role: "system", content: `You are a professional translator. Translate Vietnamese to ${targetLang}. Keep translations short and suitable for navigation menus.` },
         { role: "user", content: prompt },
