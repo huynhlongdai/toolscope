@@ -24,6 +24,9 @@ export default function AdminNewsletter() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [emailForm, setEmailForm] = useState({ subject: "", content: "", sendToActive: true });
+  const [campaignHistoryOpen, setCampaignHistoryOpen] = useState(false);
+  const [segmentFilter, setSegmentFilter] = useState<"all" | "7d" | "30d">("all");
+  const [importingCSV, setImportingCSV] = useState(false);
 
   const { data: subscribers = [], isLoading } = useQuery({
     queryKey: ["admin-newsletter"],
