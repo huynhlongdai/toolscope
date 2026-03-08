@@ -1,15 +1,28 @@
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Check, X, Wrench, MessageSquare, HelpCircle } from "lucide-react";
+import { Check, X, Wrench, MessageSquare, HelpCircle, Shield, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { logAuditAction } from "@/hooks/useAuditLog";
+
+// Store blacklist in site_settings
+const BLACKLIST_KEY = "moderation_blacklist";
 
 export default function AdminModeration() {
   const queryClient = useQueryClient();
+  const [showBlacklistDialog, setShowBlacklistDialog] = useState(false);
+  const [newKeyword, setNewKeyword] = useState("");
+  const [selectedComments, setSelectedComments] = useState<Set<string>>(new Set());
 
   const { data: pendingTools = [] } = useQuery({
     queryKey: ["mod-pending-tools"],
@@ -30,19 +43,37 @@ export default function AdminModeration() {
   const { data: recentComments = [] } = useQuery({
     queryKey: ["mod-recent-comments"],
     queryFn: async () => {
-      const { data } = await supabase.from("comments").select("*, profiles!comments_user_id_fkey(display_name), tools!comments_tool_id_fkey(name)").order("created_at", { ascending: false }).limit(20);
+      const { data } = await supabase.from("comments").select("*, profiles!comments_user_id_fkey(display_name), tools!comments_tool_id_fkey(name)").order("created_at", { ascending: false }).limit(50);
       return data ?? [];
     },
   });
+
+  const { data: blacklist = [] } = useQuery({
+    queryKey: ["mod-blacklist"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("value").eq("key", BLACKLIST_KEY).single();
+      return (data?.value as string[]) ?? [];
+    },
+  });
+
+  // Flag comments that contain blacklisted keywords
+  const flaggedComments = useMemo(() => {
+    if (!blacklist.length) return [];
+    return recentComments.filter((c: any) => {
+      const content = c.content?.toLowerCase() ?? "";
+      return blacklist.some((kw: string) => content.includes(kw.toLowerCase()));
+    });
+  }, [recentComments, blacklist]);
 
   const approveTool = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("tools").update({ status: "published" as any }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["mod-pending-tools"] });
       queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+      logAuditAction("tool_approve", "tool", id);
       toast.success("Đã duyệt tool");
     },
   });
@@ -52,8 +83,9 @@ export default function AdminModeration() {
       const { error } = await supabase.from("tools").update({ status: "archived" as any }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["mod-pending-tools"] });
+      logAuditAction("tool_reject", "tool", id);
       toast.success("Đã từ chối tool");
     },
   });
@@ -63,8 +95,9 @@ export default function AdminModeration() {
       const { error } = await supabase.from("reviews").update({ status: "published" as any }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["mod-pending-reviews"] });
+      logAuditAction("review_approve", "review", id);
       toast.success("Đã duyệt review");
     },
   });
@@ -74,33 +107,63 @@ export default function AdminModeration() {
       const { error } = await supabase.from("comments").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["mod-recent-comments"] });
+      logAuditAction("comment_delete", "comment", id);
       toast.success("Đã xóa comment");
     },
   });
+
+  const bulkDeleteComments = async () => {
+    const ids = Array.from(selectedComments);
+    if (!ids.length || !confirm(`Xóa ${ids.length} comments?`)) return;
+    for (const id of ids) await supabase.from("comments").delete().eq("id", id);
+    logAuditAction("comment_bulk_delete", "comment", undefined, { count: ids.length });
+    queryClient.invalidateQueries({ queryKey: ["mod-recent-comments"] });
+    setSelectedComments(new Set());
+    toast.success(`Đã xóa ${ids.length} comments`);
+  };
+
+  const addKeyword = async () => {
+    if (!newKeyword.trim()) return;
+    const updated = [...blacklist, newKeyword.trim().toLowerCase()];
+    const unique = [...new Set(updated)];
+    await supabase.from("site_settings").upsert({ key: BLACKLIST_KEY, value: unique as any });
+    queryClient.invalidateQueries({ queryKey: ["mod-blacklist"] });
+    logAuditAction("blacklist_add", "moderation", undefined, { keyword: newKeyword });
+    setNewKeyword("");
+    toast.success("Đã thêm keyword");
+  };
+
+  const removeKeyword = async (kw: string) => {
+    const updated = blacklist.filter((k: string) => k !== kw);
+    await supabase.from("site_settings").upsert({ key: BLACKLIST_KEY, value: updated as any });
+    queryClient.invalidateQueries({ queryKey: ["mod-blacklist"] });
+    toast.success("Đã xóa keyword");
+  };
+
+  const toggleCommentSelect = (id: string) => setSelectedComments(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const totalPending = pendingTools.length + pendingReviews.length;
 
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Moderation Queue</h1>
-          {totalPending > 0 && <Badge variant="destructive">{totalPending} chờ duyệt</Badge>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Moderation Queue</h1>
+            {totalPending > 0 && <Badge variant="destructive">{totalPending} chờ duyệt</Badge>}
+            {flaggedComments.length > 0 && <Badge variant="outline" className="border-orange-500 text-orange-600"><AlertTriangle className="mr-1 h-3 w-3" />{flaggedComments.length} flagged</Badge>}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowBlacklistDialog(true)}><Shield className="mr-1 h-3.5 w-3.5" /> Blacklist ({blacklist.length})</Button>
         </div>
 
         <Tabs defaultValue="tools">
           <TabsList>
-            <TabsTrigger value="tools">
-              <Wrench className="mr-1 h-4 w-4" /> Tools ({pendingTools.length})
-            </TabsTrigger>
-            <TabsTrigger value="reviews">
-              <MessageSquare className="mr-1 h-4 w-4" /> Reviews ({pendingReviews.length})
-            </TabsTrigger>
-            <TabsTrigger value="comments">
-              <HelpCircle className="mr-1 h-4 w-4" /> Comments
-            </TabsTrigger>
+            <TabsTrigger value="tools"><Wrench className="mr-1 h-4 w-4" /> Tools ({pendingTools.length})</TabsTrigger>
+            <TabsTrigger value="reviews"><MessageSquare className="mr-1 h-4 w-4" /> Reviews ({pendingReviews.length})</TabsTrigger>
+            <TabsTrigger value="comments"><HelpCircle className="mr-1 h-4 w-4" /> Comments</TabsTrigger>
+            <TabsTrigger value="flagged"><AlertTriangle className="mr-1 h-4 w-4" /> Flagged ({flaggedComments.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="tools" className="space-y-4 mt-4">
@@ -116,12 +179,8 @@ export default function AdminModeration() {
                         <CardDescription>{tool.short_description ?? tool.description?.slice(0, 100)}</CardDescription>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => approveTool.mutate(tool.id)}>
-                          <Check className="mr-1 h-4 w-4" /> Duyệt
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => rejectTool.mutate(tool.id)}>
-                          <X className="mr-1 h-4 w-4" /> Từ chối
-                        </Button>
+                        <Button size="sm" onClick={() => approveTool.mutate(tool.id)}><Check className="mr-1 h-4 w-4" /> Duyệt</Button>
+                        <Button size="sm" variant="destructive" onClick={() => rejectTool.mutate(tool.id)}><X className="mr-1 h-4 w-4" /> Từ chối</Button>
                       </div>
                     </div>
                   </CardHeader>
@@ -143,22 +202,11 @@ export default function AdminModeration() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-lg">{r.title}</CardTitle>
-                        <CardDescription>
-                          Tool: {r.tools?.name} | Bởi: {r.profiles?.display_name}
-                        </CardDescription>
+                        <CardDescription>Tool: {r.tools?.name} | Bởi: {r.profiles?.display_name}</CardDescription>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => approveReview.mutate(r.id)}>
-                          <Check className="mr-1 h-4 w-4" /> Duyệt
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                          if (confirm("Xóa review này?")) {
-                            supabase.from("reviews").delete().eq("id", r.id).then(() => {
-                              queryClient.invalidateQueries({ queryKey: ["mod-pending-reviews"] });
-                              toast.success("Đã xóa");
-                            });
-                          }
-                        }}>
+                        <Button size="sm" onClick={() => approveReview.mutate(r.id)}><Check className="mr-1 h-4 w-4" /> Duyệt</Button>
+                        <Button size="sm" variant="outline" onClick={() => { if (confirm("Xóa review?")) { supabase.from("reviews").delete().eq("id", r.id).then(() => { queryClient.invalidateQueries({ queryKey: ["mod-pending-reviews"] }); toast.success("Đã xóa"); }); } }}>
                           <X className="mr-1 h-4 w-4" /> Xóa
                         </Button>
                       </div>
@@ -171,19 +219,60 @@ export default function AdminModeration() {
           </TabsContent>
 
           <TabsContent value="comments" className="space-y-4 mt-4">
+            {selectedComments.size > 0 && (
+              <Card>
+                <CardContent className="py-3 flex items-center gap-3">
+                  <span className="text-sm font-medium">{selectedComments.size} đã chọn</span>
+                  <Button size="sm" variant="destructive" onClick={bulkDeleteComments}><Trash2 className="mr-1 h-3.5 w-3.5" /> Xóa tất cả</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedComments(new Set())}>Bỏ chọn</Button>
+                </CardContent>
+              </Card>
+            )}
             {recentComments.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">Chưa có comment nào</p>
             ) : (
-              recentComments.map((c: any) => (
-                <Card key={c.id}>
+              recentComments.map((c: any) => {
+                const isFlagged = blacklist.some((kw: string) => c.content?.toLowerCase().includes(kw.toLowerCase()));
+                return (
+                  <Card key={c.id} className={isFlagged ? "border-orange-500/50" : ""}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox checked={selectedComments.has(c.id)} onCheckedChange={() => toggleCommentSelect(c.id)} />
+                        <div className="flex-1 flex items-center justify-between">
+                          <CardDescription>
+                            {c.profiles?.display_name ?? "Ẩn danh"} trên {c.tools?.name ?? "—"} — {new Date(c.created_at).toLocaleDateString("vi-VN")}
+                            {isFlagged && <Badge variant="outline" className="ml-2 border-orange-500 text-orange-600 text-[10px]">⚠️ Flagged</Badge>}
+                          </CardDescription>
+                          <Button size="sm" variant="ghost" onClick={() => { if (confirm("Xóa comment?")) deleteComment.mutate(c.id); }}>
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="text-sm pl-10">{c.content}</CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </TabsContent>
+
+          <TabsContent value="flagged" className="space-y-4 mt-4">
+            {flaggedComments.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">Không có comment nào bị flag 🎉</p>
+            ) : (
+              flaggedComments.map((c: any) => (
+                <Card key={c.id} className="border-orange-500/50">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardDescription>
+                        <AlertTriangle className="inline h-3 w-3 mr-1 text-orange-500" />
                         {c.profiles?.display_name ?? "Ẩn danh"} trên {c.tools?.name ?? "—"} — {new Date(c.created_at).toLocaleDateString("vi-VN")}
                       </CardDescription>
-                      <Button size="sm" variant="ghost" onClick={() => { if (confirm("Xóa comment?")) deleteComment.mutate(c.id); }}>
-                        <X className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => { if (confirm("Xóa comment?")) deleteComment.mutate(c.id); }}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="text-sm">{c.content}</CardContent>
@@ -193,6 +282,29 @@ export default function AdminModeration() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Blacklist Dialog */}
+      <Dialog open={showBlacklistDialog} onOpenChange={setShowBlacklistDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Keyword Blacklist</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Comments chứa các từ khóa này sẽ tự động bị đánh dấu (flagged) để admin review.</p>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input value={newKeyword} onChange={(e) => setNewKeyword(e.target.value)} placeholder="Thêm từ khóa..." onKeyDown={(e) => e.key === "Enter" && addKeyword()} />
+              <Button onClick={addKeyword} disabled={!newKeyword.trim()}><Plus className="h-4 w-4" /></Button>
+            </div>
+            <div className="flex flex-wrap gap-2 max-h-60 overflow-auto">
+              {blacklist.map((kw: string) => (
+                <div key={kw} className="flex items-center gap-1 rounded-full border border-orange-300 bg-orange-50 dark:bg-orange-950/20 px-3 py-1 text-sm">
+                  {kw}
+                  <button onClick={() => removeKeyword(kw)} className="ml-1 text-destructive hover:text-destructive/80">×</button>
+                </div>
+              ))}
+              {blacklist.length === 0 && <p className="text-sm text-muted-foreground">Chưa có keyword nào</p>}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
