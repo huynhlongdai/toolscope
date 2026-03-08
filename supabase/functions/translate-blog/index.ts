@@ -17,19 +17,21 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { blog_id, workflow_id, locale = "en" } = await req.json();
-    const entityId = blog_id || workflow_id;
-    const entityType = workflow_id ? "workflow" : "blog";
-    const tableName = workflow_id ? "workflows" : "blog_posts";
+    const { blog_id, workflow_id, deal_id, locale = "en" } = await req.json();
+    const entityId = deal_id || blog_id || workflow_id;
+    const entityType = deal_id ? "deal" : workflow_id ? "workflow" : "blog";
+    const tableName = deal_id ? "deals" : workflow_id ? "workflows" : "blog_posts";
 
-    if (!entityId) return new Response(JSON.stringify({ error: "blog_id or workflow_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!entityId) return new Response(JSON.stringify({ error: "blog_id, workflow_id or deal_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const targetLang = LOCALE_NAMES[locale];
     if (!targetLang) return new Response(JSON.stringify({ error: `Unsupported locale: ${locale}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const selectFields = entityType === "workflow"
+    const selectFields = entityType === "deal"
+      ? "id, title, description"
+      : entityType === "workflow"
       ? "id, title, description, seo_title, seo_description, seo_content, steps"
       : "id, title, excerpt, content";
 
@@ -43,20 +45,22 @@ serve(async (req) => {
 
     const fieldEntries: { field: string; text: string }[] = [];
 
-    if (entityType === "workflow") {
+    if (entityType === "deal") {
+      const e = entity as any;
+      if (e.title) fieldEntries.push({ field: "title", text: e.title });
+      if (e.description) fieldEntries.push({ field: "description", text: e.description });
+    } else if (entityType === "workflow") {
       const e = entity as any;
       if (e.title) fieldEntries.push({ field: "title", text: e.title });
       if (e.description) fieldEntries.push({ field: "description", text: e.description });
       if (e.seo_title) fieldEntries.push({ field: "seo_title", text: e.seo_title });
       if (e.seo_description) fieldEntries.push({ field: "seo_description", text: e.seo_description });
 
-      // seo_content fields
       const seo = e.seo_content || {};
       if (seo.problem) fieldEntries.push({ field: "seo_content_problem", text: seo.problem });
       if (seo.solution) fieldEntries.push({ field: "seo_content_solution", text: seo.solution });
       if (seo.target_audience) fieldEntries.push({ field: "seo_content_target_audience", text: seo.target_audience });
 
-      // steps
       const steps = (e.steps as any[]) || [];
       steps.forEach((step: any, i: number) => {
         if (step.title) fieldEntries.push({ field: `step_${i}_title`, text: step.title });

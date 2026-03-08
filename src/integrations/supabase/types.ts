@@ -661,6 +661,83 @@ export type Database = {
           },
         ]
       }
+      deal_collect_items: {
+        Row: {
+          collected_data: Json | null
+          coupon_code: string | null
+          created_at: string | null
+          currency: string | null
+          deal_price: number | null
+          deal_url: string | null
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
+          expires_at: string | null
+          id: string
+          imported_deal_id: string | null
+          original_price: number | null
+          session_id: string
+          source_url: string | null
+          status: string | null
+          title: string
+          tool_id: string | null
+          tool_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          collected_data?: Json | null
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          deal_price?: number | null
+          deal_url?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          imported_deal_id?: string | null
+          original_price?: number | null
+          session_id: string
+          source_url?: string | null
+          status?: string | null
+          title: string
+          tool_id?: string | null
+          tool_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          collected_data?: Json | null
+          coupon_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          deal_price?: number | null
+          deal_url?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          expires_at?: string | null
+          id?: string
+          imported_deal_id?: string | null
+          original_price?: number | null
+          session_id?: string
+          source_url?: string | null
+          status?: string | null
+          title?: string
+          tool_id?: string | null
+          tool_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_collect_items_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           click_count: number | null

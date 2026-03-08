@@ -25,6 +25,7 @@ export function ContentTranslationsTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedBlogIds, setSelectedBlogIds] = useState<Set<string>>(new Set());
   const [selectedWorkflowIds, setSelectedWorkflowIds] = useState<Set<string>>(new Set());
+  const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
 
   const { data: tools = [] } = useQuery({
     queryKey: ["admin-tools-for-translation"],
@@ -58,7 +59,15 @@ export function ContentTranslationsTab() {
     },
   });
 
-  const entityTypes = entityFilter === "all" ? ["tool", "blog", "menu", "workflow"] : [entityFilter];
+  const { data: dealsData = [] } = useQuery({
+    queryKey: ["admin-deals-for-translation"],
+    queryFn: async () => {
+      const { data } = await (supabase.from("deals") as any).select("id, title, description, tools(name)").eq("is_active", true).order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const entityTypes = entityFilter === "all" ? ["tool", "blog", "menu", "workflow", "deal"] : [entityFilter];
 
   const { data: translations = [], isLoading } = useQuery({
     queryKey: ["admin-translations", entityFilter, targetLocale],
@@ -75,14 +84,17 @@ export function ContentTranslationsTab() {
   const translatedBlogIds = new Set(translations.filter((t: any) => t.entity_type === "blog").map((t: any) => t.entity_id));
   const translatedMenuIds = new Set(translations.filter((t: any) => t.entity_type === "menu").map((t: any) => t.entity_id));
   const translatedWorkflowIds = new Set(translations.filter((t: any) => t.entity_type === "workflow").map((t: any) => t.entity_id));
+  const translatedDealIds = new Set(translations.filter((t: any) => t.entity_type === "deal").map((t: any) => t.entity_id));
   const untranslatedTools = tools.filter((t: any) => !translatedToolIds.has(t.id));
   const untranslatedBlogs = blogs.filter((b: any) => !translatedBlogIds.has(b.id));
   const untranslatedMenus = menus.filter((m: any) => !translatedMenuIds.has(m.id));
   const untranslatedWorkflows = workflows.filter((w: any) => !translatedWorkflowIds.has(w.id));
+  const untranslatedDeals = dealsData.filter((d: any) => !translatedDealIds.has(d.id));
 
   const toolPercent = tools.length > 0 ? Math.round((translatedToolIds.size / tools.length) * 100) : 0;
   const blogPercent = blogs.length > 0 ? Math.round((translatedBlogIds.size / blogs.length) * 100) : 0;
   const workflowPercent = workflows.length > 0 ? Math.round((translatedWorkflowIds.size / workflows.length) * 100) : 0;
+  const dealPercent = dealsData.length > 0 ? Math.round((translatedDealIds.size / dealsData.length) * 100) : 0;
   const autoCount = translations.filter((t: any) => t.is_auto).length;
   const manualCount = translations.filter((t: any) => !t.is_auto).length;
 
@@ -128,6 +140,30 @@ export function ContentTranslationsTab() {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-translations"] }); toast.success(`Đã dịch workflow sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`); },
     onError: (e: any) => toast.error(e.message || "Lỗi dịch workflow"),
+  });
+
+  const translateDealMutation = useMutation({
+    mutationFn: async (dealId: string) => {
+      const { data, error } = await supabase.functions.invoke("translate-blog", { body: { deal_id: dealId, locale: targetLocale } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-translations"] }); toast.success(`Đã dịch deal sang ${SUPPORTED_LOCALES[targetLocale].nativeName}`); },
+    onError: (e: any) => toast.error(e.message || "Lỗi dịch deal"),
+  });
+
+  const bulkTranslateDealsMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      let c = 0;
+      for (const id of ids) {
+        try { const { data, error } = await supabase.functions.invoke("translate-blog", { body: { deal_id: id, locale: targetLocale } }); if (!error && !data?.error) c++; } catch {}
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      return c;
+    },
+    onSuccess: (count) => { queryClient.invalidateQueries({ queryKey: ["admin-translations"] }); setSelectedDealIds(new Set()); toast.success(`Đã dịch ${count} deals`); },
+    onError: () => toast.error("Lỗi dịch deal hàng loạt"),
   });
 
   const bulkTranslateMutation = useMutation({
@@ -199,6 +235,10 @@ export function ContentTranslationsTab() {
       return wf ? (wf as any)[item.field_name] || "" : "";
     }
     if (item.entity_type === "menu") return item.field_name;
+    if (item.entity_type === "deal") {
+      const deal = dealsData.find((d: any) => d.id === item.entity_id);
+      return deal ? (deal as any)[item.field_name] || "" : "";
+    }
     return "";
   }
 
@@ -207,6 +247,7 @@ export function ContentTranslationsTab() {
     if (t.entity_type === "blog") return blogs.find((b: any) => b.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     if (t.entity_type === "workflow") return workflows.find((w: any) => w.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     if (t.entity_type === "menu") return menus.find((m: any) => m.id === t.entity_id)?.name || t.entity_id.slice(0, 8);
+    if (t.entity_type === "deal") return dealsData.find((d: any) => d.id === t.entity_id)?.title || t.entity_id.slice(0, 8);
     return t.entity_id.slice(0, 8);
   }
 
@@ -220,7 +261,7 @@ export function ContentTranslationsTab() {
     }
   };
 
-  const isAnyTranslating = translateToolMutation.isPending || translateBlogMutation.isPending || translateMenuMutation.isPending || translateWorkflowMutation.isPending || bulkTranslateMutation.isPending || bulkTranslateBlogsMutation.isPending || bulkTranslateWorkflowsMutation.isPending;
+  const isAnyTranslating = translateToolMutation.isPending || translateBlogMutation.isPending || translateMenuMutation.isPending || translateWorkflowMutation.isPending || translateDealMutation.isPending || bulkTranslateMutation.isPending || bulkTranslateBlogsMutation.isPending || bulkTranslateWorkflowsMutation.isPending || bulkTranslateDealsMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -256,6 +297,9 @@ export function ContentTranslationsTab() {
         workflowPercent={workflowPercent}
         translatedWorkflowCount={translatedWorkflowIds.size}
         totalWorkflows={workflows.length}
+        dealPercent={dealPercent}
+        translatedDealCount={translatedDealIds.size}
+        totalDeals={dealsData.length}
       />
 
       <UntranslatedSection
@@ -263,12 +307,15 @@ export function ContentTranslationsTab() {
         untranslatedBlogs={untranslatedBlogs}
         untranslatedMenus={untranslatedMenus}
         untranslatedWorkflows={untranslatedWorkflows}
+        untranslatedDeals={untranslatedDeals}
         onTranslateTool={(id) => translateToolMutation.mutate(id)}
         onTranslateBlog={(id) => translateBlogMutation.mutate(id)}
         onTranslateMenu={(id) => translateMenuMutation.mutate(id)}
         onTranslateWorkflow={(id) => translateWorkflowMutation.mutate(id)}
+        onTranslateDeal={(id) => translateDealMutation.mutate(id)}
         onBulkTranslateBlogs={(ids) => bulkTranslateBlogsMutation.mutate(ids)}
         onBulkTranslateWorkflows={(ids) => bulkTranslateWorkflowsMutation.mutate(ids)}
+        onBulkTranslateDeals={(ids) => bulkTranslateDealsMutation.mutate(ids)}
         isTranslating={isAnyTranslating}
         selectedToolIds={selectedIds}
         onToggleSelectTool={(id) => { setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
@@ -276,6 +323,8 @@ export function ContentTranslationsTab() {
         onToggleSelectBlog={(id) => { setSelectedBlogIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
         selectedWorkflowIds={selectedWorkflowIds}
         onToggleSelectWorkflow={(id) => { setSelectedWorkflowIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
+        selectedDealIds={selectedDealIds}
+        onToggleSelectDeal={(id) => { setSelectedDealIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
         targetLocale={targetLocale}
       />
 
@@ -292,6 +341,7 @@ export function ContentTranslationsTab() {
             <SelectItem value="blog">Blog</SelectItem>
             <SelectItem value="workflow">Workflow</SelectItem>
             <SelectItem value="menu">Menu</SelectItem>
+            <SelectItem value="deal">Deals</SelectItem>
           </SelectContent>
         </Select>
       </div>
