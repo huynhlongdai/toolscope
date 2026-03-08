@@ -208,16 +208,21 @@ export default function AdminLaunches() {
             <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><Rocket className="h-5 w-5 md:h-6 md:w-6" /> Quản lý Launches</h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">Duyệt, lên lịch, thông báo subscribers</p>
           </div>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="pending">Chờ duyệt</SelectItem>
-              <SelectItem value="approved">Đã duyệt</SelectItem>
-              <SelectItem value="featured">Featured</SelectItem>
-              <SelectItem value="rejected">Từ chối</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Tạo Launch
+            </Button>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="pending">Chờ duyệt</SelectItem>
+                <SelectItem value="approved">Đã duyệt</SelectItem>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="rejected">Từ chối</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Stats */}
