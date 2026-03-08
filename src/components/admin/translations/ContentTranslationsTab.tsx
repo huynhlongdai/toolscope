@@ -261,7 +261,7 @@ export function ContentTranslationsTab() {
     }
   };
 
-  const isAnyTranslating = translateToolMutation.isPending || translateBlogMutation.isPending || translateMenuMutation.isPending || translateWorkflowMutation.isPending || bulkTranslateMutation.isPending || bulkTranslateBlogsMutation.isPending || bulkTranslateWorkflowsMutation.isPending;
+  const isAnyTranslating = translateToolMutation.isPending || translateBlogMutation.isPending || translateMenuMutation.isPending || translateWorkflowMutation.isPending || translateDealMutation.isPending || bulkTranslateMutation.isPending || bulkTranslateBlogsMutation.isPending || bulkTranslateWorkflowsMutation.isPending || bulkTranslateDealsMutation.isPending;
 
   return (
     <div className="space-y-4">
