@@ -341,6 +341,7 @@ export function ContentTranslationsTab() {
             <SelectItem value="blog">Blog</SelectItem>
             <SelectItem value="workflow">Workflow</SelectItem>
             <SelectItem value="menu">Menu</SelectItem>
+            <SelectItem value="deal">Deals</SelectItem>
           </SelectContent>
         </Select>
       </div>
