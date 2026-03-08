@@ -374,12 +374,19 @@ export default function AdminSettings() {
         .map(([day, count]) => ({ day: day.slice(5), calls: count }))
     : [];
 
+  const isDev = window.location.hostname.includes("localhost") || window.location.hostname.includes("preview") || window.location.hostname.includes("lovable");
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Cài đặt Website</h1>
-          <p className="text-xs md:text-sm text-muted-foreground">Cấu hình AI providers, analytics, site info</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold">Cài đặt Website</h1>
+            <p className="text-xs md:text-sm text-muted-foreground">Cấu hình AI providers, analytics, site info</p>
+          </div>
+          <Badge variant={isDev ? "secondary" : "destructive"} className="text-xs ml-auto">
+            {isDev ? "🔧 Development" : "🚀 Production"}
+          </Badge>
         </div>
 
         <Tabs defaultValue="ai" className="space-y-4">
@@ -389,6 +396,7 @@ export default function AdminSettings() {
             <TabsTrigger value="analytics" className="gap-1.5 text-xs md:text-sm"><Globe className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
             <TabsTrigger value="scripts" className="gap-1.5 text-xs md:text-sm"><Code className="h-3.5 w-3.5" /> Scripts</TabsTrigger>
             <TabsTrigger value="modules" className="gap-1.5 text-xs md:text-sm"><Blocks className="h-3.5 w-3.5" /> Modules</TabsTrigger>
+            <TabsTrigger value="danger" className="gap-1.5 text-xs md:text-sm text-destructive"><AlertTriangle className="h-3.5 w-3.5" /> Danger</TabsTrigger>
           </TabsList>
 
           {/* AI PROVIDERS TAB */}
