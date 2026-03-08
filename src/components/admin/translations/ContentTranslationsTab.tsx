@@ -307,12 +307,15 @@ export function ContentTranslationsTab() {
         untranslatedBlogs={untranslatedBlogs}
         untranslatedMenus={untranslatedMenus}
         untranslatedWorkflows={untranslatedWorkflows}
+        untranslatedDeals={untranslatedDeals}
         onTranslateTool={(id) => translateToolMutation.mutate(id)}
         onTranslateBlog={(id) => translateBlogMutation.mutate(id)}
         onTranslateMenu={(id) => translateMenuMutation.mutate(id)}
         onTranslateWorkflow={(id) => translateWorkflowMutation.mutate(id)}
+        onTranslateDeal={(id) => translateDealMutation.mutate(id)}
         onBulkTranslateBlogs={(ids) => bulkTranslateBlogsMutation.mutate(ids)}
         onBulkTranslateWorkflows={(ids) => bulkTranslateWorkflowsMutation.mutate(ids)}
+        onBulkTranslateDeals={(ids) => bulkTranslateDealsMutation.mutate(ids)}
         isTranslating={isAnyTranslating}
         selectedToolIds={selectedIds}
         onToggleSelectTool={(id) => { setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
@@ -320,6 +323,8 @@ export function ContentTranslationsTab() {
         onToggleSelectBlog={(id) => { setSelectedBlogIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
         selectedWorkflowIds={selectedWorkflowIds}
         onToggleSelectWorkflow={(id) => { setSelectedWorkflowIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
+        selectedDealIds={selectedDealIds}
+        onToggleSelectDeal={(id) => { setSelectedDealIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; }); }}
         targetLocale={targetLocale}
       />
 
