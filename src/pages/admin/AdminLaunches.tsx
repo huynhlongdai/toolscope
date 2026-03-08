@@ -175,6 +175,7 @@ export default function AdminLaunches() {
                 <TableCell>
                   <div className="flex justify-end gap-1 flex-wrap">
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailLaunch(launch)}><Eye className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditLaunch(launch); setShowCreateDialog(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setCommentsLaunchId(launch.id)}><MessageSquare className="h-3.5 w-3.5" /></Button>
                     {(launch.subscriber_count || 0) > 0 && (
                       <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => notifySubscribers(launch.id, name)}>
