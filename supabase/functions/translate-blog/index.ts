@@ -30,7 +30,7 @@ serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const selectFields = entityType === "workflow"
-      ? "id, title, description, seo_title, seo_description"
+      ? "id, title, description, seo_title, seo_description, seo_content, steps"
       : "id, title, excerpt, content";
 
     const { data: entity, error: entityErr } = await supabase
@@ -41,28 +41,45 @@ serve(async (req) => {
 
     if (entityErr || !entity) return new Response(JSON.stringify({ error: `${entityType} not found` }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const fieldEntries = entityType === "workflow"
-      ? [
-          { field: "title", text: (entity as any).title },
-          { field: "description", text: (entity as any).description },
-          { field: "seo_title", text: (entity as any).seo_title },
-          { field: "seo_description", text: (entity as any).seo_description },
-        ]
-      : [
-          { field: "title", text: (entity as any).title },
-          { field: "excerpt", text: (entity as any).excerpt },
-          { field: "content", text: (entity as any).content?.substring(0, 8000) },
-        ];
+    const fieldEntries: { field: string; text: string }[] = [];
 
-    const fields = fieldEntries.filter(f => f.text);
+    if (entityType === "workflow") {
+      const e = entity as any;
+      if (e.title) fieldEntries.push({ field: "title", text: e.title });
+      if (e.description) fieldEntries.push({ field: "description", text: e.description });
+      if (e.seo_title) fieldEntries.push({ field: "seo_title", text: e.seo_title });
+      if (e.seo_description) fieldEntries.push({ field: "seo_description", text: e.seo_description });
+
+      // seo_content fields
+      const seo = e.seo_content || {};
+      if (seo.problem) fieldEntries.push({ field: "seo_content_problem", text: seo.problem });
+      if (seo.solution) fieldEntries.push({ field: "seo_content_solution", text: seo.solution });
+      if (seo.target_audience) fieldEntries.push({ field: "seo_content_target_audience", text: seo.target_audience });
+
+      // steps
+      const steps = (e.steps as any[]) || [];
+      steps.forEach((step: any, i: number) => {
+        if (step.title) fieldEntries.push({ field: `step_${i}_title`, text: step.title });
+        if (step.description) fieldEntries.push({ field: `step_${i}_description`, text: step.description });
+      });
+    } else {
+      const e = entity as any;
+      if (e.title) fieldEntries.push({ field: "title", text: e.title });
+      if (e.excerpt) fieldEntries.push({ field: "excerpt", text: e.excerpt });
+      if (e.content) fieldEntries.push({ field: "content", text: e.content.substring(0, 8000) });
+    }
+
+    if (fieldEntries.length === 0) {
+      return new Response(JSON.stringify({ translations: {}, saved: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const prompt = `Translate the following Vietnamese ${entityType} content to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
 
 Fields to translate:
-${fields.map(f => `- ${f.field}: """${f.text}"""`).join("\n\n")}
+${fieldEntries.map(f => `- ${f.field}: """${f.text}"""`).join("\n\n")}
 
 Return ONLY a valid JSON object like:
-{ ${fields.map(f => `"${f.field}": "..."`).join(", ")} }
+{ ${fieldEntries.map(f => `"${f.field}": "..."`).join(", ")} }
 
 Important: Preserve all HTML tags, Markdown formatting, URLs. Only translate human-readable text.`;
 

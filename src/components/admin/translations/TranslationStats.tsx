@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, FileText, Bot, PenLine } from "lucide-react";
+import { Wrench, FileText, Bot, PenLine, Workflow } from "lucide-react";
 
 interface TranslationStatsProps {
   toolPercent: number;
@@ -11,6 +11,9 @@ interface TranslationStatsProps {
   totalBlogs: number;
   autoCount: number;
   manualCount: number;
+  workflowPercent?: number;
+  translatedWorkflowCount?: number;
+  totalWorkflows?: number;
 }
 
 export function TranslationStats({
@@ -18,9 +21,12 @@ export function TranslationStats({
   translatedToolCount, totalTools,
   translatedBlogCount, totalBlogs,
   autoCount, manualCount,
+  workflowPercent = 0, translatedWorkflowCount = 0, totalWorkflows = 0,
 }: TranslationStatsProps) {
+  const showWorkflow = totalWorkflows > 0;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className={`grid gap-3 ${showWorkflow ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"}`}>
       <Card>
         <CardContent className="pt-4 pb-3 px-4">
           <div className="flex items-center gap-2 mb-2">
@@ -41,6 +47,18 @@ export function TranslationStats({
           <p className="text-xs text-muted-foreground">{translatedBlogCount}/{totalBlogs} ({blogPercent}%)</p>
         </CardContent>
       </Card>
+      {showWorkflow && (
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Workflow className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Workflow</span>
+            </div>
+            <Progress value={workflowPercent} className="h-2 mb-1" />
+            <p className="text-xs text-muted-foreground">{translatedWorkflowCount}/{totalWorkflows} ({workflowPercent}%)</p>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardContent className="pt-4 pb-3 px-4">
           <div className="flex items-center gap-2 mb-2">

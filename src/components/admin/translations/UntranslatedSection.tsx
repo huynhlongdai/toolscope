@@ -7,27 +7,34 @@ interface UntranslatedSectionProps {
   untranslatedTools: any[];
   untranslatedBlogs: any[];
   untranslatedMenus?: any[];
+  untranslatedWorkflows?: any[];
   onTranslateTool: (id: string) => void;
   onTranslateBlog: (id: string) => void;
   onTranslateMenu?: (id: string) => void;
+  onTranslateWorkflow?: (id: string) => void;
   onBulkTranslateBlogs?: (ids: string[]) => void;
+  onBulkTranslateWorkflows?: (ids: string[]) => void;
   isTranslating: boolean;
   selectedToolIds: Set<string>;
   onToggleSelectTool: (id: string) => void;
   selectedBlogIds: Set<string>;
   onToggleSelectBlog: (id: string) => void;
+  selectedWorkflowIds?: Set<string>;
+  onToggleSelectWorkflow?: (id: string) => void;
   targetLocale: Locale;
 }
 
 export function UntranslatedSection({
-  untranslatedTools, untranslatedBlogs, untranslatedMenus = [],
-  onTranslateTool, onTranslateBlog, onTranslateMenu, onBulkTranslateBlogs,
+  untranslatedTools, untranslatedBlogs, untranslatedMenus = [], untranslatedWorkflows = [],
+  onTranslateTool, onTranslateBlog, onTranslateMenu, onTranslateWorkflow,
+  onBulkTranslateBlogs, onBulkTranslateWorkflows,
   isTranslating,
   selectedToolIds, onToggleSelectTool,
   selectedBlogIds, onToggleSelectBlog,
+  selectedWorkflowIds = new Set(), onToggleSelectWorkflow,
   targetLocale,
 }: UntranslatedSectionProps) {
-  if (untranslatedTools.length === 0 && untranslatedBlogs.length === 0 && untranslatedMenus.length === 0) return null;
+  if (untranslatedTools.length === 0 && untranslatedBlogs.length === 0 && untranslatedMenus.length === 0 && untranslatedWorkflows.length === 0) return null;
 
   const targetName = SUPPORTED_LOCALES[targetLocale]?.nativeName || targetLocale;
 
@@ -85,6 +92,40 @@ export function UntranslatedSection({
             ))}
             {untranslatedBlogs.length > 20 && (
               <span className="text-xs text-muted-foreground self-center">+{untranslatedBlogs.length - 20} khác</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Workflows */}
+      {untranslatedWorkflows.length > 0 && onTranslateWorkflow && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium">🔄 Workflow chưa dịch sang {targetName} ({untranslatedWorkflows.length})</h3>
+            {onBulkTranslateWorkflows && selectedWorkflowIds.size > 0 && (
+              <Button variant="outline" size="sm" onClick={() => onBulkTranslateWorkflows(Array.from(selectedWorkflowIds))} disabled={isTranslating} className="text-xs">
+                <Languages className="mr-1 h-3 w-3" /> Dịch {selectedWorkflowIds.size} workflow
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {untranslatedWorkflows.slice(0, 20).map((w: any) => (
+              <div key={w.id} className="flex items-center gap-1">
+                {onToggleSelectWorkflow && (
+                  <Checkbox
+                    checked={selectedWorkflowIds.has(w.id)}
+                    onCheckedChange={() => onToggleSelectWorkflow(w.id)}
+                    className="h-3.5 w-3.5"
+                  />
+                )}
+                <Button variant="outline" size="sm" onClick={() => onTranslateWorkflow(w.id)} disabled={isTranslating} className="text-xs">
+                  {isTranslating ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Languages className="mr-1 h-3 w-3" />}
+                  {w.title?.substring(0, 40)}{w.title?.length > 40 ? "..." : ""}
+                </Button>
+              </div>
+            ))}
+            {untranslatedWorkflows.length > 20 && (
+              <span className="text-xs text-muted-foreground self-center">+{untranslatedWorkflows.length - 20} khác</span>
             )}
           </div>
         </div>
