@@ -243,6 +243,31 @@ const ProfilePage = () => {
   const isOwnProfile = !id || id === user?.id;
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ display_name: "", username: "", bio: "", website: "" });
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
+
+  // Warnings for own profile
+  const { data: myWarnings = [] } = useQuery({
+    queryKey: ["my-warnings", profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      const { data } = await supabase.from("user_warnings").select("*").eq("user_id", profileId).order("created_at", { ascending: false });
+      return data ?? [];
+    },
+    enabled: !!profileId && isOwnProfile,
+  });
+
+  const submitUserReport = async () => {
+    if (!user?.id || !profileId) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: user.id, target_type: "user", target_id: profileId,
+      reason: reportReason, details: reportDetails || null,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Đã gửi báo cáo");
+    setShowReportDialog(false); setReportDetails("");
+  };
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", profileId],
