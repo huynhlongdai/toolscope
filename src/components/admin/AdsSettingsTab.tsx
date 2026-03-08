@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Megaphone, Eye, EyeOff, Code, Monitor } from "lucide-react";
+import { Save, Megaphone, Eye, EyeOff, Code, Monitor, X } from "lucide-react";
 
 const AD_SLOTS = [
   { id: "hero_below", label: "Dưới Hero (Trang chủ)", page: "Index", defaultFormat: "horizontal" },
@@ -43,9 +43,61 @@ const DEFAULT_SLOT: SlotConfig = {
   format: "auto",
   custom_code: "",
 };
+function AdPreviewPanel({ slot, clientId, slotDef }: { slot: SlotConfig; clientId: string; slotDef: typeof AD_SLOTS[0] }) {
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!previewRef.current) return;
+    const container = previewRef.current;
+
+    if (slot.mode === "custom" && slot.custom_code) {
+      // Render custom HTML (scripts are NOT executed in preview for safety)
+      const sanitized = slot.custom_code.replace(/<script[\s\S]*?<\/script>/gi, (match) =>
+        `<div class="rounded bg-muted/50 border border-dashed border-border p-2 text-[10px] font-mono text-muted-foreground">[Script] ${match.length} chars</div>`
+      );
+      container.innerHTML = sanitized;
+    } else if (slot.mode === "adsense") {
+      container.innerHTML = `
+        <div class="flex items-center justify-center rounded border-2 border-dashed border-border bg-muted/30 p-6 text-center">
+          <div>
+            <p class="text-xs font-medium text-muted-foreground">Google AdSense</p>
+            <p class="text-[10px] text-muted-foreground/60 mt-1">Client: ${clientId || "chưa cấu hình"}</p>
+            <p class="text-[10px] text-muted-foreground/60">Slot: ${slot.slot_id || "auto"} • Format: ${slot.format || slotDef.defaultFormat}</p>
+            <p class="text-[10px] text-muted-foreground/40 mt-2">Quảng cáo sẽ hiển thị trên site thực</p>
+          </div>
+        </div>
+      `;
+    }
+
+    return () => { container.innerHTML = ""; };
+  }, [slot, clientId, slotDef]);
+
+  return (
+    <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-medium text-primary flex items-center gap-1">
+          <Eye className="h-3 w-3" /> Preview — {slotDef.label}
+        </span>
+        <Badge variant="outline" className="text-[9px]">
+          {slot.mode === "adsense" ? "AdSense" : "Custom"} • {slot.format || slotDef.defaultFormat}
+        </Badge>
+      </div>
+      <div
+        ref={previewRef}
+        className="min-h-[60px] rounded border border-border bg-background overflow-hidden"
+      />
+      {slot.mode === "custom" && slot.custom_code?.includes("<script") && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+          ⚠️ Script tags không được thực thi trong preview để đảm bảo an toàn. Chúng sẽ chạy trên site thực.
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function AdsSettingsTab() {
   const queryClient = useQueryClient();
+  const [previewSlot, setPreviewSlot] = useState<string | null>(null);
   const [config, setConfig] = useState<AdsConfig>({
     enabled: false,
     client_id: "",
@@ -251,6 +303,22 @@ export function AdsSettingsTab() {
                           Dán mã HTML/JS từ mạng quảng cáo bất kỳ (MGID, PropellerAds, affiliate banner, v.v.)
                         </p>
                       </div>
+                    )}
+
+                    {/* Preview button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setPreviewSlot(previewSlot === adSlot.id ? null : adSlot.id)}
+                    >
+                      {previewSlot === adSlot.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      {previewSlot === adSlot.id ? "Ẩn preview" : "Xem preview"}
+                    </Button>
+
+                    {/* Preview panel */}
+                    {previewSlot === adSlot.id && (
+                      <AdPreviewPanel slot={slot} clientId={config.client_id} slotDef={adSlot} />
                     )}
                   </div>
                 )}
