@@ -323,7 +323,7 @@ export default function AdminLaunches() {
       </Dialog>
 
       {/* Create launch dialog */}
-      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
+      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={(v) => { setShowCreateDialog(v); if (!v) setEditLaunch(null); }} editLaunch={editLaunch} />
     </AdminLayout>
   );
 }
