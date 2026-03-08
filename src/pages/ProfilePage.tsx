@@ -76,11 +76,16 @@ function ProfileHeader({ profile, badges, isOwnProfile, editing, onStartEdit, ed
               </div>
             )}
           </div>
-          {isOwnProfile && !editing && (
-            <Button variant="outline" size="sm" onClick={onStartEdit}>
-              <Pencil className="mr-1 h-3 w-3" /> {t("profile.editBtn")}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isOwnProfile && profile.id && (
+              <FollowButton targetType="user" targetId={profile.id} showCount />
+            )}
+            {isOwnProfile && !editing && (
+              <Button variant="outline" size="sm" onClick={onStartEdit}>
+                <Pencil className="mr-1 h-3 w-3" /> {t("profile.editBtn")}
+              </Button>
+            )}
+          </div>
         </div>
 
         {editing && isOwnProfile && (
