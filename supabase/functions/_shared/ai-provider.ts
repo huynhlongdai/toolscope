@@ -148,6 +148,34 @@ function getApiKeys(provider: string, keys: AIKeys): string[] {
   return result;
 }
 
+async function logUsage(opts: {
+  provider: string;
+  feature: string;
+  model?: string;
+  tokens_used?: number;
+  duration_ms: number;
+  status: string;
+  error_message?: string;
+}) {
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    await supabase.from("ai_usage_logs").insert({
+      provider: opts.provider,
+      feature: opts.feature,
+      model: opts.model || null,
+      tokens_used: opts.tokens_used || 0,
+      duration_ms: opts.duration_ms,
+      status: opts.status,
+      error_message: opts.error_message || null,
+    });
+  } catch (e) {
+    console.warn("Failed to log AI usage:", e);
+  }
+}
+
 export async function callAI(opts: {
   feature: AIFeature;
   messages: Array<{ role: string; content: string }>;
@@ -158,6 +186,7 @@ export async function callAI(opts: {
   temperature?: number;
   max_tokens?: number;
 }): Promise<Response> {
+  const startTime = Date.now();
   const { config, keys } = await getProviderConfig();
   const featureRaw = config[opts.feature] || config.content_generation || "lovable";
   const fc = parseFeatureConfig(featureRaw);
@@ -165,6 +194,7 @@ export async function callAI(opts: {
   const model = opts.model || fc.model;
   const temperature = opts.temperature ?? fc.temperature;
   const max_tokens = opts.max_tokens ?? fc.max_tokens;
+  const resolvedModel = model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
 
   const apiKeys = getApiKeys(provider, keys);
 
@@ -172,7 +202,18 @@ export async function callAI(opts: {
   for (const apiKey of apiKeys) {
     try {
       const response = await callProvider(provider, apiKey, { ...opts, model, temperature, max_tokens });
-      if (response.ok) return response;
+      if (response.ok) {
+        const duration = Date.now() - startTime;
+        // Clone to read usage without consuming body
+        const cloned = response.clone();
+        let tokensUsed = 0;
+        try {
+          const json = await cloned.json();
+          tokensUsed = json.usage?.total_tokens || 0;
+        } catch { /* ignore */ }
+        logUsage({ provider, feature: opts.feature, model: resolvedModel, tokens_used: tokensUsed, duration_ms: duration, status: "success" });
+        return response;
+      }
       console.warn(`Provider ${provider} failed (${response.status})`);
     } catch (e) {
       console.warn(`Provider ${provider} error:`, e);
@@ -184,10 +225,15 @@ export async function callAI(opts: {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY");
     if (lovableKey) {
       console.warn(`Falling back to Lovable from ${provider}`);
-      return callProvider("lovable", lovableKey, { ...opts, model: undefined, temperature, max_tokens });
+      const response = await callProvider("lovable", lovableKey, { ...opts, model: undefined, temperature, max_tokens });
+      const duration = Date.now() - startTime;
+      logUsage({ provider: "lovable", feature: opts.feature, model: DEFAULT_MODELS.lovable, duration_ms: duration, status: "fallback", error_message: `Fallback from ${provider}` });
+      return response;
     }
   }
 
+  const duration = Date.now() - startTime;
+  logUsage({ provider, feature: opts.feature, model: resolvedModel, duration_ms: duration, status: "error", error_message: "All providers failed" });
   throw new Error("No AI provider configured or all providers failed");
 }
 
