@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send } from "lucide-react";
+import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { AdminCreateLaunchDialog } from "@/components/admin/AdminCreateLaunchDialog";
 
 export default function AdminLaunches() {
   const queryClient = useQueryClient();
