@@ -10,12 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2, Settings2, Share2, Blocks, RotateCcw, Plus } from "lucide-react";
+import {
+  Save, Globe, Code, FolderCog, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2,
+  Settings2, Share2, Blocks, RotateCcw, Plus, Trash2, Download, Upload, Zap, BarChart3,
+  Activity, Clock, AlertTriangle
+} from "lucide-react";
 import { MODULE_DEFINITIONS, MODULE_CATEGORIES, useModules } from "@/hooks/useModules";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const AI_PROVIDERS = [
   { id: "openai", name: "OpenAI", keyField: "openai_api_key", placeholder: "sk-..." },
@@ -52,6 +58,11 @@ const FEATURES = [
   { id: "content_generation", label: "Content (Fallback)", desc: "Fallback chung" },
 ];
 
+const CHART_COLORS = [
+  "hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(var(--accent))",
+];
+
 interface FeatureConfig {
   provider: string;
   model?: string;
@@ -74,12 +85,14 @@ export default function AdminSettings() {
   const [bodyScripts, setBodyScripts] = useState("");
   const [defaultCategoryId, setDefaultCategoryId] = useState("");
 
-  // AI Keys (primary + backup)
+  // AI Keys
   const [aiKeys, setAiKeys] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [keyConfigured, setKeyConfigured] = useState<Record<string, boolean>>({});
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [showBackupKeys, setShowBackupKeys] = useState<Record<string, boolean>>({});
+  const [deepTestResults, setDeepTestResults] = useState<Record<string, { success: boolean; reply?: string; model?: string; duration_ms?: number; error?: string }>>({});
+  const [bulkTesting, setBulkTesting] = useState(false);
 
   // Provider config per feature
   const [featureConfigs, setFeatureConfigs] = useState<Record<string, FeatureConfig>>({});
@@ -119,6 +132,18 @@ export default function AdminSettings() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: usageStats } = useQuery({
+    queryKey: ["admin-ai-usage"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "get_usage_stats", days: 7 },
+      });
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 60000,
   });
 
   useEffect(() => {
@@ -200,6 +225,20 @@ export default function AdminSettings() {
     onError: () => toast.error("Lỗi khi lưu"),
   });
 
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (keyField: string) => {
+      const { error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "delete_key", key_field: keyField },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ai-keys"] });
+      toast.success("Đã xóa key");
+    },
+    onError: () => toast.error("Lỗi khi xóa key"),
+  });
+
   const testConnection = async (providerId: string, keyFieldOverride?: string) => {
     const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || "";
     const key = aiKeys[keyField] || "";
@@ -207,7 +246,7 @@ export default function AdminSettings() {
       toast.error("Nhập API key trước khi test");
       return;
     }
-    setTestingProvider(providerId + (keyFieldOverride ? "_2" : ""));
+    setTestingProvider(providerId + (keyFieldOverride?.includes("_2") ? "_2" : ""));
     try {
       const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
         body: { action: "test", test_provider: providerId, test_key: key },
@@ -222,6 +261,94 @@ export default function AdminSettings() {
     }
   };
 
+  const deepTest = async (providerId: string, keyFieldOverride?: string) => {
+    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || "";
+    const key = aiKeys[keyField] || "";
+    if (!key || key.includes("...")) {
+      toast.error("Nhập API key trước khi test");
+      return;
+    }
+    const testId = providerId + (keyFieldOverride?.includes("_2") ? "_2" : "");
+    setTestingProvider(testId);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "deep_test", test_provider: providerId, test_key: key },
+      });
+      if (error) throw error;
+      setDeepTestResults(prev => ({ ...prev, [testId]: data }));
+      if (data?.success) toast.success(`${providerId}: "${data.reply}" (${data.duration_ms}ms)`);
+      else toast.error(`${providerId}: Deep test thất bại - ${data?.error?.slice(0, 100)}`);
+    } catch {
+      toast.error("Lỗi khi deep test");
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
+  const bulkTestAll = async () => {
+    setBulkTesting(true);
+    const configuredProviders = AI_PROVIDERS.filter(p => p.id !== "firecrawl" && keyConfigured[p.keyField]);
+    let success = 0;
+    let fail = 0;
+    for (const provider of configuredProviders) {
+      try {
+        const { data } = await supabase.functions.invoke("manage-ai-keys", {
+          body: { action: "test", test_provider: provider.id, test_key: "__configured__" },
+        });
+        // Since we can't pass the actual key from server, we just do auth test with stored key approach
+        // For bulk test, we need the keys stored already - use deep_test with stored keys
+        if (data?.success) success++;
+        else fail++;
+      } catch {
+        fail++;
+      }
+    }
+    toast.info(`Bulk test: ${success} thành công, ${fail} thất bại (${configuredProviders.length} providers)`);
+    setBulkTesting(false);
+  };
+
+  const exportConfig = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "export_config" },
+      });
+      if (error) throw error;
+      const blob = new Blob([JSON.stringify(data.config, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ai-config-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Đã export cấu hình AI");
+    } catch {
+      toast.error("Lỗi khi export");
+    }
+  };
+
+  const importConfig = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const config = JSON.parse(text);
+        const { error } = await supabase.functions.invoke("manage-ai-keys", {
+          body: { action: "import_config", config },
+        });
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["admin-ai-keys"] });
+        toast.success("Đã import cấu hình AI");
+      } catch {
+        toast.error("File JSON không hợp lệ");
+      }
+    };
+    input.click();
+  };
+
   const updateFeatureConfig = (featureId: string, updates: Partial<FeatureConfig>) => {
     setFeatureConfigs(prev => ({
       ...prev,
@@ -230,6 +357,22 @@ export default function AdminSettings() {
   };
 
   const getModelsForProvider = (provider: string) => modelCatalog[provider] || [];
+
+  // Build provider overview data
+  const providerOverview = PROVIDER_OPTIONS.map(p => {
+    const featuresUsing = FEATURES.filter(f => (featureConfigs[f.id]?.provider || "lovable") === p.id);
+    const isLovable = p.id === "lovable";
+    const keyField = AI_PROVIDERS.find(ap => ap.id === p.id)?.keyField;
+    const hasKey = isLovable || (keyField ? keyConfigured[keyField] : false);
+    return { ...p, featuresUsing, hasKey, isLovable };
+  }).filter(p => p.featuresUsing.length > 0 || p.hasKey);
+
+  // Usage chart data
+  const usageChartData = usageStats?.by_day
+    ? Object.entries(usageStats.by_day as Record<string, number>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, count]) => ({ day: day.slice(5), calls: count }))
+    : [];
 
   return (
     <AdminLayout>
@@ -250,16 +393,135 @@ export default function AdminSettings() {
 
           {/* AI PROVIDERS TAB */}
           <TabsContent value="ai" className="space-y-6">
+
+            {/* Provider Overview Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" /> Tổng quan Provider</CardTitle>
+                <CardDescription>Trạng thái các provider đang được sử dụng</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Provider</TableHead>
+                        <TableHead>Trạng thái Key</TableHead>
+                        <TableHead>Features đang dùng</TableHead>
+                        <TableHead className="text-right">Calls (7d)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {providerOverview.map(p => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell>
+                            {p.isLovable ? (
+                              <Badge className="text-xs gap-1 bg-primary/10 text-primary border-primary/20"><Zap className="h-3 w-3" /> Built-in</Badge>
+                            ) : p.hasKey ? (
+                              <Badge variant="default" className="text-xs gap-1"><CheckCircle2 className="h-3 w-3" /> Configured</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs gap-1"><XCircle className="h-3 w-3" /> Missing</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {p.featuresUsing.length > 0 ? p.featuresUsing.map(f => (
+                                <Badge key={f.id} variant="outline" className="text-xs">{f.label}</Badge>
+                              )) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {(usageStats?.by_provider as Record<string, any>)?.[p.id]?.count || 0}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Usage Dashboard */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> AI Usage (7 ngày)</CardTitle>
+                <CardDescription>
+                  Tổng cộng: {usageStats?.total_calls || 0} lượt gọi
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {usageChartData.length > 0 ? (
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={usageChartData}>
+                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                          labelStyle={{ color: "hsl(var(--foreground))" }}
+                        />
+                        <Bar dataKey="calls" radius={[4, 4, 0, 0]}>
+                          {usageChartData.map((_, i) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-muted-foreground text-sm">
+                    Chưa có dữ liệu usage
+                  </div>
+                )}
+
+                {/* Stats by provider */}
+                {usageStats?.by_provider && Object.keys(usageStats.by_provider).length > 0 && (
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {Object.entries(usageStats.by_provider as Record<string, any>).map(([provider, stats]) => (
+                      <div key={provider} className="p-3 rounded-lg border border-border space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium capitalize">{provider}</span>
+                          <Badge variant={stats.errors > 0 ? "destructive" : "default"} className="text-xs">
+                            {stats.count} calls
+                          </Badge>
+                        </div>
+                        <div className="flex gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {stats.avg_duration}ms</span>
+                          <span>{stats.tokens.toLocaleString()} tokens</span>
+                          {stats.errors > 0 && (
+                            <span className="flex items-center gap-1 text-destructive"><AlertTriangle className="h-3 w-3" /> {stats.errors} lỗi</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* API Keys Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> API Keys</CardTitle>
-                <CardDescription>Cấu hình API keys cho các AI provider. Hỗ trợ primary + backup key cho mỗi provider.</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> API Keys</CardTitle>
+                    <CardDescription>Cấu hình API keys cho các AI provider. Hỗ trợ primary + backup key.</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={bulkTestAll} disabled={bulkTesting}>
+                    {bulkTesting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
+                    Test tất cả
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {AI_PROVIDERS.filter(p => p.id !== "firecrawl").map((provider) => {
                   const backupField = provider.keyField + "_2";
                   const hasBackup = showBackupKeys[provider.id] || keyConfigured[backupField];
+                  const testId = provider.id;
+                  const deepResult = deepTestResults[testId];
                   return (
                     <div key={provider.id} className="p-3 rounded-lg border border-border space-y-3">
                       <div className="flex items-center gap-3">
@@ -292,7 +554,7 @@ export default function AdminSettings() {
                             </Button>
                           </div>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           <Button
                             variant="outline" size="sm"
                             disabled={!!testingProvider || !aiKeys[provider.keyField]}
@@ -300,6 +562,23 @@ export default function AdminSettings() {
                           >
                             {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
                           </Button>
+                          <Button
+                            variant="outline" size="sm"
+                            disabled={!!testingProvider || !aiKeys[provider.keyField]}
+                            onClick={() => deepTest(provider.id)}
+                            title="Deep test: gửi prompt thực tế"
+                          >
+                            {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                          </Button>
+                          {keyConfigured[provider.keyField] && (
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => { if (confirm(`Xóa primary key của ${provider.name}?`)) deleteKeyMutation.mutate(provider.keyField); }}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                           {!hasBackup && (
                             <Button variant="ghost" size="sm" onClick={() => setShowBackupKeys(prev => ({ ...prev, [provider.id]: true }))}>
                               <Plus className="h-3.5 w-3.5 mr-1" /> Backup
@@ -307,6 +586,16 @@ export default function AdminSettings() {
                           )}
                         </div>
                       </div>
+                      {/* Deep test result */}
+                      {deepResult && (
+                        <div className={`text-xs p-2 rounded border ${deepResult.success ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}`}>
+                          {deepResult.success ? (
+                            <span>✅ Model: <strong>{deepResult.model}</strong> — Reply: "{deepResult.reply}" — {deepResult.duration_ms}ms</span>
+                          ) : (
+                            <span>❌ {deepResult.error?.slice(0, 150)}</span>
+                          )}
+                        </div>
+                      )}
                       {/* Backup key row */}
                       {hasBackup && (
                         <div className="flex items-center gap-3 pl-4 border-l-2 border-muted">
@@ -329,13 +618,24 @@ export default function AdminSettings() {
                               </Button>
                             </div>
                           </div>
-                          <Button
-                            variant="outline" size="sm"
-                            disabled={!!testingProvider || !aiKeys[backupField]}
-                            onClick={() => testConnection(provider.id, backupField)}
-                          >
-                            {testingProvider === provider.id + "_2" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline" size="sm"
+                              disabled={!!testingProvider || !aiKeys[backupField]}
+                              onClick={() => testConnection(provider.id, backupField)}
+                            >
+                              {testingProvider === provider.id + "_2" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                            </Button>
+                            {keyConfigured[backupField] && (
+                              <Button
+                                variant="ghost" size="sm"
+                                onClick={() => { if (confirm(`Xóa backup key của ${provider.name}?`)) deleteKeyMutation.mutate(backupField); }}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -367,10 +667,19 @@ export default function AdminSettings() {
                         </Button>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" disabled={!!testingProvider || !aiKeys[provider.keyField]}
-                      onClick={() => testConnection(provider.id)}>
-                      {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" disabled={!!testingProvider || !aiKeys[provider.keyField]}
+                        onClick={() => testConnection(provider.id)}>
+                        {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                      </Button>
+                      {keyConfigured[provider.keyField] && (
+                        <Button variant="ghost" size="sm"
+                          onClick={() => { if (confirm(`Xóa key của ${provider.name}?`)) deleteKeyMutation.mutate(provider.keyField); }}
+                          className="text-destructive hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <Button onClick={() => saveAIKeysMutation.mutate()} disabled={saveAIKeysMutation.isPending || Object.keys(aiKeys).length === 0}>
@@ -382,8 +691,20 @@ export default function AdminSettings() {
             {/* Per-feature AI Config */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5" /> Cấu hình AI theo tính năng</CardTitle>
-                <CardDescription>Chọn provider, model, và tham số cho từng tính năng. Lovable Gateway là mặc định (không cần API key).</CardDescription>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5" /> Cấu hình AI theo tính năng</CardTitle>
+                    <CardDescription>Chọn provider, model, và tham số cho từng tính năng. Lovable Gateway là mặc định.</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={exportConfig}>
+                      <Download className="h-4 w-4 mr-1" /> Export
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={importConfig}>
+                      <Upload className="h-4 w-4 mr-1" /> Import
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-5">
                 {FEATURES.map((feature) => {
@@ -402,7 +723,6 @@ export default function AdminSettings() {
                         </Button>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        {/* Provider */}
                         <div className="space-y-1">
                           <Label className="text-xs">Provider</Label>
                           <Select value={fc.provider} onValueChange={(v) => updateFeatureConfig(feature.id, { provider: v, model: undefined })}>
@@ -414,7 +734,6 @@ export default function AdminSettings() {
                             </SelectContent>
                           </Select>
                         </div>
-                        {/* Model */}
                         <div className="space-y-1">
                           <Label className="text-xs">Model</Label>
                           {models.length > 0 ? (
@@ -430,7 +749,6 @@ export default function AdminSettings() {
                               placeholder="Mặc định" className="h-9 text-sm" />
                           )}
                         </div>
-                        {/* Temperature */}
                         <div className="space-y-1">
                           <Label className="text-xs">Temperature: {fc.temperature ?? "auto"}</Label>
                           <div className="flex items-center gap-2 pt-1">
@@ -442,7 +760,6 @@ export default function AdminSettings() {
                             />
                           </div>
                         </div>
-                        {/* Max Tokens */}
                         <div className="space-y-1">
                           <Label className="text-xs">Max Tokens</Label>
                           <Input type="number" value={fc.max_tokens || ""} onChange={(e) => updateFeatureConfig(feature.id, { max_tokens: e.target.value ? parseInt(e.target.value) : undefined })}
