@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Search, Download, Mail, Users, UserCheck, UserX, Send, Eye } from "lucide-react";
+import { Search, Download, Upload, Mail, Users, UserCheck, UserX, Send, Eye, History, AlertTriangle } from "lucide-react";
 
 export default function AdminNewsletter() {
   const queryClient = useQueryClient();
@@ -24,6 +24,9 @@ export default function AdminNewsletter() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [emailForm, setEmailForm] = useState({ subject: "", content: "", sendToActive: true });
+  const [campaignHistoryOpen, setCampaignHistoryOpen] = useState(false);
+  const [segmentFilter, setSegmentFilter] = useState<"all" | "7d" | "30d">("all");
+  const [importingCSV, setImportingCSV] = useState(false);
 
   const { data: subscribers = [], isLoading } = useQuery({
     queryKey: ["admin-newsletter"],
@@ -59,11 +62,61 @@ export default function AdminNewsletter() {
     toast.success(`Đã xóa ${ids.length} subscribers`);
   };
 
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ["newsletter-campaigns"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("value").eq("key", "newsletter_campaigns").maybeSingle();
+      return (data?.value as any[]) || [];
+    },
+  });
+
+  // Detect duplicate emails
+  const emailCounts: Record<string, number> = {};
+  subscribers.forEach((s: any) => { emailCounts[s.email.toLowerCase()] = (emailCounts[s.email.toLowerCase()] || 0) + 1; });
+  const duplicateEmails = new Set(Object.entries(emailCounts).filter(([_, c]) => c > 1).map(([e]) => e));
+
   const filtered = subscribers.filter((s: any) => {
     const matchSearch = s.email.toLowerCase().includes(search.toLowerCase());
     const matchActive = activeFilter === "all" || (activeFilter === "active" ? s.is_active : !s.is_active);
-    return matchSearch && matchActive;
+    const matchSegment = segmentFilter === "all" || (segmentFilter === "7d" ? new Date(s.subscribed_at) > new Date(Date.now() - 7 * 86400000) : new Date(s.subscribed_at) > new Date(Date.now() - 30 * 86400000));
+    return matchSearch && matchActive && matchSegment;
   });
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingCSV(true);
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+      const emails: string[] = [];
+      for (const line of lines) {
+        const parts = line.split(",");
+        const email = parts[0].replace(/["']/g, "").trim().toLowerCase();
+        if (email.includes("@") && email !== "email") emails.push(email);
+      }
+      if (emails.length === 0) { toast.error("Không tìm thấy email hợp lệ"); return; }
+      let added = 0;
+      for (const email of emails) {
+        const { error } = await supabase.from("newsletter_subscribers").insert({ email }).select();
+        if (!error) added++;
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-newsletter"] });
+      toast.success(`Đã import ${added}/${emails.length} subscribers`);
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi import CSV");
+    } finally {
+      setImportingCSV(false);
+      e.target.value = "";
+    }
+  };
+
+  const saveCampaign = async () => {
+    const campaign = { subject: emailForm.subject, content: emailForm.content, created_at: new Date().toISOString(), recipients: getRecipients().length };
+    const updated = [campaign, ...campaigns].slice(0, 50);
+    await supabase.from("site_settings").upsert({ key: "newsletter_campaigns", value: updated as any, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    queryClient.invalidateQueries({ queryKey: ["newsletter-campaigns"] });
+  };
 
   const activeCount = subscribers.filter((s: any) => s.is_active).length;
   const inactiveCount = subscribers.length - activeCount;
@@ -100,7 +153,12 @@ export default function AdminNewsletter() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setComposeOpen(true)}><Mail className="mr-1 h-3.5 w-3.5" /> Soạn email</Button>
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => setCampaignHistoryOpen(true)}><History className="mr-1 h-3.5 w-3.5" /> Lịch sử</Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> Export CSV</Button>
+            <div className="relative">
+              <Button variant="outline" size="sm" disabled={importingCSV}><Upload className="mr-1 h-3.5 w-3.5" /> Import CSV</Button>
+              <input type="file" accept=".csv" onChange={handleImportCSV} className="absolute inset-0 opacity-0 cursor-pointer" />
+            </div>
           </div>
         </div>
 
@@ -124,6 +182,13 @@ export default function AdminNewsletter() {
           </Card>
         </div>
 
+        {duplicateEmails.size > 0 && (
+          <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Phát hiện {duplicateEmails.size} email trùng lặp
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -133,6 +198,13 @@ export default function AdminNewsletter() {
             {(["all", "active", "inactive"] as const).map((f) => (
               <Button key={f} variant={activeFilter === f ? "secondary" : "ghost"} size="sm" onClick={() => setActiveFilter(f)}>
                 {f === "all" ? "Tất cả" : f === "active" ? "Active" : "Inactive"}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1 rounded-md border border-border p-0.5">
+            {(["all", "7d", "30d"] as const).map((f) => (
+              <Button key={f} variant={segmentFilter === f ? "secondary" : "ghost"} size="sm" onClick={() => setSegmentFilter(f)}>
+                {f === "all" ? "Tất cả" : f === "7d" ? "Mới 7d" : "Mới 30d"}
               </Button>
             ))}
           </div>
@@ -161,7 +233,10 @@ export default function AdminNewsletter() {
                 filtered.map((s: any) => (
                   <TableRow key={s.id} className={selectedIds.has(s.id) ? "bg-muted/50" : ""}>
                     <TableCell><Checkbox checked={selectedIds.has(s.id)} onCheckedChange={() => toggleSelect(s.id)} /></TableCell>
-                    <TableCell className="font-medium flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-muted-foreground" /> {s.email}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-muted-foreground" /> {s.email}
+                      {duplicateEmails.has(s.email.toLowerCase()) && <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Trùng</Badge>}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch checked={s.is_active} onCheckedChange={(v) => toggleActive.mutate({ id: s.id, is_active: v })} />
@@ -202,8 +277,9 @@ export default function AdminNewsletter() {
               <Button variant="outline" onClick={() => setPreviewOpen(true)} disabled={!emailForm.subject || !emailForm.content}><Eye className="mr-1 h-3.5 w-3.5" /> Preview</Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setComposeOpen(false)}>Hủy</Button>
-                <Button disabled={!emailForm.subject || !emailForm.content} onClick={() => {
+                <Button disabled={!emailForm.subject || !emailForm.content} onClick={async () => {
                   const recipients = getRecipients();
+                  await saveCampaign();
                   toast.info(`Email sẵn sàng gửi tới ${recipients.length} subscribers. Tích hợp email service (Resend/SendGrid) cần thiết để gửi thực tế.`);
                 }}>
                   <Send className="mr-1 h-3.5 w-3.5" /> Gửi ({getRecipients().length})
@@ -225,6 +301,29 @@ export default function AdminNewsletter() {
             </div>
             <div className="prose prose-sm max-w-none whitespace-pre-wrap">{emailForm.content}</div>
             <p className="text-xs text-muted-foreground">Gửi tới: {getRecipients().length} subscribers</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Campaign History Dialog */}
+      <Dialog open={campaignHistoryOpen} onOpenChange={setCampaignHistoryOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Lịch sử email đã soạn</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {campaigns.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Chưa có email nào</p>
+            ) : (
+              campaigns.map((c: any, i: number) => (
+                <div key={i} className="border rounded-md p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{c.subject}</p>
+                    <Badge variant="outline" className="text-[10px]">{c.recipients} người</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{c.content}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("vi-VN")}</p>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

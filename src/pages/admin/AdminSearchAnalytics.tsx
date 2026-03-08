@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
-import { Search, TrendingUp, AlertTriangle, Plus, Trash2, Edit, BarChart3, Zap, Bot, Sparkles } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Plus, Trash2, Edit, BarChart3, Zap, Bot, Sparkles, Download } from "lucide-react";
+import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, startOfDay } from "date-fns";
 
@@ -480,16 +481,78 @@ function RulesManager() {
   );
 }
 
+function downloadCSV(rows: string[], filename: string) {
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminSearchAnalytics() {
   const { data: logs = [], isLoading } = useSearchLogs();
   const { data: rules = [] } = useSearchRules();
+  const [dateRange, setDateRange] = useState("30");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  const filteredLogs = logs.filter(l => {
+    const age = Date.now() - new Date(l.created_at).getTime();
+    const dayMs = Number(dateRange) * 86400000;
+    const matchDate = age <= dayMs;
+    const matchSource = sourceFilter === "all" || l.source === sourceFilter;
+    return matchDate && matchSource;
+  });
+
+  const uniqueSources = [...new Set(logs.map(l => l.source).filter(Boolean))].sort();
+
+  const exportSearchLogs = () => {
+    const csv = ["Query,Normalized,Results,Source,Created At", ...filteredLogs.map(l =>
+      `"${l.query}","${l.normalized_query}",${l.results_count},"${l.source || ""}","${l.created_at}"`
+    )];
+    downloadCSV(csv, `search-logs-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Đã export ${filteredLogs.length} logs`);
+  };
+
+  // Rule hit counts
+  const ruleHits: Record<string, number> = {};
+  for (const rule of rules) {
+    const pattern = rule.keyword_pattern?.toLowerCase();
+    ruleHits[rule.id] = filteredLogs.filter(l => {
+      if (rule.match_type === "exact") return l.normalized_query === pattern;
+      if (rule.match_type === "contains") return l.normalized_query.includes(pattern);
+      return false;
+    }).length;
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold">Search Analytics</h2>
-          <p className="text-sm text-muted-foreground">Thống kê từ khóa tìm kiếm và quản lý quy tắc kết quả</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Search Analytics</h2>
+            <p className="text-sm text-muted-foreground">Thống kê từ khóa tìm kiếm và quản lý quy tắc kết quả</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 ngày</SelectItem>
+                <SelectItem value="30">30 ngày</SelectItem>
+                <SelectItem value="90">90 ngày</SelectItem>
+                <SelectItem value="365">1 năm</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả source</SelectItem>
+                {uniqueSources.map(s => <SelectItem key={s} value={s!}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="sm" onClick={exportSearchLogs}>
+              <Download className="mr-1 h-3.5 w-3.5" /> Export CSV
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -503,17 +566,36 @@ export default function AdminSearchAnalytics() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6 mt-4">
-              <StatsCards logs={logs} rules={rules} />
-              <SearchTrendChart logs={logs} />
+              <StatsCards logs={filteredLogs} rules={rules} />
+              <SearchTrendChart logs={filteredLogs} />
             </TabsContent>
 
             <TabsContent value="keywords" className="space-y-6 mt-4">
-              <TopKeywordsChart logs={logs} />
-              <ZeroResultsTable logs={logs} />
+              <TopKeywordsChart logs={filteredLogs} />
+              <ZeroResultsTable logs={filteredLogs} />
             </TabsContent>
 
             <TabsContent value="rules" className="mt-4">
               <RulesManager />
+              {/* Rule Hit Counts */}
+              {rules.length > 0 && (
+                <Card className="mt-4">
+                  <CardHeader><CardTitle className="text-sm">Rule Hit Count ({dateRange}d)</CardTitle></CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader><TableRow><TableHead>Pattern</TableHead><TableHead className="w-24 text-right">Hits</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {rules.sort((a: any, b: any) => (ruleHits[b.id] || 0) - (ruleHits[a.id] || 0)).map((r: any) => (
+                          <TableRow key={r.id}>
+                            <TableCell className="font-mono text-sm">{r.keyword_pattern}</TableCell>
+                            <TableCell className="text-right"><Badge variant={ruleHits[r.id] > 0 ? "default" : "secondary"}>{ruleHits[r.id] || 0}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         )}

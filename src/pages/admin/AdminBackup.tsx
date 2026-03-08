@@ -1,11 +1,15 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Upload, Database, Settings, FileText, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Download, Upload, Database, Settings, FileText, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
 const BACKUP_TABLES = [
@@ -21,6 +25,11 @@ const BACKUP_TABLES = [
   { key: "workflows", label: "Workflows", icon: "🔄" },
   { key: "deals", label: "Deals", icon: "🏷️" },
   { key: "tasks", label: "Tasks", icon: "✅" },
+  { key: "user_roles", label: "User Roles", icon: "👤" },
+  { key: "notifications", label: "Notifications", icon: "🔔" },
+  { key: "follows", label: "Follows", icon: "➕" },
+  { key: "collections", label: "Collections", icon: "📦" },
+  { key: "launches", label: "Launches", icon: "🚀" },
 ];
 
 const SETTINGS_TABLES = ["site_settings", "menus", "pages"];
@@ -29,16 +38,33 @@ function downloadJSON(data: any, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
+  a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
 export default function AdminBackup() {
+  const queryClient = useQueryClient();
   const [exporting, setExporting] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importData, setImportData] = useState<Record<string, any> | null>(null);
+  const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
+  const [currentCounts, setCurrentCounts] = useState<Record<string, number>>({});
+
+  const { data: backupHistory = [] } = useQuery({
+    queryKey: ["backup-history"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("value").eq("key", "backup_history").maybeSingle();
+      return (data?.value as any[]) || [];
+    },
+  });
+
+  const saveBackupHistory = async (entry: any) => {
+    const updated = [entry, ...backupHistory].slice(0, 20);
+    await supabase.from("site_settings").upsert({ key: "backup_history", value: updated as any, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    queryClient.invalidateQueries({ queryKey: ["backup-history"] });
+  };
 
   const exportFullBackup = async () => {
     setExporting("full");
@@ -52,6 +78,7 @@ export default function AdminBackup() {
       const filename = `toolscope-backup-${new Date().toISOString().slice(0, 10)}.json`;
       downloadJSON(bundle, filename);
       setLastBackup(new Date().toISOString());
+      await saveBackupHistory({ type: "full", tables: BACKUP_TABLES.length, timestamp: new Date().toISOString() });
       await logAuditAction("backup_export", "system", undefined, { type: "full", tables: BACKUP_TABLES.map(t => t.key) });
       toast.success("Đã export backup thành công!");
     } catch (e: any) {
@@ -91,9 +118,7 @@ export default function AdminBackup() {
       const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `${tableKey}-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
+      a.href = url; a.download = `${tableKey}-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
       URL.revokeObjectURL(url);
       toast.success(`Đã export ${tableKey}.csv`);
     } catch (e: any) {
@@ -103,35 +128,59 @@ export default function AdminBackup() {
     }
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImporting(true);
     try {
       const text = await file.text();
       const data = JSON.parse(text);
       if (!data._meta) throw new Error("File không hợp lệ");
 
-      let restored = 0;
-      for (const table of SETTINGS_TABLES) {
-        if (data[table] && Array.isArray(data[table])) {
-          for (const row of data[table]) {
-            if (table === "site_settings") {
-              await supabase.from("site_settings").upsert(row as any, { onConflict: "key" });
-            } else {
-              await supabase.from(table as any).upsert(row as any);
-            }
-          }
-          restored++;
-        }
+      // Find which tables exist in the file
+      const availableTables = BACKUP_TABLES.filter(t => data[t.key] && Array.isArray(data[t.key]));
+      setImportData(data);
+      setSelectedTables(new Set(availableTables.map(t => t.key)));
+
+      // Fetch current counts for comparison
+      const counts: Record<string, number> = {};
+      for (const t of availableTables) {
+        const { count } = await supabase.from(t.key as any).select("*", { count: "exact", head: true });
+        counts[t.key] = count || 0;
       }
-      await logAuditAction("backup_import", "system", undefined, { file: file.name, tables_restored: restored });
-      toast.success(`Đã import ${restored} bảng settings thành công!`);
+      setCurrentCounts(counts);
+      setImportDialogOpen(true);
     } catch (err: any) {
       toast.error(err.message || "File không hợp lệ");
+    }
+    e.target.value = "";
+  };
+
+  const executeImport = async () => {
+    if (!importData) return;
+    setImporting(true);
+    try {
+      let restored = 0;
+      for (const tableKey of selectedTables) {
+        const rows = importData[tableKey];
+        if (!rows || !Array.isArray(rows)) continue;
+        for (const row of rows) {
+          if (tableKey === "site_settings") {
+            await supabase.from("site_settings").upsert(row as any, { onConflict: "key" });
+          } else {
+            await supabase.from(tableKey as any).upsert(row as any);
+          }
+        }
+        restored++;
+      }
+      await saveBackupHistory({ type: "import", tables: restored, timestamp: new Date().toISOString() });
+      await logAuditAction("backup_import", "system", undefined, { tables_restored: restored });
+      toast.success(`Đã import ${restored} bảng thành công!`);
+      setImportDialogOpen(false);
+      setImportData(null);
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi import");
     } finally {
       setImporting(false);
-      e.target.value = "";
     }
   };
 
@@ -150,11 +199,27 @@ export default function AdminBackup() {
           </div>
         )}
 
+        {/* Backup History */}
+        {backupHistory.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" /> Lịch sử Backup</CardTitle></CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {backupHistory.slice(0, 10).map((h: any, i: number) => (
+                  <Badge key={i} variant="outline" className="text-xs">
+                    {h.type === "full" ? "📦 Full" : h.type === "import" ? "📥 Import" : "⚙️ Settings"} — {h.tables} bảng — {new Date(h.timestamp).toLocaleDateString("vi-VN")}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Database className="h-5 w-5" /> Full Database Export</CardTitle>
-              <CardDescription>Export toàn bộ dữ liệu quan trọng sang JSON</CardDescription>
+              <CardDescription>Export toàn bộ {BACKUP_TABLES.length} bảng dữ liệu sang JSON</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">Bao gồm: {BACKUP_TABLES.map(t => t.label).join(", ")}</p>
@@ -178,14 +243,9 @@ export default function AdminBackup() {
               <div className="relative">
                 <Button variant="secondary" className="w-full" disabled={importing}>
                   {importing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Import Settings
+                  Import (Chọn bảng)
                 </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
+                <input type="file" accept=".json" onChange={handleImportFile} className="absolute inset-0 opacity-0 cursor-pointer" />
               </div>
             </CardContent>
           </Card>
@@ -199,19 +259,8 @@ export default function AdminBackup() {
           <CardContent>
             <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {BACKUP_TABLES.map((table) => (
-                <Button
-                  key={table.key}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => exportCSV(table.key)}
-                  disabled={exporting === table.key}
-                  className="justify-start"
-                >
-                  {exporting === table.key ? (
-                    <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                  ) : (
-                    <span className="mr-2">{table.icon}</span>
-                  )}
+                <Button key={table.key} variant="outline" size="sm" onClick={() => exportCSV(table.key)} disabled={exporting === table.key} className="justify-start">
+                  {exporting === table.key ? <RefreshCw className="mr-2 h-3 w-3 animate-spin" /> : <span className="mr-2">{table.icon}</span>}
                   {table.label}
                 </Button>
               ))}
@@ -219,6 +268,54 @@ export default function AdminBackup() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Selective Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Chọn bảng để import</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {importData && BACKUP_TABLES.filter(t => importData[t.key] && Array.isArray(importData[t.key])).map(table => {
+              const fileCount = importData[table.key].length;
+              const dbCount = currentCounts[table.key] || 0;
+              return (
+                <div key={table.key} className="flex items-center gap-3 p-2 rounded border">
+                  <Checkbox
+                    checked={selectedTables.has(table.key)}
+                    onCheckedChange={(v) => {
+                      setSelectedTables(prev => {
+                        const n = new Set(prev);
+                        v ? n.add(table.key) : n.delete(table.key);
+                        return n;
+                      });
+                    }}
+                  />
+                  <span className="text-lg">{table.icon}</span>
+                  <div className="flex-1">
+                    <Label className="font-medium text-sm">{table.label}</Label>
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      <span>File: {fileCount} rows</span>
+                      <span>DB: {dbCount} rows</span>
+                      {fileCount !== dbCount && (
+                        <Badge variant="outline" className="text-[10px]">
+                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                          {fileCount > dbCount ? `+${fileCount - dbCount}` : `${fileCount - dbCount}`}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>Hủy</Button>
+            <Button onClick={executeImport} disabled={importing || selectedTables.size === 0}>
+              {importing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Import {selectedTables.size} bảng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
