@@ -137,6 +137,37 @@ export function UntranslatedSection({
         </div>
       )}
 
+      {/* Deals */}
+      {untranslatedDeals.length > 0 && onTranslateDeal && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium">🏷️ Deals chưa dịch sang {targetName} ({untranslatedDeals.length})</h3>
+            {onBulkTranslateDeals && selectedDealIds.size > 0 && (
+              <Button variant="outline" size="sm" onClick={() => onBulkTranslateDeals(Array.from(selectedDealIds))} disabled={isTranslating} className="text-xs">
+                <Languages className="mr-1 h-3 w-3" /> Dịch {selectedDealIds.size} deal
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {untranslatedDeals.slice(0, 20).map((d: any) => (
+              <div key={d.id} className="flex items-center gap-1">
+                {onToggleSelectDeal && (
+                  <Checkbox
+                    checked={selectedDealIds.has(d.id)}
+                    onCheckedChange={() => onToggleSelectDeal(d.id)}
+                    className="h-3.5 w-3.5"
+                  />
+                )}
+                <Button variant="outline" size="sm" onClick={() => onTranslateDeal(d.id)} disabled={isTranslating} className="text-xs">
+                  {isTranslating ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Languages className="mr-1 h-3 w-3" />}
+                  {d.title?.substring(0, 40)}{d.title?.length > 40 ? "..." : ""}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Menus */}
       {untranslatedMenus.length > 0 && onTranslateMenu && (
         <div>

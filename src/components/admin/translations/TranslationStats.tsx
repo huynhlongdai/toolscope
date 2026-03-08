@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Wrench, FileText, Bot, PenLine, Workflow } from "lucide-react";
+import { Wrench, FileText, Bot, PenLine, Workflow, Tag } from "lucide-react";
 
 interface TranslationStatsProps {
   toolPercent: number;
@@ -14,6 +14,9 @@ interface TranslationStatsProps {
   workflowPercent?: number;
   translatedWorkflowCount?: number;
   totalWorkflows?: number;
+  dealPercent?: number;
+  translatedDealCount?: number;
+  totalDeals?: number;
 }
 
 export function TranslationStats({
@@ -22,11 +25,14 @@ export function TranslationStats({
   translatedBlogCount, totalBlogs,
   autoCount, manualCount,
   workflowPercent = 0, translatedWorkflowCount = 0, totalWorkflows = 0,
+  dealPercent = 0, translatedDealCount = 0, totalDeals = 0,
 }: TranslationStatsProps) {
   const showWorkflow = totalWorkflows > 0;
+  const showDeal = totalDeals > 0;
+  const extraCols = (showWorkflow ? 1 : 0) + (showDeal ? 1 : 0);
 
   return (
-    <div className={`grid gap-3 ${showWorkflow ? "grid-cols-2 md:grid-cols-5" : "grid-cols-2 md:grid-cols-4"}`}>
+    <div className={`grid gap-3 grid-cols-2 md:grid-cols-${4 + extraCols}`}>
       <Card>
         <CardContent className="pt-4 pb-3 px-4">
           <div className="flex items-center gap-2 mb-2">
@@ -56,6 +62,18 @@ export function TranslationStats({
             </div>
             <Progress value={workflowPercent} className="h-2 mb-1" />
             <p className="text-xs text-muted-foreground">{translatedWorkflowCount}/{totalWorkflows} ({workflowPercent}%)</p>
+          </CardContent>
+        </Card>
+      )}
+      {showDeal && (
+        <Card>
+          <CardContent className="pt-4 pb-3 px-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Tag className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Deals</span>
+            </div>
+            <Progress value={dealPercent} className="h-2 mb-1" />
+            <p className="text-xs text-muted-foreground">{translatedDealCount}/{totalDeals} ({dealPercent}%)</p>
           </CardContent>
         </Card>
       )}
