@@ -608,6 +608,11 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                   { key: "description", label: "Mô tả", type: "textarea", originalValue: form.description },
                   { key: "seo_title", label: "SEO Title", type: "input", originalValue: form.seo_title },
                   { key: "seo_description", label: "SEO Description", type: "textarea", originalValue: form.seo_description },
+                  { key: "seo_content_problem", label: "Vấn đề (SEO)", type: "textarea", originalValue: form.seo_content.problem },
+                  { key: "seo_content_solution", label: "Giải pháp (SEO)", type: "textarea", originalValue: form.seo_content.solution },
+                  { key: "seo_content_target_audience", label: "Đối tượng (SEO)", type: "input", originalValue: form.seo_content.target_audience },
+                  ...form.steps.filter((s: any) => s.title).map((s: any, i: number) => ({ key: `step_${i}_title`, label: `Bước ${i + 1}: Tiêu đề`, type: "input" as const, originalValue: s.title })),
+                  ...form.steps.filter((s: any) => s.description).map((s: any, i: number) => ({ key: `step_${i}_description`, label: `Bước ${i + 1}: Mô tả`, type: "textarea" as const, originalValue: s.description })),
                 ]}
               />
             )}
