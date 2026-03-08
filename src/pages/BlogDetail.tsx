@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useMemo } from "react";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 function parseHeadings(html: string) {
   const regex = /<h([23])[^>]*>(.*?)<\/h\1>/gi;
