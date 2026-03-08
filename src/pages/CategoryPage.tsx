@@ -12,6 +12,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
 import { G2GridChart } from "@/components/category/G2GridChart";
 import { cn } from "@/lib/utils";
+import { AdUnit } from "@/components/ads/AdUnit";
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
