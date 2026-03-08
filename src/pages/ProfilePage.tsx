@@ -469,6 +469,25 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+      {/* Report User Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Báo cáo người dùng</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Select value={reportReason} onValueChange={setReportReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Quấy rối</SelectItem>
+                <SelectItem value="inappropriate">Hành vi không phù hợp</SelectItem>
+                <SelectItem value="fake_account">Tài khoản giả</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
+            <Button size="sm" onClick={submitUserReport} className="w-full">Gửi báo cáo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Footer />
       <MobileBottomNav />
     </div>
