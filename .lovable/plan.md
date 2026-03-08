@@ -1,278 +1,130 @@
 
 
-## ToolScope - Kế hoạch triển khai đầy đủ
+## Plan nâng cấp từng phần Admin Panel
 
-### Tổng quan
-Website đa ngôn ngữ tổng hợp & review công cụ toàn cầu. Kết hợp nội dung biên tập chuyên sâu với đánh giá cộng đồng, tích hợp AI toàn diện cho thu thập dữ liệu, viết bài, đánh giá và tư vấn. Responsive web, hỗ trợ dark/light mode.
+### Tổng quan hiện trạng
 
----
-
-### 🏠 TRANG CÔNG KHAI
-
-**1. Trang chủ**
-- Hero banner + thanh tìm kiếm AI thông minh (ngôn ngữ tự nhiên)
-- Section "AI Recommended Tools" với badge
-- Danh mục công cụ (AI, Design, Dev, Marketing, Productivity...)
-- Tool nổi bật / trending / mới nhất
-- Bộ lọc theo danh mục, rating, giá, tags
-- "For You" feed cá nhân hóa
-- Nút chuyển ngôn ngữ + Dark/Light mode
-
-**2. Trang chi tiết công cụ**
-- Thông tin tổng quan: tên, logo, mô tả, website, pricing tiers
-- AI Score card (điểm theo tiêu chí + tóm tắt ưu/nhược)
-- Badge "AI Recommended" nếu đạt chuẩn
-- Bài review chi tiết từ editor (markdown, ảnh, video embed)
-- Đánh giá sao 1-5 từ cộng đồng + upvote/downvote
-- Bình luận threaded (trả lời lồng nhau)
-- Q&A section với upvote câu trả lời hay nhất
-- Danh sách alternatives (tool tương tự)
-- "Works well with" integrations
-- Nút Bookmark, Share, Follow
-- Pricing history chart + alert giảm giá
-
-**3. Trang so sánh công cụ**
-- Chọn 2-4 tool để so sánh side-by-side
-- Bảng so sánh tính năng, giá, rating, AI score
-- AI tự động tạo kết luận & đề xuất
-- ROI Calculator: nhập team size → tính chi phí
-
-**4. Trang danh sách & tìm kiếm**
-- Grid/list view toggle
-- Bộ lọc nâng cao (danh mục, giá, rating, tags, platform, integrations)
-- Sắp xếp: phổ biến, mới nhất, đánh giá cao, AI score
-- Infinite scroll + skeleton loading
-- Search history, auto-complete, popular searches
-- Voice search (Web Speech API)
-
-**5. Trang danh mục**
-- Mỗi danh mục có landing page riêng + mô tả + top tools
-- Sub-categories (VD: AI → Chatbot, Image Gen, Code Assistant...)
-
-**6. Trang Trending**
-- Tools đang trending tuần/tháng
-- "Rising Stars" - tools mới nổi tăng rating nhanh
-- Biểu đồ xu hướng popularity theo thời gian
-
-**7. Trang Use Cases & Workflows**
-- Mô tả workflow cụ thể (VD: "Content Marketing Workflow")
-- Mỗi use case gợi ý combo tools phù hợp
-- User submit workflow + tools đang dùng
-
-**8. Trang Collections & Lists**
-- User tạo collection tool theo chủ đề
-- Editor tạo "Curated Lists" (Top 10 AI Tools...)
-- "Stack" - user chia sẻ bộ tools đang dùng hàng ngày
-- Collections công khai có thể upvote
-
-**9. Trang Profile người dùng**
-- Reviews đã viết, câu hỏi, tools bookmarked, collections
-- Reputation score + badges ("Top Reviewer", "Early Adopter", "Expert")
-- Lịch sử hoạt động
-- Recently viewed tools
-
-**10. Trang Blog/Tin tức**
-- Bài viết về xu hướng công cụ mới
-- AI tóm tắt tin tự động
-- Weekly digest
+| Module | Lines | Đánh giá | Ưu tiên |
+|---|---|---|---|
+| **Dashboard** | 200 | Cơ bản, thiếu realtime, thiếu activity feed chi tiết | Cao |
+| **Analytics** | 259 | Ổn, thiếu engagement metrics, retention | Trung bình |
+| **Tools** | 1737 | Đầy đủ nhất, có health check, translation, batch import | Thấp |
+| **Blog** | 717 | Ổn, có AI generate, translation | Thấp |
+| **Workflows** | 693 | Vừa nâng cấp translation | Thấp |
+| **Categories** | 249 | Cơ bản, thiếu drag-drop sort, merge, icon picker | Cao |
+| **Pages** | 102 | Rất mỏng, chỉ list + delete, dùng prompt() tạo page | Cao |
+| **Deals** | Vừa nâng cấp | Đã có collect, translate, analytics | Thấp |
+| **Launches** | 196 | Cơ bản, thiếu search, bulk actions, detail view | Trung bình |
+| **Tasks** | 270 | Cơ bản, thiếu bulk assign, AI suggest | Trung bình |
+| **Users** | 372 | Thiếu bulk ban, export, activity timeline | Trung bình |
+| **Reviews** | 152 | Rất mỏng, chỉ list + status + delete | Cao |
+| **Moderation** | 198 | Cơ bản, thiếu keyword filter, auto-flag | Trung bình |
+| **Reports** | 173 | Cơ bản, đủ dùng | Thấp |
+| **Newsletter** | 174 | Cơ bản, thiếu compose/send, segments | Trung bình |
+| **SearchAnalytics** | 523 | Khá đầy đủ | Thấp |
+| **Settings** | 964 | Vừa nâng cấp AI provider | Thấp |
+| **Backup** | 224 | Đủ dùng | Thấp |
 
 ---
 
-### 🤖 TÍNH NĂNG AI
+### Đợt 1 — Các module yếu nhất (ưu tiên cao)
 
-**1. AI Search thông minh**
-- Gõ nhu cầu bằng ngôn ngữ tự nhiên (VD: "tool thiết kế miễn phí cho startup")
-- AI hiểu ngữ cảnh, gợi ý tools phù hợp + lý do
-- "Similar to [tool X]" search
+#### 1.1 AdminDashboard — Nâng cấp overview
+- Thêm stat cards: Workflows, Blog posts, Translations coverage %
+- **Activity feed realtime**: Dùng `supabase_realtime` trên `audit_logs` để hiển thị live activity
+- **System health summary**: Tổng hợp AI usage (7 ngày), storage usage, edge function errors
+- **Quick action buttons**: Thêm "Dịch tất cả", "Check health", "Tạo blog AI"
+- Thêm biểu đồ đường cho views tổng hợp 7 ngày gần nhất
 
-**2. Chatbot tư vấn AI**
-- Widget chat floating trên mọi trang
-- Hỏi đáp, so sánh, tư vấn lựa chọn tool
-- Streaming response token-by-token
-- Trả lời dựa trên dữ liệu tools trong database
+#### 1.2 AdminReviews — Mở rộng đáng kể
+- Thêm **search** theo title/tool name/author
+- Thêm **detail view dialog**: hiển thị full content, pros/cons, structured ratings
+- **Bulk actions**: Bulk approve, bulk delete (checkbox + action bar)
+- **Reply/Vendor response**: Admin có thể reply trực tiếp vào review
+- Hiển thị structured rating breakdown (ease_of_use, value_for_money...) trong table
 
-**3. AI Thu thập dữ liệu tự động**
-- Admin dán URL → Firecrawl scrape → AI parse (tên, mô tả, pricing, tính năng, logo)
-- Tự điền form thêm tool mới
-- Scheduled re-scrape hàng tuần phát hiện thay đổi
-- User submit URL tool → AI thu thập → Admin duyệt
+#### 1.3 AdminCategories — UX cải thiện
+- **Drag-drop reorder** sort_order (hoặc nút move up/down đơn giản)
+- **Merge categories**: Chọn 2 categories → merge tools vào 1
+- **Icon picker**: Dropdown chọn icon thay vì nhập text
+- **Tool count**: Hiển thị số tools trong mỗi category
+- **Bulk delete tags** với checkbox
 
-**4. AI Hỗ trợ viết bài review**
-- Chọn tool → AI tạo draft (giới thiệu, tính năng, ưu/nhược, kết luận)
-- Editor chỉnh sửa → xuất bản
-- AI dịch tự động sang ngôn ngữ khác
-
-**5. AI Đánh giá & chấm điểm**
-- Phân tích: dữ liệu scrape + review editor + rating cộng đồng
-- Điểm theo tiêu chí: Dễ sử dụng, Tính năng, Giá cả, Hỗ trợ, Hiệu suất
-- Tóm tắt ưu/nhược bằng AI
-- Badge "AI Recommended"
-
-**6. AI Spam Detection**
-- Tự động phát hiện comment/review spam
-- Flag nội dung nghi vấn cho admin
-
-**7. AI Personalization**
-- Onboarding quiz → gợi ý tools theo lĩnh vực
-- "Because you liked [X]" recommendations
+#### 1.4 AdminPages — Cải thiện cơ bản
+- Thay thế `prompt()` bằng **Dialog form** chính thống
+- Thêm **status filter** (draft/published)
+- Thêm **duplicate page** action
+- Hiển thị **last updated**, **slug** trong bảng
+- Nút **preview** mở page ở tab mới
 
 ---
 
-### 🔐 HỆ THỐNG NGƯỜI DÙNG
+### Đợt 2 — Cải thiện UX và tính năng (ưu tiên trung bình)
 
-- Đăng ký/đăng nhập: Email + Google OAuth
-- Vai trò (bảng `user_roles` riêng): Admin, Editor, User
-- **User**: đánh giá, bình luận, Q&A, bookmark, upvote/downvote, tạo collections, follow tools/users/categories, submit tools
-- **Editor**: viết/chỉnh sửa review, dùng AI draft, quản lý collections
-- **Admin**: toàn quyền
+#### 2.1 AdminUsers — Quản lý nâng cao
+- **Activity timeline**: Dialog xem lịch sử hoạt động user (reviews, comments, questions)
+- **Bulk actions**: Bulk ban, bulk change role
+- **User detail card**: Hiển thị stats tổng hợp (reputation, reviews, comments)
+- **Export users** ra CSV với filter
+- **Search** cải thiện: filter by ban status
 
-**Gamification**
-- Điểm reputation (viết review, Q&A, upvote nhận được)
-- Badges: "Top Reviewer", "Early Adopter", "Helpful Answer", "Expert"
-- Leaderboard contributors hàng tháng
+#### 2.2 AdminLaunches — Hoàn thiện
+- Thêm **search** theo product_name/tagline
+- **Bulk approve/reject** với checkbox
+- **Statistics card**: Tổng launches, approved rate, average upvotes
+- Cải thiện **detail dialog**: hiển thị screenshots, video, features
 
----
+#### 2.3 AdminTasks — Cải thiện
+- **Bulk assign tools**: Chọn nhiều tools → assign vào task
+- **AI suggest tasks**: Dựa trên tool descriptions, suggest tasks phù hợp
+- **Reorder drag-drop** hoặc nút sort
+- **Tool count live**: Đếm realtime thay vì field tĩnh
 
-### 📊 ADMIN DASHBOARD
+#### 2.4 AdminNewsletter — Compose & send
+- **Compose email**: Form soạn email với RichTextEditor
+- **Segments**: Filter subscribers by date range, active status
+- **Send preview**: Gửi test email đến admin trước khi gửi hàng loạt
+- **Stats**: Open rate, click rate (nếu tích hợp email service)
 
-**Quản lý cơ bản**
-- CRUD tools, categories, tags, blog posts
-- Quản lý users, phân quyền role
-- Quản lý reviews, bình luận, Q&A
-- Bulk import tools từ CSV
-
-**Analytics & Dashboard**
-- Thống kê lượt xem ngày/tuần/tháng (biểu đồ Recharts)
-- Top tools phổ biến, user activity, đăng ký mới
-- Top contributors
-- Revenue tracking (nếu affiliate)
-
-**Content Moderation**
-- Hàng đợi duyệt: reviews, bình luận, câu hỏi, tool submissions
-- Hệ thống báo cáo spam/vi phạm
-- Approve/reject/flag + AI spam detection
-- Audit log mọi thao tác admin/editor
-
-**AI Management**
-- Nút "Auto-collect từ URL" khi thêm tool
-- Nút "Generate AI Draft" khi tạo review
-- Xem/chỉnh sửa AI scores
-- Log các lần AI scrape/generate
-- Scheduled re-scrape settings
-
-**Quản lý đa ngôn ngữ**
-- Trạng thái dịch mỗi bài (đã dịch/chưa)
-- Trigger dịch lại khi nội dung thay đổi
-- Chỉnh sửa bản dịch thủ công
+#### 2.5 AdminModeration — Auto-moderation
+- **Keyword blacklist**: Danh sách từ khóa tự động flag
+- **Auto-flag**: Comments/reviews chứa keywords bị flag tự động
+- **Moderation queue count** trên sidebar badge
+- **Bulk approve/delete** comments
 
 ---
 
-### 🌐 ĐA NGÔN NGỮ TỰ ĐỘNG
+### Đợt 3 — Polish & minor (ưu tiên thấp)
 
-- Selector ngôn ngữ trên header (Vi/En, mở rộng thêm)
-- Editor viết 1 ngôn ngữ → AI dịch tự động
-- URL routing: `/vi/tool/...`, `/en/tool/...`
-- Bảng `translations` lưu bản dịch
-- Hreflang tags + canonical URLs cho SEO
+#### 3.1 AdminAnalytics — Mở rộng
+- Thêm **engagement metrics**: Avg time on page, bounce rate (nếu có analytics)
+- **Deals analytics**: Revenue potential, top deals by clicks
+- **Comparison charts**: So sánh metrics giữa 2 khoảng thời gian
 
----
+#### 3.2 AdminAuditLogs — Cải thiện filter
+- Filter theo **entity_type**, **action**, **user**
+- **Undo action**: Với một số action đơn giản (status change), cho phép revert
 
-### 🔔 THÔNG BÁO & FOLLOW
-
-- Follow tool → thông báo review mới, thay đổi pricing
-- Follow user/editor → thông báo review mới
-- Follow category → tool mới trong danh mục
-- Thông báo in-app + email digest tùy chọn
-- Price drop alerts
+#### 3.3 AdminLayout — Sidebar badges
+- Hiển thị **badge count** trên sidebar cho: pending tools, pending reports, pending launches
+- **Collapse persist**: Lưu trạng thái collapse sidebar vào localStorage
 
 ---
 
-### 📱 MOBILE RESPONSIVE
+### Thứ tự triển khai đề xuất
 
-- Mobile-first responsive design
-- Bottom navigation bar (Home, Search, Bookmarks, Profile)
-- Collapsible filters
-- Pull-to-refresh, infinite scroll
-- Skeleton loading states
-- Touch-friendly rating, buttons
-- Share sheet native
-- "Quick Rate" swipe cards
-- Lazy loading images
-- Sticky header thu gọn khi scroll
+Mỗi đợt có thể chia nhỏ thành từng module riêng. Đề xuất bắt đầu từ đợt 1:
 
----
+1. **AdminDashboard** — Nâng cấp overview + realtime activity
+2. **AdminReviews** — Search, detail view, bulk actions
+3. **AdminCategories** — Reorder, merge, icon picker, tool count
+4. **AdminPages** — Dialog form, status filter, duplicate
 
-### 📈 SEO & GROWTH
+Sau đó tiếp tục đợt 2 và 3 theo thứ tự ưu tiên.
 
-- Auto-generate sitemap XML
-- Structured data JSON-LD cho Rich Snippets
-- Open Graph social cards tự động
-- Hreflang tags đa ngôn ngữ
-- Canonical URLs
-- Newsletter đăng ký email weekly digest
+### Technical Notes
+- Realtime activity trên Dashboard cần `ALTER PUBLICATION supabase_realtime ADD TABLE public.audit_logs`
+- Merge categories cần migration update `tools.category_id` trước khi delete category
+- Newsletter compose cần edge function gửi email (hoặc tích hợp Resend/SendGrid)
+- Sidebar badges cần query count riêng, cache bằng react-query với staleTime ngắn
 
----
-
-### 🏗️ BACKEND (Lovable Cloud + Supabase)
-
-**Database tables**: tools, categories, tags, tool_tags, reviews, ratings, comments, questions, answers, votes, bookmarks, collections, collection_items, translations, ai_scores, user_roles, profiles, notifications, reports, follows, pricing_history, workflows, blog_posts, audit_logs
-
-**Edge Functions**:
-- `collect-tool-data`: Firecrawl scrape + AI parse
-- `generate-review`: AI tạo draft review
-- `evaluate-tool`: AI chấm điểm
-- `translate-content`: AI dịch đa ngôn ngữ
-- `ai-search`: Tìm kiếm thông minh
-- `ai-chat`: Chatbot tư vấn (streaming)
-- `detect-spam`: AI phát hiện spam
-
-**Auth + RLS**: Phân quyền theo role, security definer functions
-
----
-
-### 📋 THỨ TỰ TRIỂN KHAI
-
-1. ✅ Database schema + Auth + Roles
-2. ✅ Trang chủ + Danh sách tools + Chi tiết tool (responsive)
-3. ✅ Review, Rating, Bình luận, Q&A, Upvote/Downvote
-4. ✅ AI Search + Chatbot tư vấn
-5. ✅ AI thu thập + viết bài + đánh giá (Firecrawl)
-6. ✅ So sánh tools + Pricing tracker
-7. ✅ Collections, Bookmarks, Follow, Notifications
-8. ✅ Admin dashboard đầy đủ + Moderation
-9. ✅ Đa ngôn ngữ tự động
-10. ✅ Trending, Gamification, Personalization
-11. ✅ Use Cases, Integrations map, Blog
-12. ✅ SEO optimization + Mobile polish
-
----
-
-### 🆕 TÍNH NĂNG MỞ RỘNG (Học hỏi G2, Capterra, Product Hunt, AlternativeTo, TAAFT)
-
-13. ✅ Structured Review Form (đánh giá theo tiêu chí ease_of_use, value_for_money, customer_support, NPS)
-14. ✅ Alternatives Section (AI gợi ý + user vote "I switched from X to Y")
-15. ✅ G2 Grid Quadrant Chart (Satisfaction vs Market Presence trên Category page)
-16. ✅ Screenshot Gallery (slider + lightbox trên Tool Detail)
-17. ✅ AI Score Auto-Generation (Edge Function + Admin button)
-18. ✅ Task-Based Discovery (/tasks - chọn task tìm tool phù hợp)
-19. ✅ Product Launch (/launches - submit + upvote sản phẩm mới mỗi ngày)
-20. ✅ Vendor/Maker Profiles (claim tool, respond to reviews)
-21. ✅ Analytics & Tracking Scripts (GA, custom scripts, admin settings page)
-22. ✅ Newsletter Subscription (footer form + newsletter_subscribers table)
-23. ✅ SEOHead nâng cao (hreflang tags + twitter:card meta tags)
-24. ✅ Audit Logs table (tracking admin actions)
-25. ✅ Reports table (user spam/content reporting)
-
-### 📌 BACKLOG (Chưa triển khai)
-
-- Seasonal Awards / Best Of (auto-generate top tools theo quý/năm)
-- Discussion Forum / Threads
-- AI Agents Directory
-- Tool Changelog / Update Timeline
-- Company Profiles
-- AI Model Directory
-- Job Impact Index
-- Fundraise Tracker
-- Mini Tools / Interactive Demos
-- Comparison Advisor (AI chatbot chuyên so sánh)
-- Verified Reviews (badge "Verified User")
