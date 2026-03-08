@@ -84,14 +84,17 @@ export function ContentTranslationsTab() {
   const translatedBlogIds = new Set(translations.filter((t: any) => t.entity_type === "blog").map((t: any) => t.entity_id));
   const translatedMenuIds = new Set(translations.filter((t: any) => t.entity_type === "menu").map((t: any) => t.entity_id));
   const translatedWorkflowIds = new Set(translations.filter((t: any) => t.entity_type === "workflow").map((t: any) => t.entity_id));
+  const translatedDealIds = new Set(translations.filter((t: any) => t.entity_type === "deal").map((t: any) => t.entity_id));
   const untranslatedTools = tools.filter((t: any) => !translatedToolIds.has(t.id));
   const untranslatedBlogs = blogs.filter((b: any) => !translatedBlogIds.has(b.id));
   const untranslatedMenus = menus.filter((m: any) => !translatedMenuIds.has(m.id));
   const untranslatedWorkflows = workflows.filter((w: any) => !translatedWorkflowIds.has(w.id));
+  const untranslatedDeals = dealsData.filter((d: any) => !translatedDealIds.has(d.id));
 
   const toolPercent = tools.length > 0 ? Math.round((translatedToolIds.size / tools.length) * 100) : 0;
   const blogPercent = blogs.length > 0 ? Math.round((translatedBlogIds.size / blogs.length) * 100) : 0;
   const workflowPercent = workflows.length > 0 ? Math.round((translatedWorkflowIds.size / workflows.length) * 100) : 0;
+  const dealPercent = dealsData.length > 0 ? Math.round((translatedDealIds.size / dealsData.length) * 100) : 0;
   const autoCount = translations.filter((t: any) => t.is_auto).length;
   const manualCount = translations.filter((t: any) => !t.is_auto).length;
 
