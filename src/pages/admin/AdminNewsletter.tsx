@@ -153,7 +153,12 @@ export default function AdminNewsletter() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setComposeOpen(true)}><Mail className="mr-1 h-3.5 w-3.5" /> Soạn email</Button>
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => setCampaignHistoryOpen(true)}><History className="mr-1 h-3.5 w-3.5" /> Lịch sử</Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> Export CSV</Button>
+            <div className="relative">
+              <Button variant="outline" size="sm" disabled={importingCSV}><Upload className="mr-1 h-3.5 w-3.5" /> Import CSV</Button>
+              <input type="file" accept=".csv" onChange={handleImportCSV} className="absolute inset-0 opacity-0 cursor-pointer" />
+            </div>
           </div>
         </div>
 
