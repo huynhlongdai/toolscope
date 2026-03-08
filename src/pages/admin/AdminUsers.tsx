@@ -10,38 +10,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [banFilter, setBanFilter] = useState("all");
   const [editUser, setEditUser] = useState<any>(null);
   const [viewUser, setViewUser] = useState<any>(null);
+  const [activityUser, setActivityUser] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data: profiles, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-
       const { data: roles } = await supabase.from("user_roles").select("*");
-
-      // Get stats
       const [reviewsRes, commentsRes, questionsRes] = await Promise.all([
         supabase.from("reviews").select("author_id"),
         supabase.from("comments").select("user_id"),
         supabase.from("questions").select("user_id"),
       ]);
-
       return profiles.map((p: any) => ({
         ...p,
         roles: roles?.filter((r: any) => r.user_id === p.id).map((r: any) => r.role) ?? [],
@@ -50,6 +49,25 @@ export default function AdminUsers() {
         questionCount: questionsRes.data?.filter((q: any) => q.user_id === p.id).length ?? 0,
       }));
     },
+  });
+
+  // Activity timeline for selected user
+  const { data: userActivity = [], isLoading: activityLoading } = useQuery({
+    queryKey: ["user-activity", activityUser?.id],
+    queryFn: async () => {
+      if (!activityUser?.id) return [];
+      const [reviews, comments, questions] = await Promise.all([
+        supabase.from("reviews").select("id, title, created_at, tools!reviews_tool_id_fkey(name)").eq("author_id", activityUser.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("comments").select("id, content, created_at, tools!comments_tool_id_fkey(name)").eq("user_id", activityUser.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("questions").select("id, title, created_at, tools!questions_tool_id_fkey(name)").eq("user_id", activityUser.id).order("created_at", { ascending: false }).limit(20),
+      ]);
+      const items: any[] = [];
+      reviews.data?.forEach((r: any) => items.push({ type: "review", icon: "⭐", text: r.title, tool: r.tools?.name, time: r.created_at }));
+      comments.data?.forEach((c: any) => items.push({ type: "comment", icon: "💬", text: c.content?.slice(0, 80), tool: c.tools?.name, time: c.created_at }));
+      questions.data?.forEach((q: any) => items.push({ type: "question", icon: "❓", text: q.title, tool: q.tools?.name, time: q.created_at }));
+      return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    },
+    enabled: !!activityUser?.id,
   });
 
   const updateRoleMutation = useMutation({
@@ -68,13 +86,9 @@ export default function AdminUsers() {
   const updateProfileMutation = useMutation({
     mutationFn: async (profile: any) => {
       const { error } = await supabase.from("profiles").update({
-        display_name: profile.display_name,
-        username: profile.username,
-        bio: profile.bio,
-        website: profile.website,
-        avatar_url: profile.avatar_url,
-        reputation_score: profile.reputation_score,
-        is_banned: profile.is_banned,
+        display_name: profile.display_name, username: profile.username, bio: profile.bio,
+        website: profile.website, avatar_url: profile.avatar_url,
+        reputation_score: profile.reputation_score, is_banned: profile.is_banned,
       }).eq("id", profile.id);
       if (error) throw error;
     },
@@ -110,6 +124,17 @@ export default function AdminUsers() {
     },
   });
 
+  const bulkBan = async (banned: boolean) => {
+    if (!confirm(`${banned ? "Ban" : "Unban"} ${selectedIds.length} users?`)) return;
+    for (const userId of selectedIds) {
+      await supabase.from("profiles").update({ is_banned: banned } as any).eq("id", userId);
+    }
+    logAuditAction(`user_bulk_${banned ? "ban" : "unban"}`, "user", undefined, { count: selectedIds.length });
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    setSelectedIds([]);
+    toast.success(`Đã ${banned ? "ban" : "unban"} ${selectedIds.length} users`);
+  };
+
   const bulkRoleMutation = useMutation({
     mutationFn: async (newRole: string) => {
       for (const userId of selectedIds) {
@@ -119,19 +144,17 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      logAuditAction("user_bulk_role_change", "user", undefined, { count: selectedIds.length });
       toast.success(`Đã cập nhật ${selectedIds.length} users`);
       setSelectedIds([]);
     },
   });
 
-  const [page, setPage] = useState(0);
-  const pageSize = 50;
-
   const filtered = users.filter((u: any) => {
-    const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (u.username ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) || (u.username ?? "").toLowerCase().includes(search.toLowerCase());
     const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
-    return matchSearch && matchRole;
+    const matchBan = banFilter === "all" || (banFilter === "banned" ? u.is_banned : !u.is_banned);
+    return matchSearch && matchRole && matchBan;
   });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
@@ -147,13 +170,10 @@ export default function AdminUsers() {
     URL.revokeObjectURL(url);
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
+  const toggleSelect = (id: string) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleAll = () => {
-    if (selectedIds.length === filtered.length) setSelectedIds([]);
-    else setSelectedIds(filtered.map((u: any) => u.id));
+    if (selectedIds.length === paged.length) setSelectedIds([]);
+    else setSelectedIds(paged.map((u: any) => u.id));
   };
 
   return (
@@ -164,42 +184,55 @@ export default function AdminUsers() {
           <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Tìm kiếm user..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[130px]"><SelectValue placeholder="Role" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="all">Tất cả role</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="editor">Editor</SelectItem>
               <SelectItem value="user">User</SelectItem>
             </SelectContent>
           </Select>
-          {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{selectedIds.length} đã chọn</span>
+          <Select value={banFilter} onValueChange={setBanFilter}>
+            <SelectTrigger className="w-full sm:w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="banned">Banned</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Bulk actions */}
+        {selectedIds.length > 0 && (
+          <Card>
+            <CardContent className="py-3 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium">{selectedIds.length} đã chọn</span>
               <Select onValueChange={(v) => bulkRoleMutation.mutate(v)}>
-                <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Đổi role..." /></SelectTrigger>
+                <SelectTrigger className="w-[130px] h-8"><SelectValue placeholder="Đổi role..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="editor">Editor</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          )}
-        </div>
+              <Button size="sm" variant="destructive" onClick={() => bulkBan(true)}><Ban className="mr-1 h-3.5 w-3.5" /> Ban</Button>
+              <Button size="sm" variant="outline" onClick={() => bulkBan(false)}><ShieldCheck className="mr-1 h-3.5 w-3.5" /> Unban</Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>Bỏ chọn</Button>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox checked={selectedIds.length === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
-                </TableHead>
+                <TableHead className="w-10"><Checkbox checked={paged.length > 0 && selectedIds.length === paged.length} onCheckedChange={toggleAll} /></TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Username</TableHead>
                 <TableHead>Role</TableHead>
@@ -217,25 +250,18 @@ export default function AdminUsers() {
               ) : (
                 paged.map((user: any) => (
                   <TableRow key={user.id} className={user.is_banned ? "opacity-50" : ""}>
-                    <TableCell>
-                      <Checkbox checked={selectedIds.includes(user.id)} onCheckedChange={() => toggleSelect(user.id)} />
-                    </TableCell>
+                    <TableCell><Checkbox checked={selectedIds.includes(user.id)} onCheckedChange={() => toggleSelect(user.id)} /></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar_url} />
-                          <AvatarFallback>{(user.display_name ?? "U")[0]}</AvatarFallback>
-                        </Avatar>
+                        <Avatar className="h-8 w-8"><AvatarImage src={user.avatar_url} /><AvatarFallback>{(user.display_name ?? "U")[0]}</AvatarFallback></Avatar>
                         <span className="font-medium">{user.display_name ?? "—"}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.username ?? "—"}</TableCell>
                     <TableCell>
                       <Select value={user.roles[0] ?? "user"} onValueChange={(v) => updateRoleMutation.mutate({ userId: user.id, newRole: v })}>
-                        <SelectTrigger className="h-7 w-[120px]">
-                          <Badge variant={user.roles.includes("admin") ? "default" : user.roles.includes("editor") ? "secondary" : "outline"} className="text-xs">
-                            {user.roles[0] ?? "user"}
-                          </Badge>
+                        <SelectTrigger className="h-7 w-[110px]">
+                          <Badge variant={user.roles.includes("admin") ? "default" : user.roles.includes("editor") ? "secondary" : "outline"} className="text-xs">{user.roles[0] ?? "user"}</Badge>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
@@ -246,29 +272,22 @@ export default function AdminUsers() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>{user.reviewCount} reviews</span>
-                        <span>{user.commentCount} comments</span>
-                        <span>{user.questionCount} Q&A</span>
+                        <span>{user.reviewCount}R</span>
+                        <span>{user.commentCount}C</span>
+                        <span>{user.questionCount}Q</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      {user.is_banned ? (
-                        <Badge variant="destructive" className="text-xs">Banned</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Active</Badge>
-                      )}
+                      <Badge variant={user.is_banned ? "destructive" : "outline"} className="text-xs">{user.is_banned ? "Banned" : "Active"}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{new Date(user.created_at).toLocaleDateString("vi-VN")}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{new Date(user.created_at).toLocaleDateString("vi-VN")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setViewUser(user)} title="Xem">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setEditUser({ ...user })} title="Sửa">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setActivityUser(user)} title="Timeline"><Clock className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setViewUser(user)} title="Xem"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditUser({ ...user })} title="Sửa"><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => banUserMutation.mutate({ userId: user.id, banned: !user.is_banned })} title={user.is_banned ? "Unban" : "Ban"}>
-                          {user.is_banned ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <Ban className="h-4 w-4 text-destructive" />}
+                          {user.is_banned ? <ShieldCheck className="h-4 w-4 text-emerald-600" /> : <Ban className="h-4 w-4 text-destructive" />}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa user này?")) deleteUserMutation.mutate(user.id); }} title="Xóa">
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -291,12 +310,38 @@ export default function AdminUsers() {
         )}
       </div>
 
+      {/* Activity Timeline Dialog */}
+      <Dialog open={!!activityUser} onOpenChange={(v) => !v && setActivityUser(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Lịch sử hoạt động — {activityUser?.display_name}</DialogTitle></DialogHeader>
+          {activityLoading ? (
+            <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
+          ) : userActivity.length === 0 ? (
+            <p className="text-center py-8 text-muted-foreground">Chưa có hoạt động</p>
+          ) : (
+            <div className="space-y-3">
+              {userActivity.map((item: any, i: number) => (
+                <div key={i} className="flex items-start gap-3 border-b border-border/50 pb-3 last:border-0">
+                  <span className="text-lg mt-0.5">{item.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.text}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.type} • {item.tool ?? "—"} • {new Date(item.time).toLocaleDateString("vi-VN")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* View User Dialog */}
       <Dialog open={!!viewUser} onOpenChange={(v) => !v && setViewUser(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Chi tiết User</DialogTitle></DialogHeader>
           {viewUser && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12"><AvatarImage src={viewUser.avatar_url} /><AvatarFallback>{(viewUser.display_name ?? "U")[0]}</AvatarFallback></Avatar>
                 <div>
@@ -304,15 +349,18 @@ export default function AdminUsers() {
                   <p className="text-sm text-muted-foreground">@{viewUser.username ?? "—"}</p>
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-3">
+                <Card><CardContent className="pt-3 text-center"><p className="text-2xl font-bold">{viewUser.reviewCount}</p><p className="text-xs text-muted-foreground">Reviews</p></CardContent></Card>
+                <Card><CardContent className="pt-3 text-center"><p className="text-2xl font-bold">{viewUser.commentCount}</p><p className="text-xs text-muted-foreground">Comments</p></CardContent></Card>
+                <Card><CardContent className="pt-3 text-center"><p className="text-2xl font-bold">{viewUser.questionCount}</p><p className="text-xs text-muted-foreground">Questions</p></CardContent></Card>
+              </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div><span className="text-muted-foreground">Bio:</span> {viewUser.bio || "—"}</div>
                 <div><span className="text-muted-foreground">Website:</span> {viewUser.website || "—"}</div>
-                <div><span className="text-muted-foreground">Reputation:</span> {viewUser.reputation_score}</div>
+                <div><span className="text-muted-foreground">Reputation:</span> <Badge variant="secondary">{viewUser.reputation_score}</Badge></div>
+                <div><span className="text-muted-foreground">Trạng thái:</span> <Badge variant={viewUser.is_banned ? "destructive" : "outline"}>{viewUser.is_banned ? "Banned" : "Active"}</Badge></div>
+                <div><span className="text-muted-foreground">Role:</span> <Badge>{viewUser.roles[0] ?? "user"}</Badge></div>
                 <div><span className="text-muted-foreground">Ngày tạo:</span> {new Date(viewUser.created_at).toLocaleDateString("vi-VN")}</div>
-                <div><span className="text-muted-foreground">Reviews:</span> {viewUser.reviewCount}</div>
-                <div><span className="text-muted-foreground">Comments:</span> {viewUser.commentCount}</div>
-                <div><span className="text-muted-foreground">Questions:</span> {viewUser.questionCount}</div>
-                <div><span className="text-muted-foreground">Trạng thái:</span> {viewUser.is_banned ? "Banned" : "Active"}</div>
               </div>
             </div>
           )}
@@ -326,38 +374,17 @@ export default function AdminUsers() {
           {editUser && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Display Name</Label>
-                  <Input value={editUser.display_name ?? ""} onChange={(e) => setEditUser({ ...editUser, display_name: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Username</Label>
-                  <Input value={editUser.username ?? ""} onChange={(e) => setEditUser({ ...editUser, username: e.target.value })} />
-                </div>
+                <div className="space-y-2"><Label>Display Name</Label><Input value={editUser.display_name ?? ""} onChange={(e) => setEditUser({ ...editUser, display_name: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Username</Label><Input value={editUser.username ?? ""} onChange={(e) => setEditUser({ ...editUser, username: e.target.value })} /></div>
               </div>
-              <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea value={editUser.bio ?? ""} onChange={(e) => setEditUser({ ...editUser, bio: e.target.value })} rows={2} />
+              <div className="space-y-2"><Label>Bio</Label><Textarea value={editUser.bio ?? ""} onChange={(e) => setEditUser({ ...editUser, bio: e.target.value })} rows={2} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Website</Label><Input value={editUser.website ?? ""} onChange={(e) => setEditUser({ ...editUser, website: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Avatar URL</Label><Input value={editUser.avatar_url ?? ""} onChange={(e) => setEditUser({ ...editUser, avatar_url: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Website</Label>
-                  <Input value={editUser.website ?? ""} onChange={(e) => setEditUser({ ...editUser, website: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Avatar URL</Label>
-                  <Input value={editUser.avatar_url ?? ""} onChange={(e) => setEditUser({ ...editUser, avatar_url: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Reputation Score</Label>
-                  <Input type="number" value={editUser.reputation_score} onChange={(e) => setEditUser({ ...editUser, reputation_score: parseInt(e.target.value) || 0 })} />
-                </div>
-                <div className="flex items-center gap-2 pt-6">
-                  <Checkbox checked={editUser.is_banned} onCheckedChange={(v) => setEditUser({ ...editUser, is_banned: !!v })} />
-                  <Label>Banned</Label>
-                </div>
+                <div className="space-y-2"><Label>Reputation Score</Label><Input type="number" value={editUser.reputation_score} onChange={(e) => setEditUser({ ...editUser, reputation_score: parseInt(e.target.value) || 0 })} /></div>
+                <div className="flex items-center gap-2 pt-6"><Checkbox checked={editUser.is_banned} onCheckedChange={(v) => setEditUser({ ...editUser, is_banned: !!v })} /><Label>Banned</Label></div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditUser(null)}>Hủy</Button>
