@@ -5,13 +5,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Trash2, Download, ChevronLeft, ChevronRight, Search, Eye, CheckCheck, Star } from "lucide-react";
+import { Trash2, Download, ChevronLeft, ChevronRight, Search, Eye, CheckCheck, Star, Pencil, MessageSquare, BarChart3 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
@@ -19,9 +21,12 @@ export default function AdminReviews() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [editorFilter, setEditorFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [detailReview, setDetailReview] = useState<any>(null);
+  const [editReview, setEditReview] = useState<any>(null);
   const pageSize = 50;
 
   const { data: reviews = [], isLoading } = useQuery({
@@ -35,15 +40,33 @@ export default function AdminReviews() {
     },
   });
 
+  // Stats
+  const totalReviews = reviews.length;
+  const publishedCount = reviews.filter((r: any) => r.status === "published").length;
+  const pendingCount = reviews.filter((r: any) => r.status === "pending_review").length;
+  const avgRating = reviews.length > 0
+    ? (reviews.reduce((sum: number, r: any) => sum + (r.ease_of_use || 0), 0) / reviews.filter((r: any) => r.ease_of_use).length || 0).toFixed(1)
+    : "0";
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return reviews;
-    const s = search.toLowerCase();
-    return reviews.filter((r: any) =>
-      r.title?.toLowerCase().includes(s) ||
-      r.tools?.name?.toLowerCase().includes(s) ||
-      r.profiles?.display_name?.toLowerCase().includes(s)
-    );
-  }, [reviews, search]);
+    let result = reviews;
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      result = result.filter((r: any) =>
+        r.title?.toLowerCase().includes(s) ||
+        r.tools?.name?.toLowerCase().includes(s) ||
+        r.profiles?.display_name?.toLowerCase().includes(s)
+      );
+    }
+    if (ratingFilter !== "all") {
+      const min = parseInt(ratingFilter);
+      result = result.filter((r: any) => r.ease_of_use === min || r.value_for_money === min || r.customer_support === min);
+    }
+    if (editorFilter !== "all") {
+      result = result.filter((r: any) => editorFilter === "editor" ? r.is_editor_review : !r.is_editor_review);
+    }
+    return result;
+  }, [reviews, search, ratingFilter, editorFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
@@ -57,6 +80,21 @@ export default function AdminReviews() {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
       logAuditAction("review_status_change", "review", vars.id, { status: vars.status });
       toast.success("Đã cập nhật");
+    },
+  });
+
+  const saveEditReview = useMutation({
+    mutationFn: async (r: any) => {
+      const { error } = await supabase.from("reviews").update({
+        title: r.title, content: r.content, status: r.status as any, pros: r.pros, cons: r.cons,
+      }).eq("id", r.id);
+      if (error) throw error;
+    },
+    onSuccess: (_, r) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+      logAuditAction("review_edit", "review", r.id);
+      toast.success("Đã lưu thay đổi");
+      setEditReview(null);
     },
   });
 
@@ -76,13 +114,9 @@ export default function AdminReviews() {
     const ids = Array.from(selected);
     if (!ids.length) return;
     if (!confirm(`${action === "delete" ? "Xóa" : "Duyệt"} ${ids.length} reviews?`)) return;
-
     for (const id of ids) {
-      if (action === "approve") {
-        await supabase.from("reviews").update({ status: "published" as any }).eq("id", id);
-      } else {
-        await supabase.from("reviews").delete().eq("id", id);
-      }
+      if (action === "approve") await supabase.from("reviews").update({ status: "published" as any }).eq("id", id);
+      else await supabase.from("reviews").delete().eq("id", id);
     }
     queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
     logAuditAction(`review_bulk_${action}`, "review", undefined, { count: ids.length });
@@ -128,24 +162,59 @@ export default function AdminReviews() {
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Reviews</h1>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
-              <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="pending_review">Pending</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Tìm theo tiêu đề, tool, tác giả..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><MessageSquare className="h-4 w-4 text-muted-foreground" /><span className="text-xs text-muted-foreground">Tổng reviews</span></div>
+            <p className="text-2xl font-bold mt-1">{totalReviews}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><CheckCheck className="h-4 w-4 text-emerald-500" /><span className="text-xs text-muted-foreground">Published</span></div>
+            <p className="text-2xl font-bold mt-1">{publishedCount}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><Star className="h-4 w-4 text-amber-500" /><span className="text-xs text-muted-foreground">Pending</span></div>
+            <p className="text-2xl font-bold mt-1">{pendingCount}</p>
+          </CardContent></Card>
+          <Card><CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" /><span className="text-xs text-muted-foreground">Avg rating</span></div>
+            <p className="text-2xl font-bold mt-1">{avgRating}</p>
+          </CardContent></Card>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Tìm theo tiêu đề, tool, tác giả..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
+          </div>
+          <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending_review">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={ratingFilter} onValueChange={(v) => { setRatingFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[130px]"><SelectValue placeholder="Rating" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Mọi rating</SelectItem>
+              {[5, 4, 3, 2, 1].map(n => <SelectItem key={n} value={String(n)}>{n} sao</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={editorFilter} onValueChange={(v) => { setEditorFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả loại</SelectItem>
+              <SelectItem value="editor">Editor review</SelectItem>
+              <SelectItem value="user">User review</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Bulk action bar */}
@@ -164,9 +233,7 @@ export default function AdminReviews() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox checked={paged.length > 0 && selected.size === paged.length} onCheckedChange={toggleAll} />
-                </TableHead>
+                <TableHead className="w-10"><Checkbox checked={paged.length > 0 && selected.size === paged.length} onCheckedChange={toggleAll} /></TableHead>
                 <TableHead>Tiêu đề</TableHead>
                 <TableHead>Tool</TableHead>
                 <TableHead>Tác giả</TableHead>
@@ -185,9 +252,7 @@ export default function AdminReviews() {
               ) : (
                 paged.map((r: any) => (
                   <TableRow key={r.id} className={selected.has(r.id) ? "bg-muted/50" : ""}>
-                    <TableCell>
-                      <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} />
-                    </TableCell>
+                    <TableCell><Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} /></TableCell>
                     <TableCell className="font-medium max-w-[200px] truncate">{r.title}</TableCell>
                     <TableCell>{r.tools?.name ?? "—"}</TableCell>
                     <TableCell>{r.profiles?.display_name ?? "—"}</TableCell>
@@ -218,7 +283,13 @@ export default function AdminReviews() {
                     <TableCell className="text-muted-foreground">{new Date(r.created_at).toLocaleDateString("vi-VN")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {r.status === "pending_review" && (
+                          <Button variant="ghost" size="icon" onClick={() => updateStatus.mutate({ id: r.id, status: "published" })} title="Quick approve">
+                            <CheckCheck className="h-4 w-4 text-emerald-600" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => setDetailReview(r)}><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setEditReview({ ...r })} title="Sửa"><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa review này?")) deleteReview.mutate(r.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -254,8 +325,6 @@ export default function AdminReviews() {
                   {new Date(detailReview.created_at).toLocaleDateString("vi-VN")}
                 </p>
               </div>
-
-              {/* Structured ratings */}
               <Card>
                 <CardContent className="pt-4 space-y-2">
                   <RatingBar label="Dễ sử dụng" value={detailReview.ease_of_use} />
@@ -264,41 +333,63 @@ export default function AdminReviews() {
                   <RatingBar label="Giới thiệu" value={detailReview.likelihood_to_recommend} />
                 </CardContent>
               </Card>
-
-              {/* Content */}
-              <div className="prose prose-sm max-w-none">
-                <p>{detailReview.content}</p>
-              </div>
-
-              {/* Pros / Cons */}
+              <div className="prose prose-sm max-w-none"><p>{detailReview.content}</p></div>
               {(detailReview.pros || detailReview.cons) && (
                 <div className="grid grid-cols-2 gap-4">
-                  {detailReview.pros && (
-                    <div className="space-y-1">
-                      <span className="text-sm font-medium text-emerald-600">👍 Ưu điểm</span>
-                      <p className="text-sm text-muted-foreground">{detailReview.pros}</p>
-                    </div>
-                  )}
-                  {detailReview.cons && (
-                    <div className="space-y-1">
-                      <span className="text-sm font-medium text-destructive">👎 Nhược điểm</span>
-                      <p className="text-sm text-muted-foreground">{detailReview.cons}</p>
-                    </div>
-                  )}
+                  {detailReview.pros && <div className="space-y-1"><span className="text-sm font-medium text-emerald-600">👍 Ưu điểm</span><p className="text-sm text-muted-foreground">{detailReview.pros}</p></div>}
+                  {detailReview.cons && <div className="space-y-1"><span className="text-sm font-medium text-destructive">👎 Nhược điểm</span><p className="text-sm text-muted-foreground">{detailReview.cons}</p></div>}
                 </div>
               )}
-
-              {detailReview.use_case && (
-                <div>
-                  <span className="text-sm font-medium">Use case:</span>
-                  <p className="text-sm text-muted-foreground">{detailReview.use_case}</p>
-                </div>
-              )}
-
+              {detailReview.use_case && <div><span className="text-sm font-medium">Use case:</span><p className="text-sm text-muted-foreground">{detailReview.use_case}</p></div>}
               <div className="flex items-center gap-3 pt-2 border-t">
                 <Badge variant={detailReview.status === "published" ? "default" : "secondary"}>{detailReview.status}</Badge>
                 <span className="text-sm"><span className="text-emerald-600">+{detailReview.upvotes}</span> / <span className="text-destructive">-{detailReview.downvotes}</span></span>
                 {detailReview.is_editor_review && <Badge variant="outline"><Star className="h-3 w-3 mr-1" /> Editor Review</Badge>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Review Dialog */}
+      <Dialog open={!!editReview} onOpenChange={(open) => !open && setEditReview(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Chỉnh sửa Review</DialogTitle></DialogHeader>
+          {editReview && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Tiêu đề</Label>
+                <Input value={editReview.title} onChange={(e) => setEditReview({ ...editReview, title: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Nội dung</Label>
+                <Textarea value={editReview.content} onChange={(e) => setEditReview({ ...editReview, content: e.target.value })} rows={4} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Ưu điểm</Label>
+                  <Textarea value={editReview.pros ?? ""} onChange={(e) => setEditReview({ ...editReview, pros: e.target.value })} rows={2} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nhược điểm</Label>
+                  <Textarea value={editReview.cons ?? ""} onChange={(e) => setEditReview({ ...editReview, cons: e.target.value })} rows={2} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Trạng thái</Label>
+                <Select value={editReview.status} onValueChange={(v) => setEditReview({ ...editReview, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="pending_review">Pending</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditReview(null)}>Hủy</Button>
+                <Button onClick={() => saveEditReview.mutate(editReview)}>Lưu</Button>
               </div>
             </div>
           )}

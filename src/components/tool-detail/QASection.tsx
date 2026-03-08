@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { VoteButtons } from "./VoteButtons";
-import { HelpCircle, CheckCircle2, Send } from "lucide-react";
+import { HelpCircle, CheckCircle2, Send, Flag } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface QASectionProps {
   toolId: string;
@@ -21,16 +23,24 @@ export function QASection({ toolId, userId }: QASectionProps) {
   const [qTitle, setQTitle] = useState("");
   const [qContent, setQContent] = useState("");
   const [answerTexts, setAnswerTexts] = useState<Record<string, string>>({});
+  const [sortBy, setSortBy] = useState<"votes" | "newest" | "unanswered">("votes");
+  const [reportTarget, setReportTarget] = useState<{ id: string; type: "question" | "answer" } | null>(null);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
 
   const { data: questions } = useQuery({
-    queryKey: ["questions", toolId],
+    queryKey: ["questions", toolId, sortBy],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("questions")
         .select("*, profiles:user_id(display_name)")
-        .eq("tool_id", toolId)
-        .order("upvotes", { ascending: false })
-        .limit(10);
+        .eq("tool_id", toolId);
+      
+      if (sortBy === "votes") q = q.order("upvotes", { ascending: false });
+      else if (sortBy === "newest") q = q.order("created_at", { ascending: false });
+      else q = q.order("answer_count", { ascending: true });
+      
+      const { data, error } = await q.limit(10);
       if (error) throw error;
       return data;
     },
@@ -79,6 +89,24 @@ export function QASection({ toolId, userId }: QASectionProps) {
     queryClient.invalidateQueries({ queryKey: ["answers", toolId] });
   };
 
+  const markResolved = async (questionId: string) => {
+    const { error } = await supabase.from("questions").update({ is_resolved: true }).eq("id", questionId);
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Đã đánh dấu giải quyết!" });
+    queryClient.invalidateQueries({ queryKey: ["questions", toolId] });
+  };
+
+  const submitReport = async () => {
+    if (!userId || !reportTarget) return;
+    const { error } = await supabase.from("reports").insert({
+      reporter_id: userId, target_type: reportTarget.type, target_id: reportTarget.id,
+      reason: reportReason, details: reportDetails || null,
+    });
+    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Đã gửi báo cáo" });
+    setReportTarget(null); setReportDetails("");
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -86,11 +114,21 @@ export function QASection({ toolId, userId }: QASectionProps) {
           <CardTitle className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5" /> Hỏi & Đáp ({questions?.length || 0})
           </CardTitle>
-          {!showForm && (
-            <Button size="sm" variant="outline" onClick={() => setShowForm(true)} disabled={!userId}>
-              Đặt câu hỏi
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+              <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="votes">Nhiều vote nhất</SelectItem>
+                <SelectItem value="newest">Mới nhất</SelectItem>
+                <SelectItem value="unanswered">Chưa trả lời</SelectItem>
+              </SelectContent>
+            </Select>
+            {!showForm && (
+              <Button size="sm" variant="outline" onClick={() => setShowForm(true)} disabled={!userId}>
+                Đặt câu hỏi
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -109,6 +147,7 @@ export function QASection({ toolId, userId }: QASectionProps) {
           <div className="space-y-5">
             {questions.map((q) => {
               const qAnswers = answers?.filter(a => a.question_id === q.id) || [];
+              const isOwner = userId === q.user_id;
               return (
                 <div key={q.id} className="border-b border-border pb-4 last:border-0 last:pb-0">
                   <div className="flex items-start gap-3">
@@ -127,6 +166,20 @@ export function QASection({ toolId, userId }: QASectionProps) {
                         <span>{new Date(q.created_at).toLocaleDateString("vi-VN")}</span>
                         <span>·</span>
                         <span>{qAnswers.length} câu trả lời</span>
+                        {isOwner && !q.is_resolved && qAnswers.length > 0 && (
+                          <>
+                            <span>·</span>
+                            <button onClick={() => markResolved(q.id)} className="text-emerald-600 hover:underline">✓ Đánh dấu giải quyết</button>
+                          </>
+                        )}
+                        {userId && !isOwner && (
+                          <>
+                            <span>·</span>
+                            <button onClick={() => setReportTarget({ id: q.id, type: "question" })} className="text-muted-foreground hover:text-destructive flex items-center gap-0.5">
+                              <Flag className="h-2.5 w-2.5" /> Báo cáo
+                            </button>
+                          </>
+                        )}
                       </div>
 
                       {/* Answers */}
@@ -138,6 +191,11 @@ export function QASection({ toolId, userId }: QASectionProps) {
                                 <span className="text-xs font-medium">{(a.profiles as any)?.display_name || "Ẩn danh"}</span>
                                 {a.is_accepted && <CheckCircle2 className="h-3 w-3 text-green-500" />}
                                 <span className="text-[11px] text-muted-foreground">{new Date(a.created_at).toLocaleDateString("vi-VN")}</span>
+                                {userId && userId !== a.user_id && (
+                                  <button onClick={() => setReportTarget({ id: a.id, type: "answer" })} className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-0.5">
+                                    <Flag className="h-2.5 w-2.5" />
+                                  </button>
+                                )}
                               </div>
                               <p className="mt-0.5 text-xs text-muted-foreground">{a.content}</p>
                               <div className="mt-1">
@@ -174,6 +232,26 @@ export function QASection({ toolId, userId }: QASectionProps) {
           !showForm && <p className="text-sm text-muted-foreground">Chưa có câu hỏi nào. Hãy đặt câu hỏi đầu tiên!</p>
         )}
       </CardContent>
+
+      {/* Report Dialog */}
+      <Dialog open={!!reportTarget} onOpenChange={(v) => !v && setReportTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Báo cáo {reportTarget?.type === "question" ? "câu hỏi" : "câu trả lời"}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Select value={reportReason} onValueChange={setReportReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Quấy rối</SelectItem>
+                <SelectItem value="inappropriate">Nội dung không phù hợp</SelectItem>
+                <SelectItem value="misinformation">Thông tin sai lệch</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
+            <Button size="sm" onClick={submitReport} className="w-full">Gửi báo cáo</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
