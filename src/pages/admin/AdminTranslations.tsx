@@ -27,6 +27,10 @@ export default function AdminTranslations() {
   const { data: tools = [] } = useQuery({
     queryKey: ["admin-tools-count"],
     queryFn: async () => {
+      const { data } = await supabase.from("tools").select("id").eq("status", "published" as any);
+      return data || [];
+    },
+  });
       const { data } = await supabase.from("tools").select("id").eq("status", "approved");
       return data || [];
     },

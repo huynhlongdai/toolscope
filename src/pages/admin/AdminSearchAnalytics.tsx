@@ -510,7 +510,7 @@ export default function AdminSearchAnalytics() {
       `"${l.query}","${l.normalized_query}",${l.results_count},"${l.source || ""}","${l.created_at}"`
     )];
     downloadCSV(csv, `search-logs-${new Date().toISOString().slice(0, 10)}.csv`);
-    toast({ title: `Đã export ${filteredLogs.length} logs` });
+    toast.success(`Đã export ${filteredLogs.length} logs`);
   };
 
   // Rule hit counts
