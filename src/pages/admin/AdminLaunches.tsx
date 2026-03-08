@@ -25,7 +25,7 @@ export default function AdminLaunches() {
   const [detailLaunch, setDetailLaunch] = useState<any>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [commentsLaunchId, setCommentsLaunchId] = useState<string | null>(null);
-
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { data: launches = [], isLoading } = useQuery({
     queryKey: ["admin-launches", filter],
     queryFn: async () => {
