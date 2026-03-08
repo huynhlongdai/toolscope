@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, Save, ChevronUp, ChevronDown, FolderPlus, Eye, Link as LinkIcon, Smile } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, ChevronUp, ChevronDown, FolderPlus, Eye, Link as LinkIcon, Smile, Download, Upload, RotateCcw } from "lucide-react";
 import dynamicIconImports from "lucide-react/dynamicIconImports";
 import { icons, type LucideIcon } from "lucide-react";
 
