@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send } from "lucide-react";
+import { Check, X, Star, Rocket, Eye, ExternalLink, Search, CheckCheck, TrendingUp, Bell, Clock, MessageSquare, Trash2, Send, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { AdminCreateLaunchDialog } from "@/components/admin/AdminCreateLaunchDialog";
 
 export default function AdminLaunches() {
   const queryClient = useQueryClient();
@@ -24,7 +25,7 @@ export default function AdminLaunches() {
   const [detailLaunch, setDetailLaunch] = useState<any>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [commentsLaunchId, setCommentsLaunchId] = useState<string | null>(null);
-
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { data: launches = [], isLoading } = useQuery({
     queryKey: ["admin-launches", filter],
     queryFn: async () => {
@@ -207,16 +208,21 @@ export default function AdminLaunches() {
             <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><Rocket className="h-5 w-5 md:h-6 md:w-6" /> Quản lý Launches</h1>
             <p className="text-xs md:text-sm text-muted-foreground mt-1">Duyệt, lên lịch, thông báo subscribers</p>
           </div>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="pending">Chờ duyệt</SelectItem>
-              <SelectItem value="approved">Đã duyệt</SelectItem>
-              <SelectItem value="featured">Featured</SelectItem>
-              <SelectItem value="rejected">Từ chối</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Tạo Launch
+            </Button>
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="pending">Chờ duyệt</SelectItem>
+                <SelectItem value="approved">Đã duyệt</SelectItem>
+                <SelectItem value="featured">Featured</SelectItem>
+                <SelectItem value="rejected">Từ chối</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Stats */}
@@ -313,6 +319,9 @@ export default function AdminLaunches() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create launch dialog */}
+      <AdminCreateLaunchDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
     </AdminLayout>
   );
 }
