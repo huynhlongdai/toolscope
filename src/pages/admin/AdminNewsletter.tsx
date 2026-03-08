@@ -277,8 +277,9 @@ export default function AdminNewsletter() {
               <Button variant="outline" onClick={() => setPreviewOpen(true)} disabled={!emailForm.subject || !emailForm.content}><Eye className="mr-1 h-3.5 w-3.5" /> Preview</Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setComposeOpen(false)}>Hủy</Button>
-                <Button disabled={!emailForm.subject || !emailForm.content} onClick={() => {
+                <Button disabled={!emailForm.subject || !emailForm.content} onClick={async () => {
                   const recipients = getRecipients();
+                  await saveCampaign();
                   toast.info(`Email sẵn sàng gửi tới ${recipients.length} subscribers. Tích hợp email service (Resend/SendGrid) cần thiết để gửi thực tế.`);
                 }}>
                   <Send className="mr-1 h-3.5 w-3.5" /> Gửi ({getRecipients().length})
