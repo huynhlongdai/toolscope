@@ -304,6 +304,29 @@ export default function AdminNewsletter() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Campaign History Dialog */}
+      <Dialog open={campaignHistoryOpen} onOpenChange={setCampaignHistoryOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Lịch sử email đã soạn</DialogTitle></DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {campaigns.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Chưa có email nào</p>
+            ) : (
+              campaigns.map((c: any, i: number) => (
+                <div key={i} className="border rounded-md p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{c.subject}</p>
+                    <Badge variant="outline" className="text-[10px]">{c.recipients} người</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{c.content}</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString("vi-VN")}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
-import { Search, TrendingUp, AlertTriangle, Plus, Trash2, Edit, BarChart3, Zap, Bot, Sparkles } from "lucide-react";
+import { Search, TrendingUp, AlertTriangle, Plus, Trash2, Edit, BarChart3, Zap, Bot, Sparkles, Download } from "lucide-react";
+import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { format, subDays, startOfDay } from "date-fns";
 

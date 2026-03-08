@@ -378,13 +378,18 @@ export default function AdminMenus() {
                       value={item.label}
                       onChange={(e) => updateItem(idx, "label", e.target.value)}
                     />
-                    <Input
-                      placeholder="URL"
-                      value={item.url}
-                      onChange={(e) => updateItem(idx, "url", e.target.value)}
-                      className={isFooter ? "opacity-50" : ""}
-                      disabled={isFooter}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        placeholder="URL"
+                        value={item.url}
+                        onChange={(e) => updateItem(idx, "url", e.target.value)}
+                        className={`${isFooter ? "opacity-50" : ""} ${!isFooter && item.url && !item.url.startsWith("/") && !item.url.startsWith("http") && item.url !== "#" ? "border-destructive" : ""}`}
+                        disabled={isFooter}
+                      />
+                      {!isFooter && item.url && !item.url.startsWith("/") && !item.url.startsWith("http") && item.url !== "#" && (
+                        <p className="text-[10px] text-destructive">URL nên bắt đầu bằng / hoặc http</p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       {!isFooter && (
                         <>
