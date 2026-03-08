@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Check, ExternalLink, Clock, Shield, Sparkles, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 interface Deal {
   id: string;
@@ -33,6 +34,7 @@ interface DealDetailModalProps {
 
 export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown, onClickDeal }: DealDetailModalProps) {
   const [copied, setCopied] = useState(false);
+  const { t } = useI18n();
 
   const copyCode = async () => {
     if (!deal.coupon_code) return;
@@ -47,7 +49,7 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
     : deal.discount_type === "fixed" && deal.discount_value
     ? `-${deal.discount_value} ${deal.currency}`
     : deal.discount_type === "free_trial"
-    ? "Dùng thử miễn phí"
+    ? t("deals.freeTrial")
     : null;
 
   const isExpiringSoon = deal.expires_at && new Date(deal.expires_at).getTime() - Date.now() < 3 * 86400000;
@@ -68,7 +70,6 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Badges */}
           <div className="flex flex-wrap gap-1.5">
             {discountLabel && (
               <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
@@ -92,12 +93,10 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
             )}
           </div>
 
-          {/* Description */}
           {deal.description && (
             <p className="text-sm text-muted-foreground">{deal.description}</p>
           )}
 
-          {/* Pricing */}
           {(deal.original_price != null || deal.deal_price != null) && (
             <div className="flex items-baseline gap-3 p-3 rounded-lg bg-muted/50">
               {deal.original_price != null && (
@@ -113,7 +112,6 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
             </div>
           )}
 
-          {/* Coupon Code - prominent */}
           {deal.coupon_code && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">Mã giảm giá</p>
@@ -132,14 +130,12 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
             </div>
           )}
 
-          {/* Expiry */}
           {deal.expires_at && countdown && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="h-3 w-3" /> Còn {countdown}
             </p>
           )}
 
-          {/* CTA */}
           {deal.deal_url && (
             <Button
               className="w-full gap-2"

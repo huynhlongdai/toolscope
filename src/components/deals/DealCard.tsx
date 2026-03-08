@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useI18n } from "@/lib/i18n";
+import { useTranslatedContent } from "@/hooks/useTranslatedContent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShareButtons } from "@/components/share/ShareButtons";
-import { Tag, ThumbsUp, ThumbsDown, Sparkles, Shield, Clock } from "lucide-react";
+import { Tag, ThumbsUp, ThumbsDown, Sparkles, Shield, Clock, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DealDetailModal } from "./DealDetailModal";
@@ -53,13 +55,22 @@ function useCountdown(expiresAt: string | null | undefined) {
   return timeLeft;
 }
 
-export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: string; toolSlug?: string }) {
+export function DealCard({ deal, toolName, toolSlug, toolLogoUrl }: { deal: Deal; toolName?: string; toolSlug?: string; toolLogoUrl?: string }) {
   const { user } = useAuth();
+  const { t, locale } = useI18n();
   const countdown = useCountdown(deal.expires_at);
   const [localUpvotes, setLocalUpvotes] = useState(deal.upvotes ?? 0);
   const [localDownvotes, setLocalDownvotes] = useState(deal.downvotes ?? 0);
   const [userVote, setUserVote] = useState<"up" | "down" | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const { translated, isTranslated } = useTranslatedContent(
+    "deal", deal.id, ["title", "description"],
+    { title: deal.title, description: deal.description ?? undefined }
+  );
+
+  const displayTitle = translated.title || deal.title;
+  const displayDesc = translated.description || deal.description;
 
   useEffect(() => {
     if (!user) return;
@@ -76,7 +87,7 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
   }, [user, deal.id]);
 
   const handleVote = async (voteType: "up" | "down") => {
-    if (!user) { toast.error("Vui lòng đăng nhập để bình chọn"); return; }
+    if (!user) { toast.error(t("common.loginRequired")); return; }
 
     if (userVote === voteType) {
       setUserVote(null);
@@ -119,10 +130,11 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
     : deal.discount_type === "fixed" && deal.discount_value
     ? `-${deal.discount_value} ${deal.currency}`
     : deal.discount_type === "free_trial"
-    ? "Dùng thử miễn phí"
+    ? t("deals.freeTrial")
     : null;
 
   const isExpiringSoon = deal.expires_at && new Date(deal.expires_at).getTime() - Date.now() < 3 * 86400000;
+  const isHot = (deal.click_count || 0) >= 50;
   const shareUrl = toolSlug ? `${window.location.origin}/tool/${toolSlug}` : window.location.href;
 
   return (
@@ -152,6 +164,11 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
                 <Shield className="h-3 w-3 mr-1" /> Đã xác minh
               </Badge>
             )}
+            {isHot && (
+              <Badge variant="outline" className="border-orange-400 text-orange-600">
+                <Flame className="h-3 w-3 mr-1" /> Hot
+              </Badge>
+            )}
             {isExpiringSoon && countdown && countdown !== "Hết hạn" && (
               <Badge variant="destructive" className="animate-pulse">
                 <Clock className="h-3 w-3 mr-1" /> {countdown}
@@ -160,11 +177,16 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
           </div>
 
           {/* Title & Description */}
-          <div>
-            <h4 className="font-semibold text-sm">{deal.title}</h4>
-            {deal.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{deal.description}</p>
+          <div className="flex items-start gap-2">
+            {toolLogoUrl && (
+              <img src={toolLogoUrl} alt="" className="h-8 w-8 rounded-md object-contain flex-shrink-0 mt-0.5" />
             )}
+            <div className="min-w-0">
+              <h4 className="font-semibold text-sm">{displayTitle}</h4>
+              {displayDesc && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{displayDesc}</p>
+              )}
+            </div>
           </div>
 
           {/* Pricing */}
@@ -203,7 +225,7 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
                 <ThumbsDown className="h-3.5 w-3.5" /> {localDownvotes}
               </Button>
             </div>
-            <ShareButtons url={shareUrl} title={`${deal.title}${toolName ? ` - ${toolName}` : ""}`} />
+            <ShareButtons url={shareUrl} title={`${displayTitle}${toolName ? ` - ${toolName}` : ""}`} />
           </div>
 
           {/* Expiry info */}
@@ -216,7 +238,7 @@ export function DealCard({ deal, toolName, toolSlug }: { deal: Deal; toolName?: 
       </Card>
 
       <DealDetailModal
-        deal={deal}
+        deal={{ ...deal, title: displayTitle, description: displayDesc }}
         toolName={toolName}
         open={modalOpen}
         onOpenChange={setModalOpen}

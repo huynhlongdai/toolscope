@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
+import { useTranslatedList } from "@/hooks/useTranslatedContent";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -16,6 +17,7 @@ export default function DealsPage() {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [discountFilter, setDiscountFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("default");
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ["public-deals"],
@@ -30,11 +32,33 @@ export default function DealsPage() {
     },
   });
 
-  const filtered = deals.filter((d: any) => {
-    const matchSearch = !search || d.title.toLowerCase().includes(search.toLowerCase()) || d.tools?.name?.toLowerCase().includes(search.toLowerCase());
-    const matchType = discountFilter === "all" || d.discount_type === discountFilter;
-    return matchSearch && matchType;
-  });
+  const dealIds = useMemo(() => deals.map((d: any) => d.id), [deals]);
+  const fallbacks = useMemo(() => {
+    const fb: Record<string, Record<string, string | undefined>> = {};
+    deals.forEach((d: any) => { fb[d.id] = { title: d.title, description: d.description ?? undefined }; });
+    return fb;
+  }, [deals]);
+
+  const { translationsMap } = useTranslatedList("deal", dealIds, ["title", "description"], fallbacks);
+
+  const filtered = deals
+    .filter((d: any) => {
+      const translatedTitle = translationsMap[d.id]?.title || d.title;
+      const matchSearch = !search || translatedTitle.toLowerCase().includes(search.toLowerCase()) || d.tools?.name?.toLowerCase().includes(search.toLowerCase());
+      const matchType = discountFilter === "all" || d.discount_type === discountFilter;
+      return matchSearch && matchType;
+    })
+    .sort((a: any, b: any) => {
+      if (sortBy === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === "discount") return (b.discount_value || 0) - (a.discount_value || 0);
+      if (sortBy === "expiring") {
+        const aExp = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+        const bExp = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+        return aExp - bExp;
+      }
+      if (sortBy === "popular") return (b.click_count || 0) - (a.click_count || 0);
+      return 0;
+    });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -48,18 +72,28 @@ export default function DealsPage() {
           <p className="mt-2 text-muted-foreground">{t("deals.pageSubtitle")}</p>
         </div>
 
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap gap-3 mb-6">
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder={t("deals.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Select value={discountFilter} onValueChange={setDiscountFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("deals.allTypes")}</SelectItem>
               <SelectItem value="percentage">{t("deals.percentage")}</SelectItem>
               <SelectItem value="fixed">{t("deals.fixed")}</SelectItem>
               <SelectItem value="free_trial">{t("deals.freeTrial")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Sắp xếp" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Mặc định</SelectItem>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="discount">Giảm nhiều nhất</SelectItem>
+              <SelectItem value="expiring">Sắp hết hạn</SelectItem>
+              <SelectItem value="popular">Phổ biến nhất</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -80,7 +114,16 @@ export default function DealsPage() {
                 {deal.tools?.name && (
                   <p className="text-xs font-medium text-muted-foreground mb-1.5 truncate">{deal.tools.name}</p>
                 )}
-                <DealCard deal={deal} toolName={deal.tools?.name} toolSlug={deal.tools?.slug} />
+                <DealCard
+                  deal={{
+                    ...deal,
+                    title: translationsMap[deal.id]?.title || deal.title,
+                    description: translationsMap[deal.id]?.description || deal.description,
+                  }}
+                  toolName={deal.tools?.name}
+                  toolSlug={deal.tools?.slug}
+                  toolLogoUrl={deal.tools?.logo_url}
+                />
               </div>
             ))}
           </div>
