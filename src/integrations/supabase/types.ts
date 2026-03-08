@@ -1615,38 +1615,82 @@ export type Database = {
         }
         Relationships: []
       }
+      task_suggestions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
+          color: string | null
           created_at: string | null
           description: string | null
           icon: string | null
           id: string
+          is_featured: boolean | null
           name: string
+          parent_id: string | null
           slug: string
           sort_order: number | null
           tool_count: number | null
         }
         Insert: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_featured?: boolean | null
           name: string
+          parent_id?: string | null
           slug: string
           sort_order?: number | null
           tool_count?: number | null
         }
         Update: {
+          color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_featured?: boolean | null
           name?: string
+          parent_id?: string | null
           slug?: string
           sort_order?: number | null
           tool_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tool_alternatives: {
         Row: {
