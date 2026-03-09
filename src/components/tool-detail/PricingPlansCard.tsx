@@ -135,19 +135,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                     )}
                   </div>
 
-                  {/* Separator */}
+                  {/* Collapsible features */}
                   {plan.features && plan.features.length > 0 && (
-                    <>
-                      <Separator className="my-3" />
-                      <ul className="flex-1 space-y-2" aria-label={`${plan.name || "Plan"} features`}>
-                        {plan.features.map((feature, fi) => (
-                          <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                            <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
+                    <FeaturesList planName={plan.name} features={plan.features} />
                   )}
                 </article>
               );
