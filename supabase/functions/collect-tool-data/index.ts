@@ -344,6 +344,10 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
           platforms: toolData.platforms || [],
           pricing_details: toolData.pricing_details,
           faq: toolData.faq || null,
+          has_free_trial: toolData.has_free_trial ?? false,
+          trial_days: toolData.trial_days ?? null,
+          requires_card: toolData.requires_card ?? null,
+          signup_options: toolData.signup_options ?? [],
           status: "pending_review",
         })
         .select("id")
