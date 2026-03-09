@@ -26,7 +26,7 @@ function FeaturesList({ planName, features }: { planName?: string; features: str
 
   return (
     <>
-      <Separator className="my-3" />
+      <Separator className="my-2" />
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -37,7 +37,7 @@ function FeaturesList({ planName, features }: { planName?: string; features: str
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
       {open && (
-        <ul className="flex-1 space-y-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
+        <ul className="flex-1 space-y-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
           {features.map((feature, fi) => (
             <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
               <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
@@ -93,9 +93,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
     <section aria-label={t("tool.pricing", "Bảng giá")} itemScope itemType="https://schema.org/Product">
       {toolName && <meta itemProp="name" content={toolName} />}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-primary" />
+        <CardHeader className="pb-2 p-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="h-4 w-4 text-primary" />
             {t("tool.pricing", "Bảng giá")}
             {pricingType && (
               <Badge variant="secondary" className="ml-2 text-[11px] font-medium capitalize">
@@ -104,8 +104,8 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" itemProp="offers" itemScope itemType="https://schema.org/AggregateOffer">
+        <CardContent className="p-4 pt-0">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" itemProp="offers" itemScope itemType="https://schema.org/AggregateOffer">
             {plans.map((plan, idx) => {
               const free = isFree(plan);
               const popular = !!plan.is_popular;
@@ -117,10 +117,10 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   itemScope
                   itemType="https://schema.org/Offer"
                   className={`
-                    relative flex flex-col rounded-xl border p-5 transition-all duration-300
-                    hover:shadow-lg hover:-translate-y-0.5
+                    relative flex flex-col rounded-lg border p-3 transition-all duration-200
+                    hover:shadow-md
                     ${popular
-                      ? "border-primary/60 bg-gradient-to-b from-primary/[0.06] to-transparent ring-1 ring-primary/30 scale-[1.02] z-10"
+                      ? "border-primary/60 bg-gradient-to-b from-primary/[0.06] to-transparent ring-1 ring-primary/30 z-10"
                       : "border-border bg-card hover:border-primary/30"
                     }
                   `}
@@ -134,7 +134,7 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   )}
 
                   {/* Plan name */}
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-1.5">
                     {free
                       ? <Gift className="h-4 w-4 text-success shrink-0" />
                       : <CreditCard className="h-4 w-4 text-primary shrink-0" />
@@ -145,9 +145,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   </div>
 
                   {/* Price */}
-                  <div className="flex items-baseline gap-1 mb-1" itemProp="priceSpecification" itemScope itemType="https://schema.org/PriceSpecification">
-                    {free ? (
-                      <span className="text-2xl font-extrabold text-success tracking-tight">
+                  <div className="flex items-baseline gap-1" itemProp="priceSpecification" itemScope itemType="https://schema.org/PriceSpecification">
+                     {free ? (
+                      <span className="text-lg font-extrabold text-success tracking-tight">
                         {t("tool.free", "Miễn phí")}
                       </span>
                     ) : (
@@ -155,7 +155,7 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                         <span className="text-xs text-muted-foreground font-medium" itemProp="priceCurrency">
                           {plan.currency || "$"}
                         </span>
-                        <span className="text-3xl font-extrabold text-foreground tracking-tight" itemProp="price">
+                        <span className="text-xl font-extrabold text-foreground tracking-tight" itemProp="price">
                           {plan.price ?? "N/A"}
                         </span>
                       </>
