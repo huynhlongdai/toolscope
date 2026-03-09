@@ -134,7 +134,7 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   )}
 
                   {/* Plan name */}
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-1.5">
                     {free
                       ? <Gift className="h-4 w-4 text-success shrink-0" />
                       : <CreditCard className="h-4 w-4 text-primary shrink-0" />
