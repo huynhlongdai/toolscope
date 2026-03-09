@@ -320,6 +320,10 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
       if (toolData.platforms) updateData.platforms = toolData.platforms;
       if (toolData.pricing_details) updateData.pricing_details = toolData.pricing_details;
       if (toolData.faq) updateData.faq = toolData.faq;
+      if (toolData.has_free_trial != null) updateData.has_free_trial = toolData.has_free_trial;
+      if (toolData.trial_days != null) updateData.trial_days = toolData.trial_days;
+      if (toolData.requires_card != null) updateData.requires_card = toolData.requires_card;
+      if (Array.isArray(toolData.signup_options)) updateData.signup_options = toolData.signup_options;
 
       const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
       if (updateErr) console.error("Failed to update tool:", updateErr);
