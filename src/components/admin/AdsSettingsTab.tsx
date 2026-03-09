@@ -314,6 +314,30 @@ export function AdsSettingsTab() {
                       </div>
                     )}
 
+                    {slot.mode === "image" && (
+                      <div className="space-y-3">
+                        <CoverImageUpload
+                          value={slot.image_url || ""}
+                          onChange={(url) => updateSlot(adSlot.id, { image_url: url })}
+                          label="Ảnh banner quảng cáo"
+                        />
+                        <div className="space-y-1.5">
+                          <Label className="text-xs flex items-center gap-1.5">
+                            <ImageIcon className="h-3 w-3" /> Link đích (tùy chọn)
+                          </Label>
+                          <Input
+                            value={slot.link_url || ""}
+                            onChange={(e) => updateSlot(adSlot.id, { link_url: e.target.value })}
+                            placeholder="https://example.com/landing-page"
+                            className="h-8 text-xs"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            Khi người dùng nhấp vào ảnh sẽ mở link này trong tab mới
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Preview button */}
                     <Button
                       variant="outline"
