@@ -255,8 +255,8 @@ export default function CategoryPage() {
             onSearchChange={setSearch}
             pricingFilter={pricingFilter}
             onPricingChange={setPricingFilter}
-            hasTrialOnly={hasTrialOnly}
-            onTrialChange={setHasTrialOnly}
+            trialFilter={trialFilter}
+            onTrialChange={setTrialFilter}
             highRatingOnly={highRatingOnly}
             onHighRatingChange={setHighRatingOnly}
             sortBy={sortBy}
