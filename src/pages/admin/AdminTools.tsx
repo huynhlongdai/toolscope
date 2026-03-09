@@ -157,6 +157,9 @@ export default function AdminTools() {
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
     if (healthFilter !== "all" && t.health_status !== healthFilter) return false;
+    if (trialFilter === "has_trial" && !t.has_free_trial) return false;
+    if (trialFilter === "no_card" && t.requires_card !== false) return false;
+    if (trialFilter === "free_signup" && !(t.signup_options || []).includes("free_signup")) return false;
     if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
     if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
@@ -164,7 +167,7 @@ export default function AdminTools() {
       if (locales && locales.has(translationFilter)) return false;
     }
     return true;
-  }), [tools, search, categoryFilter, pricingFilter, healthFilter, translationFilter, toolTranslationMap]);
+  }), [tools, search, categoryFilter, pricingFilter, healthFilter, trialFilter, translationFilter, toolTranslationMap]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
