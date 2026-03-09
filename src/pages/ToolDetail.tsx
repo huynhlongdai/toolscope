@@ -388,7 +388,8 @@ export default function ToolDetail() {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="space-y-6 sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto pr-2">
+              <DealsSection toolId={tool.id} toolName={displayName} />
               {aiScore ? (
                 <Card className="border-primary/20">
                   <CardHeader>
@@ -462,7 +463,6 @@ export default function ToolDetail() {
 
               <ReviewBreakdown reviews={(reviews || []) as any} />
               <ScreenshotGallery toolId={tool.id} toolName={displayName} />
-              <DealsSection toolId={tool.id} toolName={displayName} />
               <AlternativesSection toolId={tool.id} toolName={displayName} categoryId={tool.category_id} />
 
               <Button
