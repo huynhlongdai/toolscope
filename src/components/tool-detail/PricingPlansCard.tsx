@@ -37,7 +37,7 @@ function FeaturesList({ planName, features }: { planName?: string; features: str
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
       {open && (
-        <ul className="flex-1 space-y-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
+        <ul className="flex-1 space-y-1.5 mt-1.5 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
           {features.map((feature, fi) => (
             <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
               <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
