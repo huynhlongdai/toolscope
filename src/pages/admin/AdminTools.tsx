@@ -267,6 +267,20 @@ export default function AdminTools() {
     }
   };
 
+  const enrichTrialBatch = async () => {
+    setEnrichingTrial(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-trial-info", { body: { batch: true } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      toast.success(`Đã quét trial cho ${data?.enriched}/${data?.total} tools`);
+    } catch (e: any) {
+      toast.error(e.message || "Enrich trial failed");
+    } finally {
+      setEnrichingTrial(false);
+    }
+  };
+
   // Bulk selection helpers
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
