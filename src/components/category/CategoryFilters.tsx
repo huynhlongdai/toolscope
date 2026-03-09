@@ -1,7 +1,6 @@
 import { Search, X, LayoutGrid, List, Star, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -21,6 +20,13 @@ const SORT_OPTIONS = [
   { value: "az", label: "A → Z" },
 ] as const;
 
+const TRIAL_OPTIONS = [
+  { value: "all", label: "Tất cả" },
+  { value: "has_trial", label: "✅ Có dùng thử" },
+  { value: "no_card", label: "💳 Không cần thẻ" },
+  { value: "free_signup", label: "🆓 Đăng ký miễn phí" },
+] as const;
+
 export type SortOption = typeof SORT_OPTIONS[number]["value"];
 export type PricingFilter = typeof PRICING_OPTIONS[number]["value"];
 export type ViewMode = "grid" | "list";
@@ -30,8 +36,8 @@ interface CategoryFiltersProps {
   onSearchChange: (v: string) => void;
   pricingFilter: PricingFilter;
   onPricingChange: (v: PricingFilter) => void;
-  hasTrialOnly: boolean;
-  onTrialChange: (v: boolean) => void;
+  trialFilter: string;
+  onTrialChange: (v: string) => void;
   highRatingOnly: boolean;
   onHighRatingChange: (v: boolean) => void;
   sortBy: SortOption;
@@ -48,7 +54,7 @@ interface CategoryFiltersProps {
 export function CategoryFilters({
   search, onSearchChange,
   pricingFilter, onPricingChange,
-  hasTrialOnly, onTrialChange,
+  trialFilter, onTrialChange,
   highRatingOnly, onHighRatingChange,
   sortBy, onSortChange,
   viewMode, onViewModeChange,
@@ -88,6 +94,17 @@ export function CategoryFilters({
           </SelectContent>
         </Select>
 
+        <Select value={trialFilter} onValueChange={onTrialChange}>
+          <SelectTrigger className="w-auto min-w-[160px] h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TRIAL_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={sortBy} onValueChange={(v) => onSortChange(v as SortOption)}>
           <SelectTrigger className="w-auto min-w-[150px] h-9">
             <SlidersHorizontal className="mr-2 h-3.5 w-3.5" />
@@ -120,10 +137,6 @@ export function CategoryFilters({
 
       {/* Row 2: Checkboxes + active filters */}
       <div className="mt-3 flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <Checkbox checked={hasTrialOnly} onCheckedChange={(c) => onTrialChange(!!c)} />
-          <span className="text-muted-foreground">Có dùng thử</span>
-        </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
           <Checkbox checked={highRatingOnly} onCheckedChange={(c) => onHighRatingChange(!!c)} />
           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />

@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity, X, Copy, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity, X, Copy, BarChart3, FlaskConical } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
@@ -41,11 +41,13 @@ export default function AdminTools() {
   const [pricingFilter, setPricingFilter] = useState("all");
   const [translationFilter, setTranslationFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
+  const [trialFilter, setTrialFilter] = useState("all");
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [checkingHealthAll, setCheckingHealthAll] = useState(false);
+  const [enrichingTrial, setEnrichingTrial] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: categories = [] } = useQuery({
@@ -155,6 +157,9 @@ export default function AdminTools() {
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
     if (healthFilter !== "all" && t.health_status !== healthFilter) return false;
+    if (trialFilter === "has_trial" && !t.has_free_trial) return false;
+    if (trialFilter === "no_card" && t.requires_card !== false) return false;
+    if (trialFilter === "free_signup" && !(t.signup_options || []).includes("free_signup")) return false;
     if (translationFilter === "translated" && (!toolTranslationMap.has(t.id) || toolTranslationMap.get(t.id)!.size === 0)) return false;
     if (translationFilter === "untranslated" && toolTranslationMap.has(t.id) && toolTranslationMap.get(t.id)!.size > 0) return false;
     if (translationFilter !== "all" && translationFilter !== "translated" && translationFilter !== "untranslated") {
@@ -162,7 +167,7 @@ export default function AdminTools() {
       if (locales && locales.has(translationFilter)) return false;
     }
     return true;
-  }), [tools, search, categoryFilter, pricingFilter, healthFilter, translationFilter, toolTranslationMap]);
+  }), [tools, search, categoryFilter, pricingFilter, healthFilter, trialFilter, translationFilter, toolTranslationMap]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
@@ -206,15 +211,19 @@ export default function AdminTools() {
       filters.push({ key: "category", label: `Danh mục: ${catName}`, reset: () => setCategoryFilter("all") });
     }
     if (pricingFilter !== "all") filters.push({ key: "pricing", label: `Giá: ${pricingFilter}`, reset: () => setPricingFilter("all") });
+    if (trialFilter !== "all") {
+      const trialLabels: Record<string, string> = { has_trial: "Có trial", no_card: "Không cần thẻ", free_signup: "Đăng ký miễn phí" };
+      filters.push({ key: "trial", label: `Trial: ${trialLabels[trialFilter] || trialFilter}`, reset: () => setTrialFilter("all") });
+    }
     if (translationFilter !== "all") filters.push({ key: "translation", label: `Ngôn ngữ: ${translationFilter}`, reset: () => setTranslationFilter("all") });
     if (healthFilter !== "all") filters.push({ key: "health", label: `Health: ${healthFilter}`, reset: () => setHealthFilter("all") });
     if (search) filters.push({ key: "search", label: `Tìm: "${search}"`, reset: () => setSearch("") });
     return filters;
-  }, [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter, search, categories]);
+  }, [statusFilter, categoryFilter, pricingFilter, trialFilter, translationFilter, healthFilter, search, categories]);
 
   const clearAllFilters = () => {
     setStatusFilter("all"); setCategoryFilter("all"); setPricingFilter("all");
-    setTranslationFilter("all"); setHealthFilter("all"); setSearch(""); setPage(0);
+    setTranslationFilter("all"); setHealthFilter("all"); setTrialFilter("all"); setSearch(""); setPage(0);
   };
 
   const activeFilterCount = activeFilters.length;
@@ -255,6 +264,20 @@ export default function AdminTools() {
       toast.error(e.message || "Batch health check failed");
     } finally {
       setCheckingHealthAll(false);
+    }
+  };
+
+  const enrichTrialBatch = async () => {
+    setEnrichingTrial(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-trial-info", { body: { batch: true } });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      toast.success(`Đã quét trial cho ${data?.enriched}/${data?.total} tools`);
+    } catch (e: any) {
+      toast.error(e.message || "Enrich trial failed");
+    } finally {
+      setEnrichingTrial(false);
     }
   };
 
@@ -343,6 +366,18 @@ export default function AdminTools() {
           </SelectContent>
         </Select>
       </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Trial & Đăng ký</Label>
+        <Select value={trialFilter} onValueChange={(v) => { setTrialFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Trial" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="has_trial">✅ Có dùng thử</SelectItem>
+            <SelectItem value="no_card">💳 Không cần thẻ</SelectItem>
+            <SelectItem value="free_signup">🆓 Đăng ký miễn phí</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
@@ -362,10 +397,13 @@ export default function AdminTools() {
                    <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Xuất CSV</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Import</DropdownMenuItem>
-                    <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
-                      <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
+                     <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
+                       <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={enrichTrialBatch} disabled={enrichingTrial}>
+                       <FlaskConical className="mr-2 h-4 w-4" /> Quét Trial Info
+                     </DropdownMenuItem>
+                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BatchTranslateButton tools={filtered} isMobile={isMobile} />
                 <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4" /></Button>
@@ -376,9 +414,12 @@ export default function AdminTools() {
                 <Button variant="outline" size="sm" onClick={checkAllHealth} disabled={checkingHealthAll}>
                   {checkingHealthAll ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <HeartPulse className="mr-1 h-3.5 w-3.5" />} Health Check
                 </Button>
-                <BatchTranslateButton tools={filtered} isMobile={false} />
-                <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
-                <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
+                 <Button variant="outline" size="sm" onClick={enrichTrialBatch} disabled={enrichingTrial}>
+                   {enrichingTrial ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <FlaskConical className="mr-1 h-3.5 w-3.5" />} Quét Trial
+                 </Button>
+                 <BatchTranslateButton tools={filtered} isMobile={false} />
+                 <Button variant="outline" size="sm" onClick={() => setShowBatchImport(true)}><Upload className="mr-1 h-3.5 w-3.5" /> Import</Button>
+                 <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm</Button>
               </>
             )}
           </div>
@@ -497,6 +538,15 @@ export default function AdminTools() {
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="open_source">Open Source</SelectItem>
                   <SelectItem value="contact">Contact</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={trialFilter} onValueChange={(v) => { setTrialFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Trial" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trial</SelectItem>
+                  <SelectItem value="has_trial">✅ Có trial</SelectItem>
+                  <SelectItem value="no_card">💳 Không cần thẻ</SelectItem>
+                  <SelectItem value="free_signup">🆓 Free signup</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>

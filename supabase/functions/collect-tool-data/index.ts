@@ -245,7 +245,11 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
   "website_url": "${resolvedUrl || ""}",
   "logo_url": "best logo URL found, or null",
   "tags": ["tag1", "tag2", ...],
-  "faq": [{"question": "Câu hỏi thường gặp về tool bằng tiếng Việt?", "answer": "Câu trả lời chi tiết 2-4 câu."}]
+  "faq": [{"question": "Câu hỏi thường gặp về tool bằng tiếng Việt?", "answer": "Câu trả lời chi tiết 2-4 câu."}],
+  "has_free_trial": "boolean - whether the tool offers a free trial",
+  "trial_days": "number or null - how many days the free trial lasts (e.g. 7, 14, 30)",
+  "requires_card": "boolean or null - whether a credit card is required for free trial or signup",
+  "signup_options": ["array of strings from: free_signup, google_sso, github_sso, email_only, demo_request, apple_sso"]
 }
 
 IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?".`;
@@ -316,6 +320,10 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
       if (toolData.platforms) updateData.platforms = toolData.platforms;
       if (toolData.pricing_details) updateData.pricing_details = toolData.pricing_details;
       if (toolData.faq) updateData.faq = toolData.faq;
+      if (toolData.has_free_trial != null) updateData.has_free_trial = toolData.has_free_trial;
+      if (toolData.trial_days != null) updateData.trial_days = toolData.trial_days;
+      if (toolData.requires_card != null) updateData.requires_card = toolData.requires_card;
+      if (Array.isArray(toolData.signup_options)) updateData.signup_options = toolData.signup_options;
 
       const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
       if (updateErr) console.error("Failed to update tool:", updateErr);
@@ -336,6 +344,10 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
           platforms: toolData.platforms || [],
           pricing_details: toolData.pricing_details,
           faq: toolData.faq || null,
+          has_free_trial: toolData.has_free_trial ?? false,
+          trial_days: toolData.trial_days ?? null,
+          requires_card: toolData.requires_card ?? null,
+          signup_options: toolData.signup_options ?? [],
           status: "pending_review",
         })
         .select("id")

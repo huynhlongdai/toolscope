@@ -21,6 +21,9 @@ interface ToolCardProps {
   isAiRecommended?: boolean;
   aiScore?: number;
   variant?: "grid" | "list";
+  hasFreeTrial?: boolean;
+  trialDays?: number | null;
+  requiresCard?: boolean | null;
 }
 
 const pricingLabel: Record<string, string> = {
@@ -53,6 +56,9 @@ export function ToolCard({
   isAiRecommended,
   aiScore,
   variant = "grid",
+  hasFreeTrial,
+  trialDays,
+  requiresCard,
 }: ToolCardProps) {
   const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
 
@@ -89,6 +95,13 @@ export function ToolCard({
     </span>
   );
 
+  const trialEl = hasFreeTrial && (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+      {trialDays ? `${trialDays}d trial` : "Free Trial"}
+      {requiresCard === false && " · No card"}
+    </span>
+  );
+
   if (variant === "list") {
     return (
       <Link to={`/tool/${slug}`}>
@@ -118,6 +131,7 @@ export function ToolCard({
                 <span className="text-xs text-muted-foreground">{categoryName}</span>
               )}
               {pricingBadge}
+              {trialEl}
               {ratingEl}
               {aiEl}
             </div>
@@ -158,6 +172,7 @@ export function ToolCard({
                   <span className="text-xs text-muted-foreground">{categoryName}</span>
                 )}
                 {pricingBadge}
+                {trialEl}
                 {ratingEl}
                 {aiEl}
               </div>

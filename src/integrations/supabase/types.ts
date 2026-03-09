@@ -1862,10 +1862,13 @@ export type Database = {
           pricing_type: Database["public"]["Enums"]["pricing_type"]
           rating_count: number
           related_tool_ids: string[] | null
+          requires_card: boolean | null
           short_description: string | null
+          signup_options: string[] | null
           slug: string
           status: Database["public"]["Enums"]["content_status"]
           submitted_by: string | null
+          trial_days: number | null
           updated_at: string
           upvotes: number
           view_count: number
@@ -1894,10 +1897,13 @@ export type Database = {
           pricing_type?: Database["public"]["Enums"]["pricing_type"]
           rating_count?: number
           related_tool_ids?: string[] | null
+          requires_card?: boolean | null
           short_description?: string | null
+          signup_options?: string[] | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"]
           submitted_by?: string | null
+          trial_days?: number | null
           updated_at?: string
           upvotes?: number
           view_count?: number
@@ -1926,10 +1932,13 @@ export type Database = {
           pricing_type?: Database["public"]["Enums"]["pricing_type"]
           rating_count?: number
           related_tool_ids?: string[] | null
+          requires_card?: boolean | null
           short_description?: string | null
+          signup_options?: string[] | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"]
           submitted_by?: string | null
+          trial_days?: number | null
           updated_at?: string
           upvotes?: number
           view_count?: number

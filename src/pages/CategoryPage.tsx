@@ -23,7 +23,7 @@ export default function CategoryPage() {
   // Filter state
   const [search, setSearch] = useState("");
   const [pricingFilter, setPricingFilter] = useState<PricingFilter>("all");
-  const [hasTrialOnly, setHasTrialOnly] = useState(false);
+  const [trialFilter, setTrialFilter] = useState<string>("all");
   const [highRatingOnly, setHighRatingOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -105,8 +105,12 @@ export default function CategoryPage() {
     if (pricingFilter !== "all") {
       result = result.filter((t) => t.pricing_type === pricingFilter);
     }
-    if (hasTrialOnly) {
+    if (trialFilter === "has_trial") {
       result = result.filter((t) => (t as any).has_free_trial === true);
+    } else if (trialFilter === "no_card") {
+      result = result.filter((t) => (t as any).requires_card === false);
+    } else if (trialFilter === "free_signup") {
+      result = result.filter((t) => ((t as any).signup_options || []).includes("free_signup"));
     }
     if (highRatingOnly) {
       result = result.filter((t) => Number(t.avg_rating) >= 4);
@@ -132,14 +136,14 @@ export default function CategoryPage() {
     });
 
     return result;
-  }, [tools, search, pricingFilter, hasTrialOnly, highRatingOnly, sortBy]);
+  }, [tools, search, pricingFilter, trialFilter, highRatingOnly, sortBy]);
 
-  const hasActiveFilters = search !== "" || pricingFilter !== "all" || hasTrialOnly || highRatingOnly;
+  const hasActiveFilters = search !== "" || pricingFilter !== "all" || trialFilter !== "all" || highRatingOnly;
 
   const clearAllFilters = () => {
     setSearch("");
     setPricingFilter("all");
-    setHasTrialOnly(false);
+    setTrialFilter("all");
     setHighRatingOnly(false);
     setSortBy("rating");
   };
@@ -251,8 +255,8 @@ export default function CategoryPage() {
             onSearchChange={setSearch}
             pricingFilter={pricingFilter}
             onPricingChange={setPricingFilter}
-            hasTrialOnly={hasTrialOnly}
-            onTrialChange={setHasTrialOnly}
+            trialFilter={trialFilter}
+            onTrialChange={setTrialFilter}
             highRatingOnly={highRatingOnly}
             onHighRatingChange={setHighRatingOnly}
             sortBy={sortBy}
@@ -294,6 +298,9 @@ export default function CategoryPage() {
                     isTrending={tool.is_trending}
                     isAiRecommended={(tool.ai_scores as any)?.is_recommended}
                     aiScore={(tool.ai_scores as any)?.overall_score ? Number((tool.ai_scores as any).overall_score) : undefined}
+                    hasFreeTrial={(tool as any).has_free_trial}
+                    trialDays={(tool as any).trial_days}
+                    requiresCard={(tool as any).requires_card}
                     variant={viewMode}
                   />
                 ))}
