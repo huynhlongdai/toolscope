@@ -41,11 +41,13 @@ export default function AdminTools() {
   const [pricingFilter, setPricingFilter] = useState("all");
   const [translationFilter, setTranslationFilter] = useState("all");
   const [healthFilter, setHealthFilter] = useState("all");
+  const [trialFilter, setTrialFilter] = useState("all");
   const [editTool, setEditTool] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showBatchImport, setShowBatchImport] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [checkingHealthAll, setCheckingHealthAll] = useState(false);
+  const [enrichingTrial, setEnrichingTrial] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: categories = [] } = useQuery({
