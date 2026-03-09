@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Check, Gift, Sparkles } from "lucide-react";
+import { CreditCard, Check, Gift, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useI18n } from "@/lib/i18n";
 
@@ -18,6 +18,36 @@ interface PricingPlansCardProps {
   pricingDetails: unknown;
   pricingType?: string;
   toolName?: string;
+}
+
+function FeaturesList({ planName, features }: { planName?: string; features: string[] }) {
+  const [open, setOpen] = useState(false);
+  const { t } = useI18n();
+
+  return (
+    <>
+      <Separator className="my-3" />
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+        aria-expanded={open}
+      >
+        <span>{t("tool.features", "Tính năng")} ({features.length})</span>
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <ul className="flex-1 space-y-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
+          {features.map((feature, fi) => (
+            <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+              <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
 }
 
 export function PricingPlansCard({ pricingDetails, pricingType, toolName }: PricingPlansCardProps) {
@@ -135,19 +165,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                     )}
                   </div>
 
-                  {/* Separator */}
+                  {/* Collapsible features */}
                   {plan.features && plan.features.length > 0 && (
-                    <>
-                      <Separator className="my-3" />
-                      <ul className="flex-1 space-y-2" aria-label={`${plan.name || "Plan"} features`}>
-                        {plan.features.map((feature, fi) => (
-                          <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                            <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
+                    <FeaturesList planName={plan.name} features={plan.features} />
                   )}
                 </article>
               );
