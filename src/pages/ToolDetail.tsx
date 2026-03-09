@@ -283,6 +283,11 @@ export default function ToolDetail() {
                 </Card>
               )}
 
+              <PricingPlansCard
+                pricingDetails={(tool as any).pricing_details}
+                pricingType={tool.pricing_type}
+              />
+
               <DetailedArticle
                 toolId={tool.id}
                 toolName={displayName}
