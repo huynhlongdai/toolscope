@@ -20,6 +20,36 @@ interface PricingPlansCardProps {
   toolName?: string;
 }
 
+function FeaturesList({ planName, features }: { planName?: string; features: string[] }) {
+  const [open, setOpen] = useState(false);
+  const { t } = useI18n();
+
+  return (
+    <>
+      <Separator className="my-3" />
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1"
+        aria-expanded={open}
+      >
+        <span>{t("tool.features", "Tính năng")} ({features.length})</span>
+        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
+      {open && (
+        <ul className="flex-1 space-y-2 mt-2 animate-in fade-in slide-in-from-top-1 duration-200" aria-label={`${planName || "Plan"} features`}>
+          {features.map((feature, fi) => (
+            <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+              <Check className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
 export function PricingPlansCard({ pricingDetails, pricingType, toolName }: PricingPlansCardProps) {
   const { t } = useI18n();
 
