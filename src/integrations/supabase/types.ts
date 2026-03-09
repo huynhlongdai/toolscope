@@ -1848,6 +1848,7 @@ export type Database = {
           detailed_content: string | null
           faq: Json | null
           features: Json | null
+          has_free_trial: boolean
           health_checked_at: string | null
           health_details: string | null
           health_status: string
@@ -1879,6 +1880,7 @@ export type Database = {
           detailed_content?: string | null
           faq?: Json | null
           features?: Json | null
+          has_free_trial?: boolean
           health_checked_at?: string | null
           health_details?: string | null
           health_status?: string
@@ -1910,6 +1912,7 @@ export type Database = {
           detailed_content?: string | null
           faq?: Json | null
           features?: Json | null
+          has_free_trial?: boolean
           health_checked_at?: string | null
           health_details?: string | null
           health_status?: string

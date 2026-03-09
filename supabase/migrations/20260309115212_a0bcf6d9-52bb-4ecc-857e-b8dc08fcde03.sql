@@ -1,0 +1,1 @@
+ALTER TABLE public.tools ADD COLUMN has_free_trial boolean NOT NULL DEFAULT false;
