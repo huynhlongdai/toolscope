@@ -438,6 +438,72 @@ export default function AdminCollectAI() {
               </Card>
             </div>
 
+            {/* Bulk Collect Button */}
+            <Card className="border-dashed border-primary/30 bg-primary/5">
+              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    Thu thập hàng loạt 500 tool
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tự động thu thập ~500 tool từ 25 danh mục phổ biến bằng AI, lưu vào hàng chờ duyệt.
+                  </p>
+                  {bulkProgress && (
+                    <div className="mt-2 text-xs space-y-1">
+                      <p className="text-primary font-medium">
+                        ✅ Đã thu thập {bulkProgress.total} tool từ {bulkProgress.keywords} keyword
+                      </p>
+                      <details className="cursor-pointer">
+                        <summary className="text-muted-foreground">Chi tiết từng keyword</summary>
+                        <ul className="mt-1 space-y-0.5 max-h-40 overflow-y-auto">
+                          {bulkProgress.results.map((r: any, idx: number) => (
+                            <li key={idx} className={r.error ? "text-destructive" : "text-foreground"}>
+                              {r.keyword}: {r.error || `${r.count} tool`}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={async () => {
+                    setBulkCollecting(true);
+                    setBulkProgress(null);
+                    try {
+                      const { data, error } = await supabase.functions.invoke("bulk-collect-tools", {
+                        body: { batch_size: 25 },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      setBulkProgress({
+                        total: data.total_collected,
+                        keywords: data.keywords_processed,
+                        results: data.results || [],
+                      });
+                      toast.success(`Đã thu thập ${data.total_collected} tool thành công!`);
+                      queryClient.invalidateQueries({ queryKey: ["collect-stats"] });
+                      queryClient.invalidateQueries({ queryKey: ["collect-items"] });
+                      queryClient.invalidateQueries({ queryKey: ["collect-sessions"] });
+                    } catch (e: any) {
+                      toast.error("Lỗi thu thập hàng loạt: " + (e.message || "Unknown"));
+                    } finally {
+                      setBulkCollecting(false);
+                    }
+                  }}
+                  disabled={bulkCollecting}
+                  className="shrink-0"
+                >
+                  {bulkCollecting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-1" /> Đang thu thập...</>
+                  ) : (
+                    <><Sparkles className="h-4 w-4 mr-1" /> Thu thập 500 tool</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader><CardTitle className="text-lg">Tìm kiếm công cụ</CardTitle></CardHeader>
               <CardContent className="space-y-4">
