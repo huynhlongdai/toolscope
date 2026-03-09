@@ -93,9 +93,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
     <section aria-label={t("tool.pricing", "Bảng giá")} itemScope itemType="https://schema.org/Product">
       {toolName && <meta itemProp="name" content={toolName} />}
       <Card className="overflow-hidden">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <CreditCard className="h-5 w-5 text-primary" />
+        <CardHeader className="pb-2 p-4">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="h-4 w-4 text-primary" />
             {t("tool.pricing", "Bảng giá")}
             {pricingType && (
               <Badge variant="secondary" className="ml-2 text-[11px] font-medium capitalize">
