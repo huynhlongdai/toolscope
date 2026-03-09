@@ -131,6 +131,7 @@ export function ToolCard({
                 <span className="text-xs text-muted-foreground">{categoryName}</span>
               )}
               {pricingBadge}
+              {trialEl}
               {ratingEl}
               {aiEl}
             </div>
