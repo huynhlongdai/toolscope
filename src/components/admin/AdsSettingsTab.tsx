@@ -45,6 +45,8 @@ const DEFAULT_SLOT: SlotConfig = {
   slot_id: "",
   format: "auto",
   custom_code: "",
+  image_url: "",
+  link_url: "",
 };
 function AdPreviewPanel({ slot, clientId, slotDef }: { slot: SlotConfig; clientId: string; slotDef: typeof AD_SLOTS[0] }) {
   const previewRef = useRef<HTMLDivElement>(null);
