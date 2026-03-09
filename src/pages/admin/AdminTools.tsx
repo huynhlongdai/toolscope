@@ -540,6 +540,15 @@ export default function AdminTools() {
                   <SelectItem value="contact">Contact</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={trialFilter} onValueChange={(v) => { setTrialFilter(v); setPage(0); }}>
+                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Trial" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trial</SelectItem>
+                  <SelectItem value="has_trial">✅ Có trial</SelectItem>
+                  <SelectItem value="no_card">💳 Không cần thẻ</SelectItem>
+                  <SelectItem value="free_signup">🆓 Free signup</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={translationFilter} onValueChange={(v) => { setTranslationFilter(v); setPage(0); }}>
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="Ngôn ngữ" /></SelectTrigger>
                 <SelectContent>
