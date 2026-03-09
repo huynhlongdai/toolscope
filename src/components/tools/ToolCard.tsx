@@ -56,6 +56,9 @@ export function ToolCard({
   isAiRecommended,
   aiScore,
   variant = "grid",
+  hasFreeTrial,
+  trialDays,
+  requiresCard,
 }: ToolCardProps) {
   const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
 
