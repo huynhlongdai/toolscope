@@ -55,8 +55,11 @@ function AdPreviewPanel({ slot, clientId, slotDef }: { slot: SlotConfig; clientI
     if (!previewRef.current) return;
     const container = previewRef.current;
 
-    if (slot.mode === "custom" && slot.custom_code) {
-      // Render custom HTML (scripts are NOT executed in preview for safety)
+    if (slot.mode === "image" && slot.image_url) {
+      const linkStart = slot.link_url ? `<a href="${slot.link_url}" target="_blank" rel="noopener noreferrer">` : "";
+      const linkEnd = slot.link_url ? "</a>" : "";
+      container.innerHTML = `${linkStart}<img src="${slot.image_url}" alt="Ad preview" style="width:100%;height:auto;border-radius:6px;" />${linkEnd}`;
+    } else if (slot.mode === "custom" && slot.custom_code) {
       const sanitized = slot.custom_code.replace(/<script[\s\S]*?<\/script>/gi, (match) =>
         `<div class="rounded bg-muted/50 border border-dashed border-border p-2 text-[10px] font-mono text-muted-foreground">[Script] ${match.length} chars</div>`
       );
