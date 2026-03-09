@@ -105,8 +105,12 @@ export default function CategoryPage() {
     if (pricingFilter !== "all") {
       result = result.filter((t) => t.pricing_type === pricingFilter);
     }
-    if (hasTrialOnly) {
+    if (trialFilter === "has_trial") {
       result = result.filter((t) => (t as any).has_free_trial === true);
+    } else if (trialFilter === "no_card") {
+      result = result.filter((t) => (t as any).requires_card === false);
+    } else if (trialFilter === "free_signup") {
+      result = result.filter((t) => ((t as any).signup_options || []).includes("free_signup"));
     }
     if (highRatingOnly) {
       result = result.filter((t) => Number(t.avg_rating) >= 4);
