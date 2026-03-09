@@ -155,7 +155,7 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                         <span className="text-xs text-muted-foreground font-medium" itemProp="priceCurrency">
                           {plan.currency || "$"}
                         </span>
-                        <span className="text-3xl font-extrabold text-foreground tracking-tight" itemProp="price">
+                        <span className="text-xl font-extrabold text-foreground tracking-tight" itemProp="price">
                           {plan.price ?? "N/A"}
                         </span>
                       </>
