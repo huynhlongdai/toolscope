@@ -136,14 +136,14 @@ export default function CategoryPage() {
     });
 
     return result;
-  }, [tools, search, pricingFilter, hasTrialOnly, highRatingOnly, sortBy]);
+  }, [tools, search, pricingFilter, trialFilter, highRatingOnly, sortBy]);
 
-  const hasActiveFilters = search !== "" || pricingFilter !== "all" || hasTrialOnly || highRatingOnly;
+  const hasActiveFilters = search !== "" || pricingFilter !== "all" || trialFilter !== "all" || highRatingOnly;
 
   const clearAllFilters = () => {
     setSearch("");
     setPricingFilter("all");
-    setHasTrialOnly(false);
+    setTrialFilter("all");
     setHighRatingOnly(false);
     setSortBy("rating");
   };
