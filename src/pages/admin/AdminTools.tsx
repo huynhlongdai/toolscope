@@ -223,7 +223,7 @@ export default function AdminTools() {
 
   const clearAllFilters = () => {
     setStatusFilter("all"); setCategoryFilter("all"); setPricingFilter("all");
-    setTranslationFilter("all"); setHealthFilter("all"); setSearch(""); setPage(0);
+    setTranslationFilter("all"); setHealthFilter("all"); setTrialFilter("all"); setSearch(""); setPage(0);
   };
 
   const activeFilterCount = activeFilters.length;
