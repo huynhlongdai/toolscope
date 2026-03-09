@@ -26,7 +26,7 @@ function FeaturesList({ planName, features }: { planName?: string; features: str
 
   return (
     <>
-      <Separator className="my-3" />
+      <Separator className="my-2" />
       <button
         type="button"
         onClick={() => setOpen(!open)}
