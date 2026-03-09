@@ -7,10 +7,12 @@ interface AdsConfig {
   client_id: string;
   slots: Record<string, {
     enabled: boolean;
-    mode: "adsense" | "custom";
+    mode: "adsense" | "custom" | "image";
     slot_id: string;
     format: string;
     custom_code: string;
+    image_url: string;
+    link_url: string;
   }>;
 }
 
