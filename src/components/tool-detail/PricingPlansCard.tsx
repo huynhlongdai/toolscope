@@ -117,10 +117,10 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   itemScope
                   itemType="https://schema.org/Offer"
                   className={`
-                    relative flex flex-col rounded-xl border p-5 transition-all duration-300
-                    hover:shadow-lg hover:-translate-y-0.5
+                    relative flex flex-col rounded-lg border p-3 transition-all duration-200
+                    hover:shadow-md
                     ${popular
-                      ? "border-primary/60 bg-gradient-to-b from-primary/[0.06] to-transparent ring-1 ring-primary/30 scale-[1.02] z-10"
+                      ? "border-primary/60 bg-gradient-to-b from-primary/[0.06] to-transparent ring-1 ring-primary/30 z-10"
                       : "border-border bg-card hover:border-primary/30"
                     }
                   `}
