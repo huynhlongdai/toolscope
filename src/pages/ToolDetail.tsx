@@ -463,7 +463,6 @@ export default function ToolDetail() {
 
               <ReviewBreakdown reviews={(reviews || []) as any} />
               <ScreenshotGallery toolId={tool.id} toolName={displayName} />
-              <DealsSection toolId={tool.id} toolName={displayName} />
               <AlternativesSection toolId={tool.id} toolName={displayName} categoryId={tool.category_id} />
 
               <Button
