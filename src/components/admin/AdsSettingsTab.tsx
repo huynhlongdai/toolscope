@@ -260,6 +260,7 @@ export function AdsSettingsTab() {
                           <SelectContent>
                             <SelectItem value="adsense">Google AdSense</SelectItem>
                             <SelectItem value="custom">Custom Script</SelectItem>
+                            <SelectItem value="image">Hình ảnh (Upload)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
