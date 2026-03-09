@@ -23,7 +23,7 @@ export default function CategoryPage() {
   // Filter state
   const [search, setSearch] = useState("");
   const [pricingFilter, setPricingFilter] = useState<PricingFilter>("all");
-  const [hasTrialOnly, setHasTrialOnly] = useState(false);
+  const [trialFilter, setTrialFilter] = useState<string>("all");
   const [highRatingOnly, setHighRatingOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("rating");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
