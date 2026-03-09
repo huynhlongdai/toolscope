@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -19,7 +19,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity, X, Copy, BarChart3 } from "lucide-react";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
@@ -46,6 +46,7 @@ export default function AdminTools() {
   const [showBatchImport, setShowBatchImport] = useState(false);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [checkingHealthAll, setCheckingHealthAll] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-list-filter"],
@@ -108,11 +109,49 @@ export default function AdminTools() {
     },
   });
 
+  const bulkUpdateStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[]; status: string }) => {
+      const { error } = await supabase.from("tools").update({ status: status as any }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      setSelectedIds(new Set());
+      toast.success(`Đã cập nhật ${vars.ids.length} tools → ${vars.status}`);
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("tools").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      setSelectedIds(new Set());
+      toast.success(`Đã xóa ${ids.length} tools`);
+    },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (tool: any) => {
+      const { id, categories: _cat, created_at, updated_at, ...rest } = tool;
+      const payload = { ...rest, name: `${tool.name} (Copy)`, slug: `${tool.slug}-copy-${Date.now()}`, status: "draft" as any };
+      const { error } = await supabase.from("tools").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      toast.success("Đã nhân bản tool");
+    },
+  });
+
   const [page, setPage] = useState(0);
   const pageSize = 50;
 
-  const filtered = tools.filter((t: any) => {
-    if (!t.name.toLowerCase().includes(search.toLowerCase())) return false;
+  const filtered = useMemo(() => tools.filter((t: any) => {
+    const q = search.toLowerCase();
+    if (q && !t.name.toLowerCase().includes(q) && !(t.short_description || "").toLowerCase().includes(q) && !(t.website_url || "").toLowerCase().includes(q)) return false;
     if (categoryFilter !== "all" && t.category_id !== categoryFilter) return false;
     if (pricingFilter !== "all" && t.pricing_type !== pricingFilter) return false;
     if (healthFilter !== "all" && t.health_status !== healthFilter) return false;
@@ -123,9 +162,20 @@ export default function AdminTools() {
       if (locales && locales.has(translationFilter)) return false;
     }
     return true;
-  });
+  }), [tools, search, categoryFilter, pricingFilter, healthFilter, translationFilter, toolTranslationMap]);
+
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
+
+  // Stats
+  const stats = useMemo(() => {
+    const published = tools.filter((t: any) => t.status === "published").length;
+    const draft = tools.filter((t: any) => t.status === "draft").length;
+    const pending = tools.filter((t: any) => t.status === "pending_review").length;
+    const archived = tools.filter((t: any) => t.status === "archived").length;
+    const dead = tools.filter((t: any) => t.health_status === "dead").length;
+    return { total: tools.length, published, draft, pending, archived, dead };
+  }, [tools]);
 
   const exportCSV = () => {
     const headers = ["Name", "Slug", "Status", "Pricing", "Rating", "Views", "Category", "Website"];
@@ -147,8 +197,27 @@ export default function AdminTools() {
     }
   };
 
-  // Count active filters (excluding "all")
-  const activeFilterCount = [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter].filter(f => f !== "all").length;
+  // Active filters for badges
+  const activeFilters = useMemo(() => {
+    const filters: { key: string; label: string; reset: () => void }[] = [];
+    if (statusFilter !== "all") filters.push({ key: "status", label: `Trạng thái: ${statusFilter}`, reset: () => setStatusFilter("all") });
+    if (categoryFilter !== "all") {
+      const catName = categories.find((c: any) => c.id === categoryFilter)?.name || categoryFilter;
+      filters.push({ key: "category", label: `Danh mục: ${catName}`, reset: () => setCategoryFilter("all") });
+    }
+    if (pricingFilter !== "all") filters.push({ key: "pricing", label: `Giá: ${pricingFilter}`, reset: () => setPricingFilter("all") });
+    if (translationFilter !== "all") filters.push({ key: "translation", label: `Ngôn ngữ: ${translationFilter}`, reset: () => setTranslationFilter("all") });
+    if (healthFilter !== "all") filters.push({ key: "health", label: `Health: ${healthFilter}`, reset: () => setHealthFilter("all") });
+    if (search) filters.push({ key: "search", label: `Tìm: "${search}"`, reset: () => setSearch("") });
+    return filters;
+  }, [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter, search, categories]);
+
+  const clearAllFilters = () => {
+    setStatusFilter("all"); setCategoryFilter("all"); setPricingFilter("all");
+    setTranslationFilter("all"); setHealthFilter("all"); setSearch(""); setPage(0);
+  };
+
+  const activeFilterCount = activeFilters.length;
 
   const healthBadge = (status: string) => {
     switch (status) {
@@ -188,6 +257,23 @@ export default function AdminTools() {
       setCheckingHealthAll(false);
     }
   };
+
+  // Bulk selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paged.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paged.map((t: any) => t.id)));
+    }
+  };
+  const selectedArray = Array.from(selectedIds);
 
   const filterContent = (
     <div className="space-y-3">
@@ -267,7 +353,6 @@ export default function AdminTools() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Tools</h1>
           <div className="flex items-center gap-2">
-            {/* Mobile: group secondary actions */}
             {isMobile ? (
               <>
                 <DropdownMenu>
@@ -297,6 +382,23 @@ export default function AdminTools() {
               </>
             )}
           </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          {[
+            { label: "Tổng", value: stats.total, color: "text-foreground" },
+            { label: "Published", value: stats.published, color: "text-green-600 dark:text-green-400" },
+            { label: "Draft", value: stats.draft, color: "text-muted-foreground" },
+            { label: "Pending", value: stats.pending, color: "text-amber-600 dark:text-amber-400" },
+            { label: "Archived", value: stats.archived, color: "text-destructive" },
+            { label: "Dead", value: stats.dead, color: "text-red-600 dark:text-red-400" },
+          ].map((s) => (
+            <Card key={s.label} className="p-2 sm:p-3">
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className={`text-lg sm:text-xl font-bold ${s.color}`}>{s.value}</p>
+            </Card>
+          ))}
         </div>
 
         {/* Pending Submissions */}
@@ -344,10 +446,9 @@ export default function AdminTools() {
         <div className="flex items-center gap-2 md:gap-3">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Tìm kiếm..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
+            <Input placeholder="Tìm tên, mô tả, URL..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} className="pl-9" />
           </div>
 
-          {/* Mobile: filter sheet */}
           {isMobile ? (
             <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
               <SheetTrigger asChild>
@@ -425,9 +526,57 @@ export default function AdminTools() {
           )}
         </div>
 
+        {/* Active Filter Badges */}
+        {activeFilters.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {activeFilters.map((f) => (
+              <Badge key={f.key} variant="secondary" className="gap-1 pr-1">
+                {f.label}
+                <button onClick={() => { f.reset(); setPage(0); }} className="ml-1 hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground" onClick={clearAllFilters}>
+              Xóa tất cả
+            </Button>
+          </div>
+        )}
+
+        {/* Bulk Action Bar */}
+        {selectedIds.size > 0 && (
+          <Card className="border-primary/30 bg-primary/5 p-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-sm font-medium">Đã chọn {selectedIds.size} tool</span>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "published" })}>
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Publish
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "archived" })}>
+                  Lưu trữ
+                </Button>
+                <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => {
+                  if (confirm(`Xóa ${selectedIds.size} tools?`)) bulkDeleteMutation.mutate(selectedArray);
+                }}>
+                  <Trash2 className="h-3 w-3 mr-1" /> Xóa
+                </Button>
+              </div>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                Bỏ chọn
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Tool count always visible */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Hiển thị {filtered.length} / {tools.length} tools
+          </span>
+        </div>
+
         {/* Tools List */}
         {isMobile ? (
-          /* Mobile: Card layout */
           <div className="space-y-2">
             {isLoading ? (
               <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
@@ -438,8 +587,9 @@ export default function AdminTools() {
                 const locales = toolTranslationMap.get(tool.id);
                 const flags = locales ? TARGET_LOCALES.filter(([code]) => locales.has(code)).map(([, meta]) => meta.flag) : [];
                 return (
-                  <Card key={tool.id} className="p-3">
+                  <Card key={tool.id} className={`p-3 ${selectedIds.has(tool.id) ? "ring-2 ring-primary" : ""}`}>
                     <div className="flex items-start gap-3">
+                      <Checkbox checked={selectedIds.has(tool.id)} onCheckedChange={() => toggleSelect(tool.id)} className="mt-1" />
                       {tool.logo_url && <img src={tool.logo_url} alt="" className="h-10 w-10 rounded-md object-cover shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -470,11 +620,13 @@ export default function AdminTools() {
             )}
           </div>
         ) : (
-          /* Desktop: Table layout */
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox checked={paged.length > 0 && selectedIds.size === paged.length} onCheckedChange={toggleSelectAll} />
+                  </TableHead>
                   <TableHead>Tên</TableHead>
                   <TableHead>Danh mục</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -488,12 +640,15 @@ export default function AdminTools() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8">Đang tải...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Không có tool nào</TableCell></TableRow>
                 ) : (
                   paged.map((tool: any) => (
-                    <TableRow key={tool.id}>
+                    <TableRow key={tool.id} className={selectedIds.has(tool.id) ? "bg-primary/5" : ""}>
+                      <TableCell>
+                        <Checkbox checked={selectedIds.has(tool.id)} onCheckedChange={() => toggleSelect(tool.id)} />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {tool.logo_url && <img src={tool.logo_url} alt="" className="h-8 w-8 rounded-md object-cover" />}
@@ -553,11 +708,17 @@ export default function AdminTools() {
                         <div className="flex items-center justify-end gap-1">
                           <GenerateAIScoreButton toolId={tool.id} toolName={tool.name} />
                           <TranslateButton toolId={tool.id} toolName={tool.name} />
+                          <Button variant="ghost" size="icon" asChild title="Xem trên site">
+                            <a href={`/tool/${tool.slug}`} target="_blank" rel="noopener"><Eye className="h-4 w-4" /></a>
+                          </Button>
                           {tool.website_url && (
-                            <Button variant="ghost" size="icon" asChild>
+                            <Button variant="ghost" size="icon" asChild title="Website">
                               <a href={tool.website_url} target="_blank" rel="noopener"><ExternalLink className="h-4 w-4" /></a>
                             </Button>
                           )}
+                          <Button variant="ghost" size="icon" onClick={() => duplicateMutation.mutate(tool)} title="Nhân bản">
+                            <Copy className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setEditTool(tool)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -574,9 +735,9 @@ export default function AdminTools() {
           </div>
         )}
 
+        {/* Pagination - always show */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{filtered.length} tools</span>
+          <div className="flex items-center justify-end">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Trước</Button>
               <span className="text-sm">Trang {page + 1} / {totalPages}</span>
