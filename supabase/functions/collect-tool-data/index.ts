@@ -245,7 +245,11 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
   "website_url": "${resolvedUrl || ""}",
   "logo_url": "best logo URL found, or null",
   "tags": ["tag1", "tag2", ...],
-  "faq": [{"question": "Câu hỏi thường gặp về tool bằng tiếng Việt?", "answer": "Câu trả lời chi tiết 2-4 câu."}]
+  "faq": [{"question": "Câu hỏi thường gặp về tool bằng tiếng Việt?", "answer": "Câu trả lời chi tiết 2-4 câu."}],
+  "has_free_trial": "boolean - whether the tool offers a free trial",
+  "trial_days": "number or null - how many days the free trial lasts (e.g. 7, 14, 30)",
+  "requires_card": "boolean or null - whether a credit card is required for free trial or signup",
+  "signup_options": ["array of strings from: free_signup, google_sso, github_sso, email_only, demo_request, apple_sso"]
 }
 
 IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?".`;
