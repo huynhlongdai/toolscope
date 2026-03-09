@@ -298,6 +298,9 @@ export default function CategoryPage() {
                     isTrending={tool.is_trending}
                     isAiRecommended={(tool.ai_scores as any)?.is_recommended}
                     aiScore={(tool.ai_scores as any)?.overall_score ? Number((tool.ai_scores as any).overall_score) : undefined}
+                    hasFreeTrial={(tool as any).has_free_trial}
+                    trialDays={(tool as any).trial_days}
+                    requiresCard={(tool as any).requires_card}
                     variant={viewMode}
                   />
                 ))}
