@@ -352,6 +352,18 @@ export default function AdminTools() {
           </SelectContent>
         </Select>
       </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Trial & Đăng ký</Label>
+        <Select value={trialFilter} onValueChange={(v) => { setTrialFilter(v); setPage(0); }}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Trial" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="has_trial">✅ Có dùng thử</SelectItem>
+            <SelectItem value="no_card">💳 Không cần thẻ</SelectItem>
+            <SelectItem value="free_signup">🆓 Đăng ký miễn phí</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
