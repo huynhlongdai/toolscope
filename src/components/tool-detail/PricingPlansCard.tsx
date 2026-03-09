@@ -24,7 +24,6 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
   const { t } = useI18n();
 
   const plans: PricingPlan[] = Array.isArray(pricingDetails) ? pricingDetails : [];
-  if (plans.length === 0) return null;
 
   const isFree = (plan: PricingPlan) =>
     plan.price === 0 || plan.price === "0" || String(plan.price).toLowerCase() === "free";
@@ -53,11 +52,12 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
     script.type = "application/ld+json";
     script.setAttribute("data-pricing-jsonld", "true");
     script.textContent = JSON.stringify(jsonLd);
-    // Remove previous
     document.querySelector('script[data-pricing-jsonld]')?.remove();
     document.head.appendChild(script);
     return () => { script.remove(); };
   }, [toolName, plans]);
+
+  if (plans.length === 0) return null;
 
   return (
     <section aria-label={t("tool.pricing", "Bảng giá")} itemScope itemType="https://schema.org/Product">
