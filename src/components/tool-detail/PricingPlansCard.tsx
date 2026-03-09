@@ -104,8 +104,8 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" itemProp="offers" itemScope itemType="https://schema.org/AggregateOffer">
+        <CardContent className="p-4 pt-0">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" itemProp="offers" itemScope itemType="https://schema.org/AggregateOffer">
             {plans.map((plan, idx) => {
               const free = isFree(plan);
               const popular = !!plan.is_popular;
