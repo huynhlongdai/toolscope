@@ -145,9 +145,9 @@ export function PricingPlansCard({ pricingDetails, pricingType, toolName }: Pric
                   </div>
 
                   {/* Price */}
-                  <div className="flex items-baseline gap-1 mb-1" itemProp="priceSpecification" itemScope itemType="https://schema.org/PriceSpecification">
-                    {free ? (
-                      <span className="text-2xl font-extrabold text-success tracking-tight">
+                  <div className="flex items-baseline gap-1" itemProp="priceSpecification" itemScope itemType="https://schema.org/PriceSpecification">
+                     {free ? (
+                      <span className="text-lg font-extrabold text-success tracking-tight">
                         {t("tool.free", "Miễn phí")}
                       </span>
                     ) : (
