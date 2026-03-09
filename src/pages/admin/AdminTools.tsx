@@ -397,10 +397,13 @@ export default function AdminTools() {
                    <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={exportCSV}><Upload className="mr-2 h-4 w-4" /> Xuất CSV</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowBatchImport(true)}><Upload className="mr-2 h-4 w-4" /> Import</DropdownMenuItem>
-                    <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
-                      <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
+                     <DropdownMenuItem onClick={checkAllHealth} disabled={checkingHealthAll}>
+                       <HeartPulse className="mr-2 h-4 w-4" /> Health Check All
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={enrichTrialBatch} disabled={enrichingTrial}>
+                       <FlaskConical className="mr-2 h-4 w-4" /> Quét Trial Info
+                     </DropdownMenuItem>
+                   </DropdownMenuContent>
                 </DropdownMenu>
                 <BatchTranslateButton tools={filtered} isMobile={isMobile} />
                 <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="h-4 w-4" /></Button>
