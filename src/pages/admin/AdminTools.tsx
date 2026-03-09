@@ -211,11 +211,15 @@ export default function AdminTools() {
       filters.push({ key: "category", label: `Danh mục: ${catName}`, reset: () => setCategoryFilter("all") });
     }
     if (pricingFilter !== "all") filters.push({ key: "pricing", label: `Giá: ${pricingFilter}`, reset: () => setPricingFilter("all") });
+    if (trialFilter !== "all") {
+      const trialLabels: Record<string, string> = { has_trial: "Có trial", no_card: "Không cần thẻ", free_signup: "Đăng ký miễn phí" };
+      filters.push({ key: "trial", label: `Trial: ${trialLabels[trialFilter] || trialFilter}`, reset: () => setTrialFilter("all") });
+    }
     if (translationFilter !== "all") filters.push({ key: "translation", label: `Ngôn ngữ: ${translationFilter}`, reset: () => setTranslationFilter("all") });
     if (healthFilter !== "all") filters.push({ key: "health", label: `Health: ${healthFilter}`, reset: () => setHealthFilter("all") });
     if (search) filters.push({ key: "search", label: `Tìm: "${search}"`, reset: () => setSearch("") });
     return filters;
-  }, [statusFilter, categoryFilter, pricingFilter, translationFilter, healthFilter, search, categories]);
+  }, [statusFilter, categoryFilter, pricingFilter, trialFilter, translationFilter, healthFilter, search, categories]);
 
   const clearAllFilters = () => {
     setStatusFilter("all"); setCategoryFilter("all"); setPricingFilter("all");
