@@ -21,6 +21,9 @@ interface ToolCardProps {
   isAiRecommended?: boolean;
   aiScore?: number;
   variant?: "grid" | "list";
+  hasFreeTrial?: boolean;
+  trialDays?: number | null;
+  requiresCard?: boolean | null;
 }
 
 const pricingLabel: Record<string, string> = {
