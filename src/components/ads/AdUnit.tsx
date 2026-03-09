@@ -7,10 +7,12 @@ interface AdsConfig {
   client_id: string;
   slots: Record<string, {
     enabled: boolean;
-    mode: "adsense" | "custom";
+    mode: "adsense" | "custom" | "image";
     slot_id: string;
     format: string;
     custom_code: string;
+    image_url: string;
+    link_url: string;
   }>;
 }
 
@@ -88,6 +90,26 @@ export function AdUnit({ slotId, format: formatOverride, className }: AdUnitProp
   if (!isActive) return null;
 
   const adFormat = formatOverride || slot?.format || "auto";
+
+  if (slot?.mode === "image" && slot.image_url) {
+    const img = (
+      <img
+        src={slot.image_url}
+        alt="Advertisement"
+        className="w-full h-auto rounded"
+        loading="lazy"
+      />
+    );
+    return (
+      <div className={className} data-ad-slot={slotId}>
+        {slot.link_url ? (
+          <a href={slot.link_url} target="_blank" rel="noopener noreferrer nofollow">
+            {img}
+          </a>
+        ) : img}
+      </div>
+    );
+  }
 
   if (slot?.mode === "custom" && slot.custom_code) {
     return (

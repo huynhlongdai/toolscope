@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Megaphone, Eye, EyeOff, Code, Monitor, X } from "lucide-react";
+import { Save, Megaphone, Eye, EyeOff, Code, Monitor, ImageIcon } from "lucide-react";
+import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 
 const AD_SLOTS = [
   { id: "hero_below", label: "Dưới Hero (Trang chủ)", page: "Index", defaultFormat: "horizontal" },
@@ -24,10 +25,12 @@ const AD_SLOTS = [
 
 interface SlotConfig {
   enabled: boolean;
-  mode: "adsense" | "custom";
+  mode: "adsense" | "custom" | "image";
   slot_id: string;
   format: string;
   custom_code: string;
+  image_url: string;
+  link_url: string;
 }
 
 interface AdsConfig {
@@ -42,6 +45,8 @@ const DEFAULT_SLOT: SlotConfig = {
   slot_id: "",
   format: "auto",
   custom_code: "",
+  image_url: "",
+  link_url: "",
 };
 function AdPreviewPanel({ slot, clientId, slotDef }: { slot: SlotConfig; clientId: string; slotDef: typeof AD_SLOTS[0] }) {
   const previewRef = useRef<HTMLDivElement>(null);
@@ -50,8 +55,11 @@ function AdPreviewPanel({ slot, clientId, slotDef }: { slot: SlotConfig; clientI
     if (!previewRef.current) return;
     const container = previewRef.current;
 
-    if (slot.mode === "custom" && slot.custom_code) {
-      // Render custom HTML (scripts are NOT executed in preview for safety)
+    if (slot.mode === "image" && slot.image_url) {
+      const linkStart = slot.link_url ? `<a href="${slot.link_url}" target="_blank" rel="noopener noreferrer">` : "";
+      const linkEnd = slot.link_url ? "</a>" : "";
+      container.innerHTML = `${linkStart}<img src="${slot.image_url}" alt="Ad preview" style="width:100%;height:auto;border-radius:6px;" />${linkEnd}`;
+    } else if (slot.mode === "custom" && slot.custom_code) {
       const sanitized = slot.custom_code.replace(/<script[\s\S]*?<\/script>/gi, (match) =>
         `<div class="rounded bg-muted/50 border border-dashed border-border p-2 text-[10px] font-mono text-muted-foreground">[Script] ${match.length} chars</div>`
       );
@@ -252,6 +260,7 @@ export function AdsSettingsTab() {
                           <SelectContent>
                             <SelectItem value="adsense">Google AdSense</SelectItem>
                             <SelectItem value="custom">Custom Script</SelectItem>
+                            <SelectItem value="image">Hình ảnh (Upload)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -302,6 +311,30 @@ export function AdsSettingsTab() {
                         <p className="text-[10px] text-muted-foreground">
                           Dán mã HTML/JS từ mạng quảng cáo bất kỳ (MGID, PropellerAds, affiliate banner, v.v.)
                         </p>
+                      </div>
+                    )}
+
+                    {slot.mode === "image" && (
+                      <div className="space-y-3">
+                        <CoverImageUpload
+                          value={slot.image_url || ""}
+                          onChange={(url) => updateSlot(adSlot.id, { image_url: url })}
+                          label="Ảnh banner quảng cáo"
+                        />
+                        <div className="space-y-1.5">
+                          <Label className="text-xs flex items-center gap-1.5">
+                            <ImageIcon className="h-3 w-3" /> Link đích (tùy chọn)
+                          </Label>
+                          <Input
+                            value={slot.link_url || ""}
+                            onChange={(e) => updateSlot(adSlot.id, { link_url: e.target.value })}
+                            placeholder="https://example.com/landing-page"
+                            className="h-8 text-xs"
+                          />
+                          <p className="text-[10px] text-muted-foreground">
+                            Khi người dùng nhấp vào ảnh sẽ mở link này trong tab mới
+                          </p>
+                        </div>
                       </div>
                     )}
 
