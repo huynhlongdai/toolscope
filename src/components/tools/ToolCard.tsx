@@ -3,6 +3,7 @@ import { Star, ExternalLink, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getToolLogoUrl } from "@/lib/favicon";
+import { cn } from "@/lib/utils";
 
 interface ToolCardProps {
   id: string;
@@ -19,6 +20,7 @@ interface ToolCardProps {
   isTrending?: boolean;
   isAiRecommended?: boolean;
   aiScore?: number;
+  variant?: "grid" | "list";
 }
 
 const pricingLabel: Record<string, string> = {
@@ -50,7 +52,82 @@ export function ToolCard({
   isTrending,
   isAiRecommended,
   aiScore,
+  variant = "grid",
 }: ToolCardProps) {
+  const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
+
+  const logoEl = (
+    <div className={cn(
+      "flex shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground",
+      variant === "list" ? "h-10 w-10" : "h-12 w-12"
+    )}>
+      {resolvedLogo ? (
+        <img src={resolvedLogo} alt={name} className="h-full w-full rounded-xl object-cover" />
+      ) : (
+        name.charAt(0).toUpperCase()
+      )}
+    </div>
+  );
+
+  const pricingBadge = (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${pricingColor[pricingType] || pricingColor.contact}`}>
+      {pricingLabel[pricingType] || pricingType}
+    </span>
+  );
+
+  const ratingEl = ratingCount > 0 && (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+      {avgRating.toFixed(1)}
+      <span className="text-[10px]">({ratingCount})</span>
+    </span>
+  );
+
+  const aiEl = aiScore != null && aiScore > 0 && (
+    <span className="flex items-center gap-1 text-xs font-medium text-primary">
+      AI {aiScore.toFixed(1)}
+    </span>
+  );
+
+  if (variant === "list") {
+    return (
+      <Link to={`/tool/${slug}`}>
+        <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-primary/20">
+          <CardContent className="flex items-center gap-4 p-3 sm:p-4">
+            {logoEl}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                  {name}
+                </h3>
+                {isTrending && <TrendingUp className="h-3.5 w-3.5 text-accent shrink-0" />}
+                {isAiRecommended && (
+                  <Badge className="bg-primary/90 text-primary-foreground text-[10px] px-1.5 py-0">
+                    ⚡ AI
+                  </Badge>
+                )}
+              </div>
+              {shortDescription && (
+                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                  {shortDescription}
+                </p>
+              )}
+            </div>
+            <div className="hidden sm:flex items-center gap-3 shrink-0">
+              {categoryName && (
+                <span className="text-xs text-muted-foreground">{categoryName}</span>
+              )}
+              {pricingBadge}
+              {ratingEl}
+              {aiEl}
+            </div>
+            <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 shrink-0" />
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  }
+
   return (
     <Link to={`/tool/${slug}`}>
       <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20">
@@ -63,16 +140,7 @@ export function ToolCard({
         )}
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground">
-              {(() => {
-                const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
-                return resolvedLogo ? (
-                  <img src={resolvedLogo} alt={name} className="h-full w-full rounded-xl object-cover" />
-                ) : (
-                  name.charAt(0).toUpperCase()
-                );
-              })()}
-            </div>
+            {logoEl}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
@@ -89,21 +157,9 @@ export function ToolCard({
                 {categoryName && (
                   <span className="text-xs text-muted-foreground">{categoryName}</span>
                 )}
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${pricingColor[pricingType] || pricingColor.contact}`}>
-                  {pricingLabel[pricingType] || pricingType}
-                </span>
-                {ratingCount > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                    {avgRating.toFixed(1)}
-                    <span className="text-[10px]">({ratingCount})</span>
-                  </span>
-                )}
-                {aiScore != null && aiScore > 0 && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-primary">
-                    AI {aiScore.toFixed(1)}
-                  </span>
-                )}
+                {pricingBadge}
+                {ratingEl}
+                {aiEl}
               </div>
             </div>
             <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 shrink-0 mt-1" />
