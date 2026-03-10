@@ -144,6 +144,7 @@ function AppRoutes() {
         <Route path="/admin/translations" element={<AdminTranslations />} />
         <Route path="/admin/backup" element={<AdminBackup />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
+        <Route path="/admin/sync" element={<AdminSync />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AnalyticsProvider />

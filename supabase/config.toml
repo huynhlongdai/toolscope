@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.bulk-collect-tools]
 verify_jwt = false
+
+[functions.sync-database]
+verify_jwt = false
