@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.sync-database]
 verify_jwt = false
+
+[functions.setup-external-db]
+verify_jwt = false
