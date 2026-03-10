@@ -465,6 +465,12 @@ const ProfilePage = () => {
                     <CollectionsTab userId={profileId!} />
                   </TabsContent>
                 )}
+
+                {isOwnProfile && (
+                  <TabsContent value="notifications" className="mt-4">
+                    <NotificationSettings />
+                  </TabsContent>
+                )}
               </Tabs>
             </>
           ) : (
