@@ -52,6 +52,7 @@ import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminTranslations from "./pages/admin/AdminTranslations";
 import AdminBackup from "./pages/admin/AdminBackup";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSync from "./pages/admin/AdminSync";
 import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 import { useModules } from "./hooks/useModules";
@@ -143,6 +144,7 @@ function AppRoutes() {
         <Route path="/admin/translations" element={<AdminTranslations />} />
         <Route path="/admin/backup" element={<AdminBackup />} />
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
+        <Route path="/admin/sync" element={<AdminSync />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AnalyticsProvider />
