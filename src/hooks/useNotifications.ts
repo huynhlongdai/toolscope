@@ -72,5 +72,5 @@ export function useNotifications() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] }),
   });
 
-  return { notifications: notifications || [], unreadCount, isLoading, markAsRead: markAsRead.mutate, markAllAsRead: markAllAsRead.mutate };
+  return { notifications: filteredNotifications, unreadCount, isLoading, markAsRead: markAsRead.mutate, markAllAsRead: markAllAsRead.mutate, preferences };
 }
