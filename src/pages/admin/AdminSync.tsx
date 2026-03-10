@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { RefreshCw, Database, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, XCircle, Loader2, ServerCog } from "lucide-react";
+import { RefreshCw, Database, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, XCircle, Loader2, ServerCog, Timer, Zap } from "lucide-react";
 import { format } from "date-fns";
 
 const SYNCABLE_TABLES = [
@@ -33,9 +34,22 @@ const SYNCABLE_TABLES = [
   { id: "user_roles", label: "User Roles", description: "Phân quyền" },
 ];
 
+const INTERVAL_OPTIONS = [
+  { value: "*/5 * * * *", label: "Mỗi 5 phút" },
+  { value: "*/15 * * * *", label: "Mỗi 15 phút" },
+  { value: "*/30 * * * *", label: "Mỗi 30 phút" },
+  { value: "0 * * * *", label: "Mỗi 1 giờ" },
+];
+
 interface SetupResult {
   table: string;
   status: string;
+}
+
+interface AutoSyncConfig {
+  enabled: boolean;
+  interval?: string;
+  updated_at?: string;
 }
 
 export default function AdminSync() {
@@ -57,12 +71,45 @@ export default function AdminSync() {
     },
   });
 
-  // Setup external DB mutation
+  const { data: autoSyncConfig, isLoading: configLoading } = useQuery({
+    queryKey: ["auto-sync-config"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "auto_sync_config")
+        .maybeSingle();
+      return (data?.value as AutoSyncConfig | null) ?? { enabled: false };
+    },
+  });
+
+  const autoSyncEnabled = autoSyncConfig?.enabled ?? false;
+  const autoSyncInterval = autoSyncConfig?.interval ?? "*/5 * * * *";
+
+  const callSyncFunction = async (body: any) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Chưa đăng nhập");
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const res = await fetch(
+      `https://${projectId}.supabase.co/functions/v1/sync-database`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Request failed");
+    return result;
+  };
+
   const setupMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Chưa đăng nhập");
-
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/setup-external-db`,
@@ -92,26 +139,7 @@ export default function AdminSync() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Chưa đăng nhập");
-
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/sync-database`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ direction, tables: selectedTables }),
-        }
-      );
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Sync failed");
-      return result;
-    },
+    mutationFn: async () => callSyncFunction({ direction, tables: selectedTables }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["sync-logs"] });
       toast({
@@ -121,6 +149,38 @@ export default function AdminSync() {
     },
     onError: (err: Error) => {
       toast({ title: "Lỗi đồng bộ", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const toggleAutoSyncMutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      return callSyncFunction({
+        action: enable ? "enable_auto" : "disable_auto",
+        interval: autoSyncInterval,
+      });
+    },
+    onSuccess: (_, enable) => {
+      queryClient.invalidateQueries({ queryKey: ["auto-sync-config"] });
+      toast({
+        title: enable ? "Đã bật đồng bộ tự động" : "Đã tắt đồng bộ tự động",
+        description: enable ? `Hệ thống sẽ tự đồng bộ theo lịch` : "Đồng bộ tự động đã dừng",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateIntervalMutation = useMutation({
+    mutationFn: async (interval: string) => {
+      return callSyncFunction({ action: "update_interval", interval });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auto-sync-config"] });
+      toast({ title: "Đã cập nhật tần suất" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Lỗi", description: err.message, variant: "destructive" });
     },
   });
 
@@ -161,6 +221,8 @@ export default function AdminSync() {
     }
   };
 
+  const lastAutoSync = syncLogs?.find((l: any) => l.direction === "both" && l.status === "completed");
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -170,6 +232,88 @@ export default function AdminSync() {
             Đồng bộ dữ liệu giữa Lovable Cloud và Supabase bên ngoài
           </p>
         </div>
+
+        {/* Auto Sync Card */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Đồng bộ tự động
+            </CardTitle>
+            <CardDescription>
+              Tự động đồng bộ hai chiều theo lịch. Chỉ sync dữ liệu thay đổi kể từ lần sync gần nhất.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label className="text-base">Bật đồng bộ tự động</Label>
+                <p className="text-sm text-muted-foreground">
+                  {autoSyncEnabled
+                    ? "Hệ thống đang tự động đồng bộ"
+                    : "Bật để hệ thống tự đồng bộ theo lịch"}
+                </p>
+              </div>
+              <Switch
+                checked={autoSyncEnabled}
+                onCheckedChange={(checked) => toggleAutoSyncMutation.mutate(checked)}
+                disabled={toggleAutoSyncMutation.isPending || configLoading}
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="space-y-1 flex-1">
+                <Label className="flex items-center gap-1.5">
+                  <Timer className="h-3.5 w-3.5" />
+                  Tần suất
+                </Label>
+                <Select
+                  value={autoSyncInterval}
+                  onValueChange={(val) => {
+                    if (autoSyncEnabled) {
+                      updateIntervalMutation.mutate(val);
+                    }
+                  }}
+                  disabled={!autoSyncEnabled || updateIntervalMutation.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INTERVAL_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1 flex-1">
+                <Label>Trạng thái</Label>
+                <div className="h-10 flex items-center">
+                  {autoSyncEnabled ? (
+                    <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Đang hoạt động
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Đã tắt</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1 flex-1">
+                <Label>Lần sync gần nhất</Label>
+                <div className="h-10 flex items-center text-sm text-muted-foreground">
+                  {lastAutoSync
+                    ? format(new Date(lastAutoSync.started_at), "dd/MM HH:mm")
+                    : "Chưa có"}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Schema Setup Card */}
         <Card className="border-dashed">
@@ -234,10 +378,10 @@ export default function AdminSync() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Chọn bảng đồng bộ
+                Đồng bộ thủ công
               </CardTitle>
               <CardDescription>
-                Chọn các bảng cần đồng bộ. Secrets <code>EXTERNAL_SUPABASE_URL</code> và{" "}
+                Chọn các bảng và hướng đồng bộ. Secrets <code>EXTERNAL_SUPABASE_URL</code> và{" "}
                 <code>EXTERNAL_SUPABASE_SERVICE_KEY</code> cần được cấu hình trước.
               </CardDescription>
             </CardHeader>
