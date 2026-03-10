@@ -416,6 +416,7 @@ const ProfilePage = () => {
                   <TabsTrigger value="activity">{t("profile.tabActivity")}</TabsTrigger>
                   {isOwnProfile && <TabsTrigger value="bookmarks">{t("profile.tabBookmarks")}</TabsTrigger>}
                   {isOwnProfile && <TabsTrigger value="collections">{t("profile.tabCollections")}</TabsTrigger>}
+                  {isOwnProfile && <TabsTrigger value="notifications">Thông báo</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="reviews" className="space-y-3 mt-4">
