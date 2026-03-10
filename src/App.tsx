@@ -52,6 +52,7 @@ import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminTranslations from "./pages/admin/AdminTranslations";
 import AdminBackup from "./pages/admin/AdminBackup";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminSync from "./pages/admin/AdminSync";
 import SubmitToolPage from "./pages/SubmitToolPage";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 import { useModules } from "./hooks/useModules";
