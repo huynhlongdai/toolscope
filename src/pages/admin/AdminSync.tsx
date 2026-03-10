@@ -3,15 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { RefreshCw, Database, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { RefreshCw, Database, ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, XCircle, Loader2, ServerCog } from "lucide-react";
 import { format } from "date-fns";
 
 const SYNCABLE_TABLES = [
@@ -34,12 +33,17 @@ const SYNCABLE_TABLES = [
   { id: "user_roles", label: "User Roles", description: "Phân quyền" },
 ];
 
+interface SetupResult {
+  table: string;
+  status: string;
+}
+
 export default function AdminSync() {
   const queryClient = useQueryClient();
   const [selectedTables, setSelectedTables] = useState<string[]>(SYNCABLE_TABLES.map((t) => t.id));
   const [direction, setDirection] = useState<"push" | "pull" | "both">("push");
+  const [setupResults, setSetupResults] = useState<SetupResult[] | null>(null);
 
-  // Fetch sync logs
   const { data: syncLogs, isLoading: logsLoading } = useQuery({
     queryKey: ["sync-logs"],
     queryFn: async () => {
@@ -53,7 +57,40 @@ export default function AdminSync() {
     },
   });
 
-  // Run sync mutation
+  // Setup external DB mutation
+  const setupMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Chưa đăng nhập");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/setup-external-db`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Setup failed");
+      return result;
+    },
+    onSuccess: (data) => {
+      setSetupResults(data.tables);
+      toast({
+        title: data.success ? "Khởi tạo thành công!" : "Khởi tạo có lỗi",
+        description: `${data.tables?.filter((t: SetupResult) => t.status === "ok").length || 0} bảng đã sẵn sàng`,
+        variant: data.success ? "default" : "destructive",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Lỗi khởi tạo", description: err.message, variant: "destructive" });
+    },
+  });
+
   const syncMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -133,6 +170,63 @@ export default function AdminSync() {
             Đồng bộ dữ liệu giữa Lovable Cloud và Supabase bên ngoài
           </p>
         </div>
+
+        {/* Schema Setup Card */}
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ServerCog className="h-5 w-5" />
+              Khởi tạo Schema bên ngoài
+            </CardTitle>
+            <CardDescription>
+              Tạo tất cả enum types và bảng trên Supabase bên ngoài. Cần cấu hình secret{" "}
+              <code>EXTERNAL_SUPABASE_DB_URL</code> (PostgreSQL connection string).
+              Chạy lần đầu hoặc khi thêm bảng mới.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={() => setupMutation.mutate()}
+              disabled={setupMutation.isPending}
+              variant="outline"
+              size="lg"
+            >
+              {setupMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang khởi tạo...
+                </>
+              ) : (
+                <>
+                  <ServerCog className="h-4 w-4" />
+                  Khởi tạo Database
+                </>
+              )}
+            </Button>
+
+            {setupResults && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                {setupResults.map((r) => (
+                  <div
+                    key={r.table}
+                    className={`flex items-center gap-2 p-2 rounded-md text-sm ${
+                      r.status === "ok"
+                        ? "bg-green-500/10 text-green-700"
+                        : "bg-red-500/10 text-red-700"
+                    }`}
+                  >
+                    {r.status === "ok" ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    {r.table}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Sync Configuration */}
         <div className="grid gap-6 lg:grid-cols-3">
