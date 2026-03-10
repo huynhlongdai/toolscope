@@ -1081,6 +1081,56 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          notify_comments: boolean
+          notify_deals: boolean
+          notify_follows: boolean
+          notify_launches: boolean
+          notify_new_tools: boolean
+          notify_reviews: boolean
+          notify_system: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notify_comments?: boolean
+          notify_deals?: boolean
+          notify_follows?: boolean
+          notify_launches?: boolean
+          notify_new_tools?: boolean
+          notify_reviews?: boolean
+          notify_system?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notify_comments?: boolean
+          notify_deals?: boolean
+          notify_follows?: boolean
+          notify_launches?: boolean
+          notify_new_tools?: boolean
+          notify_reviews?: boolean
+          notify_system?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
