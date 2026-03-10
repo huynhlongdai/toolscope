@@ -79,7 +79,7 @@ export default function AdminSync() {
         .select("value")
         .eq("key", "auto_sync_config")
         .maybeSingle();
-      return (data?.value as AutoSyncConfig | null) ?? { enabled: false };
+      return (data?.value as unknown as AutoSyncConfig | null) ?? { enabled: false };
     },
   });
 

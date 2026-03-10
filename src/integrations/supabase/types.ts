@@ -2354,6 +2354,16 @@ export type Database = {
         Returns: boolean
       }
       increment_deal_click: { Args: { deal_id: string }; Returns: undefined }
+      schedule_auto_sync: {
+        Args: {
+          cron_expr: string
+          fn_url: string
+          job_name: string
+          svc_key: string
+        }
+        Returns: undefined
+      }
+      unschedule_cron_job: { Args: { job_name: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "editor" | "user"
