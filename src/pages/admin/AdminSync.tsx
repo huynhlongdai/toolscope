@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, getActiveDb, getExternalConfig, switchDatabase, type ActiveDb } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
+import { getActiveDb, getExternalConfig, switchDatabase, type ActiveDb } from "@/lib/database";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
