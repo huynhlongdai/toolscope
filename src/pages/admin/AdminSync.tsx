@@ -60,6 +60,11 @@ export default function AdminSync() {
   const [direction, setDirection] = useState<"push" | "pull" | "both">("push");
   const [setupResults, setSetupResults] = useState<SetupResult[] | null>(null);
 
+  // Database config state
+  const [activeDb, setActiveDb] = useState<ActiveDb>(getActiveDb());
+  const [extUrl, setExtUrl] = useState(getExternalConfig().url);
+  const [extKey, setExtKey] = useState(getExternalConfig().key);
+
   const { data: syncLogs, isLoading: logsLoading } = useQuery({
     queryKey: ["sync-logs"],
     queryFn: async () => {
