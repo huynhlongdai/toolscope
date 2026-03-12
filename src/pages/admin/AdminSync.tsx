@@ -240,6 +240,104 @@ export default function AdminSync() {
           </p>
         </div>
 
+        {/* Database Config Card */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              Cấu hình Database
+            </CardTitle>
+            <CardDescription>
+              Chọn database chính cho ứng dụng. Khi chuyển đổi, trang sẽ tải lại và bạn cần đăng nhập lại.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium">Đang sử dụng:</span>
+              {activeDb === "local" ? (
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <HardDrive className="h-3 w-3 mr-1" /> Local (Lovable Cloud)
+                </Badge>
+              ) : (
+                <Badge className="bg-accent/50 text-accent-foreground border-accent/30">
+                  <Globe className="h-3 w-3 mr-1" /> External (Supabase Online)
+                </Badge>
+              )}
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label
+                className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  activeDb === "local" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"
+                }`}
+                onClick={() => setActiveDb("local")}
+              >
+                <HardDrive className={`h-5 w-5 ${activeDb === "local" ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <div className="font-medium">Local (Lovable Cloud)</div>
+                  <div className="text-xs text-muted-foreground">Database mặc định, tích hợp sẵn</div>
+                </div>
+              </label>
+              <label
+                className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  activeDb === "external" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"
+                }`}
+                onClick={() => setActiveDb("external")}
+              >
+                <Globe className={`h-5 w-5 ${activeDb === "external" ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                  <div className="font-medium">External (Supabase Online)</div>
+                  <div className="text-xs text-muted-foreground">Supabase project bên ngoài</div>
+                </div>
+              </label>
+            </div>
+
+            {activeDb === "external" && (
+              <div className="space-y-3 p-4 rounded-lg border bg-card">
+                <div className="space-y-1.5">
+                  <Label htmlFor="ext-url">Supabase URL</Label>
+                  <Input
+                    id="ext-url"
+                    placeholder="https://xxxxx.supabase.co"
+                    value={extUrl}
+                    onChange={(e) => setExtUrl(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ext-key">Anon Key (Publishable)</Label>
+                  <Input
+                    id="ext-key"
+                    placeholder="eyJhbGciOiJIUzI1NiIs..."
+                    value={extKey}
+                    onChange={(e) => setExtKey(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              onClick={() => {
+                if (activeDb === "external" && (!extUrl || !extKey)) {
+                  toast({ title: "Thiếu thông tin", description: "Vui lòng nhập URL và Anon Key", variant: "destructive" });
+                  return;
+                }
+                // Save to site_settings for persistence
+                supabase.from("site_settings").upsert({
+                  key: "active_database_config",
+                  value: { mode: activeDb, url: extUrl, key: extKey } as any,
+                  updated_at: new Date().toISOString(),
+                }).then(() => {
+                  switchDatabase(activeDb, extUrl, extKey);
+                });
+              }}
+              disabled={activeDb === getActiveDb() && activeDb === "local"}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Lưu & Chuyển đổi
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Auto Sync Card */}
         <Card className="border-primary/20">
           <CardHeader>
