@@ -3,12 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { SEOHead } from "@/components/seo/SEOHead";
 import { Home } from "lucide-react";
 import { G2GridChart } from "@/components/category/G2GridChart";
 import { CategoryFilters, type SortOption, type PricingFilter, type ViewMode } from "@/components/category/CategoryFilters";
@@ -160,18 +158,13 @@ export default function CategoryPage() {
   } : null;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {category && (
-        <SEOHead
-          title={`${category.name} — ${t("tools.title")} | ToolScope`}
-          description={category.description || `${t("categories.title")} ${category.name}`}
-        />
-      )}
+    <PageLayout
+      title={category ? `${category.name} — ${t("tools.title")} | ToolScope` : undefined}
+      description={category ? (category.description || `${t("categories.title")} ${category.name}`) : undefined}
+    >
       {breadcrumbJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       )}
-      <Header />
-      <main className="flex-1">
         <div className="container py-8">
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
@@ -314,8 +307,6 @@ export default function CategoryPage() {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-    </div>
+    </PageLayout>
   );
 }

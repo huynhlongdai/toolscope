@@ -1,8 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { useI18n } from "@/lib/i18n";
 
 interface Block { type: string; data: any; }
@@ -30,21 +30,17 @@ export default function DynamicPage() {
 
   useEffect(() => { if (page) document.title = page.seo_title || page.title; }, [page]);
 
-  if (isLoading) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container py-8"><Skeleton className="h-64" /></main><Footer /></div>);
+  if (isLoading) return (<PageLayout><div className="container py-8"><Skeleton className="h-64" /></div></PageLayout>);
 
-  if (!page) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container py-16 text-center"><p className="text-xl text-muted-foreground">{t("dynamicPage.notFound")}</p><Link to="/" className="mt-4 inline-block text-primary hover:underline">{t("dynamicPage.backHome")}</Link></main><Footer /></div>);
+  if (!page) return (<PageLayout><div className="container py-16 text-center"><p className="text-xl text-muted-foreground">{t("dynamicPage.notFound")}</p><Link to="/" className="mt-4 inline-block text-primary hover:underline">{t("dynamicPage.backHome")}</Link></div></PageLayout>);
 
   const blocks: Block[] = (page.blocks as any) ?? [];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
+    <PageLayout>
         {blocks.map((block, idx) => (<BlockRenderer key={idx} block={block} />))}
         {blocks.length === 0 && (<div className="container py-16 text-center text-muted-foreground">{t("dynamicPage.noContent")}</div>)}
-      </main>
-      <Footer />
-    </div>
+    </PageLayout>
   );
 }
 
@@ -87,7 +83,7 @@ function BlockRenderer({ block }: { block: Block }) {
 
   switch (block.type) {
     case "hero": return (<section className="py-20 bg-gradient-to-br from-primary/5 to-primary/10"><div className="container text-center space-y-4"><h1 className="text-4xl font-bold md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.title}</h1>{d.subtitle && <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{d.subtitle}</p>}{d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}</div></section>);
-    case "text": return (<section className="py-12"><div className="container max-w-3xl prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: d.content }} /></section>);
+    case "text": return (<section className="py-12"><div className="container max-w-3xl prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(d.content) }} /></section>);
     case "image": return (<section className="py-8"><div className="container max-w-4xl"><img src={d.src} alt={d.alt} className="w-full rounded-xl" />{d.caption && <p className="text-sm text-muted-foreground text-center mt-2">{d.caption}</p>}</div></section>);
     case "cta": return (<section className="py-16 bg-primary/5"><div className="container text-center space-y-4"><h2 className="text-3xl font-bold">{d.title}</h2>{d.description && <p className="text-muted-foreground">{d.description}</p>}{d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}</div></section>);
     case "features": return (<section className="py-16"><div className="container">{d.title && <h2 className="text-3xl font-bold text-center mb-8">{d.title}</h2>}<div className="grid gap-6 md:grid-cols-3">{(d.items ?? []).map((item: any, i: number) => (<Card key={i}><CardContent className="pt-6 text-center space-y-2"><span className="text-3xl">{item.icon}</span><h3 className="font-semibold">{item.title}</h3><p className="text-sm text-muted-foreground">{item.description}</p></CardContent></Card>))}</div></div></section>);

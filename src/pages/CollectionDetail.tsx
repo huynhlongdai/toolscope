@@ -4,8 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,14 +35,13 @@ export default function CollectionDetail() {
 
   const isOwner = user?.id === collection?.user_id;
 
-  if (isLoading) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container py-8"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-64 rounded-xl" /></main><Footer /></div>);
+  if (isLoading) return (<PageLayout><div className="container py-8"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-64 rounded-xl" /></div></PageLayout>);
 
-  if (!collection) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container py-16 text-center"><p className="text-xl text-muted-foreground">{t("collectionDetail.notFound")}</p><Link to="/collections" className="mt-4 inline-block text-primary hover:underline">← {t("common.back")}</Link></main><Footer /></div>);
+  if (!collection) return (<PageLayout><div className="container py-16 text-center"><p className="text-xl text-muted-foreground">{t("collectionDetail.notFound")}</p><Link to="/collections" className="mt-4 inline-block text-primary hover:underline">← {t("common.back")}</Link></div></PageLayout>);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-8">
+    <PageLayout>
+      <div className="container py-8">
         <Link to="/collections" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" /> {t("collectionDetail.backToList")}
         </Link>
@@ -66,9 +64,8 @@ export default function CollectionDetail() {
             })}
           </div>
         )}
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 }
 

@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import { Search, TrendingUp, AlertTriangle, Plus, Trash2, Edit, BarChart3, Zap, Bot, Sparkles, Download } from "lucide-react";
 import { toast } from "sonner";
-import { useToast } from "@/hooks/use-toast";
 import { format, subDays, startOfDay } from "date-fns";
 
 function useSearchLogs() {
@@ -213,7 +212,6 @@ function ZeroResultsTable({ logs }: { logs: any[] }) {
 function AutoRuleSettings() {
   const { data: settings, isLoading } = useAutoRuleSettings();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [threshold, setThreshold] = useState<string>("");
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -224,9 +222,9 @@ function AutoRuleSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auto-rule-settings"] });
-      toast({ title: "Đã lưu cài đặt" });
+      toast.success("Đã lưu cài đặt");
     },
-    onError: (e: any) => toast({ variant: "destructive", title: "Lỗi", description: e.message }),
+    onError: (e: any) => toast.error("Lỗi", { description: e.message }),
   });
 
   const handleAnalyze = async () => {
@@ -236,12 +234,9 @@ function AutoRuleSettings() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       queryClient.invalidateQueries({ queryKey: ["admin-search-rules"] });
-      toast({
-        title: "Phân tích hoàn tất",
-        description: `Đã tạo ${data.rules_created} rule mới từ ${data.clusters_found || 0} nhóm từ khóa.`,
-      });
+      toast.success("Phân tích hoàn tất", { description: `Đã tạo ${data.rules_created} rule mới từ ${data.clusters_found || 0} nhóm từ khóa.` });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Lỗi phân tích", description: e.message });
+      toast.error("Lỗi phân tích", { description: e.message });
     } finally {
       setAnalyzing(false);
     }
@@ -296,7 +291,6 @@ function AutoRuleSettings() {
 function RulesManager() {
   const { data: rules = [], isLoading } = useSearchRules();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [editRule, setEditRule] = useState<any>(null);
   const [form, setForm] = useState({ keyword_pattern: "", match_type: "contains", pinned_tool_ids: "", redirect_url: "", is_active: true });
@@ -322,9 +316,9 @@ function RulesManager() {
       queryClient.invalidateQueries({ queryKey: ["admin-search-rules"] });
       setOpen(false);
       setEditRule(null);
-      toast({ title: "Đã lưu rule" });
+      toast.success("Đã lưu rule");
     },
-    onError: (e: any) => toast({ variant: "destructive", title: "Lỗi", description: e.message }),
+    onError: (e: any) => toast.error("Lỗi", { description: e.message }),
   });
 
   const deleteMutation = useMutation({
@@ -334,7 +328,7 @@ function RulesManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-search-rules"] });
-      toast({ title: "Đã xóa rule" });
+      toast.success("Đã xóa rule");
     },
   });
 

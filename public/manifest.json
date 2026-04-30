@@ -1,0 +1,24 @@
+{
+  "name": "ToolScope - Khám phá & Review công cụ tốt nhất",
+  "short_name": "ToolScope",
+  "description": "Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn với AI.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"]
+}

@@ -20,4 +20,20 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs", "@radix-ui/react-select", "@radix-ui/react-popover", "@radix-ui/react-tooltip"],
+          "vendor-query": ["@tanstack/react-query"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-recharts": ["recharts"],
+          "vendor-tiptap": ["@tiptap/react", "@tiptap/starter-kit"],
+          "vendor-sanitize": ["dompurify"],
+          "vendor-icons": ["lucide-react"],
+        },
+      },
+    },
+  },
 }));

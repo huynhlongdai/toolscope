@@ -5,9 +5,7 @@ import { vi as viLocale } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +14,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ThumbsUp, Rocket, Plus, Calendar, Star, ExternalLink, Bell, FlaskConical, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { SEOHead } from "@/components/seo/SEOHead";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { getToolLogoUrl } from "@/lib/favicon";
@@ -187,10 +184,7 @@ export default function LaunchesPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${t("launches.title")} - ToolScope`} description={t("launches.seoDesc")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${t("launches.title")} - ToolScope`} description={t("launches.seoDesc")}>
         <div className="container py-8">
           <div className="mb-8 flex items-start justify-between">
             <div>
@@ -235,9 +229,6 @@ export default function LaunchesPage() {
             </Tabs>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

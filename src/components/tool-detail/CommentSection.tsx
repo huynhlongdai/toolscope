@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { VoteButtons } from "./VoteButtons";
 import { MessageCircle, Reply, Flag, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,7 +17,6 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ toolId, userId }: CommentSectionProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -36,8 +35,8 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
       reporter_id: userId, target_type: "comment", target_id: reportTarget,
       reason: reportReason, details: reportDetails || null,
     });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Đã gửi báo cáo" });
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
+    toast.success("Đã gửi báo cáo");
     setReportTarget(null); setReportDetails("");
   };
 
@@ -87,16 +86,16 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
   });
 
   const submitComment = async (parentId?: string) => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
     const text = parentId ? replyText.trim() : commentText.trim();
     if (!text) return;
     const { error } = await supabase.from("comments").insert({
       tool_id: toolId, user_id: userId, content: text, parent_id: parentId || null,
     });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
     if (parentId) { setReplyText(""); setReplyTo(null); }
     else { setCommentText(""); }
-    toast({ title: "Đã gửi bình luận!" });
+    toast.success("Đã gửi bình luận!");
     queryClient.invalidateQueries({ queryKey: ["tool-comments", toolId] });
     queryClient.invalidateQueries({ queryKey: ["tool-comment-replies", toolId] });
     queryClient.invalidateQueries({ queryKey: ["tool-comments-count", toolId] });
@@ -105,8 +104,8 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
   const updateComment = async (commentId: string) => {
     if (!editText.trim()) return;
     const { error } = await supabase.from("comments").update({ content: editText.trim() }).eq("id", commentId);
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Đã cập nhật!" });
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
+    toast.success("Đã cập nhật!");
     setEditingComment(null); setEditText("");
     queryClient.invalidateQueries({ queryKey: ["tool-comments", toolId] });
     queryClient.invalidateQueries({ queryKey: ["tool-comment-replies", toolId] });
@@ -115,8 +114,8 @@ export function CommentSection({ toolId, userId }: CommentSectionProps) {
   const deleteComment = async (commentId: string) => {
     if (!confirm("Xóa bình luận này?")) return;
     const { error } = await supabase.from("comments").delete().eq("id", commentId);
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Đã xóa!" });
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
+    toast.success("Đã xóa!");
     queryClient.invalidateQueries({ queryKey: ["tool-comments", toolId] });
     queryClient.invalidateQueries({ queryKey: ["tool-comment-replies", toolId] });
     queryClient.invalidateQueries({ queryKey: ["tool-comments-count", toolId] });

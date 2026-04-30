@@ -1,7 +1,4 @@
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,10 +32,7 @@ const WorkflowsPage = () => {
   const { translationsMap } = useTranslatedList("workflow", workflowIds, ["title", "description"], fallbacks);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${t("workflows.title")} - ToolScope`} description={t("workflows.subtitle")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${t("workflows.title")} - ToolScope`} description={t("workflows.subtitle")}>
         <div className="container py-8">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -96,10 +90,7 @@ const WorkflowsPage = () => {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 };
 

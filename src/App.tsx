@@ -1,63 +1,82 @@
-import { Toaster } from "@/components/ui/toaster";
+import { lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
 import { I18nProvider } from "@/lib/i18n";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ToolsPage from "./pages/ToolsPage";
-import ToolDetail from "./pages/ToolDetail";
-import CategoryPage from "./pages/CategoryPage";
-import CategoriesPage from "./pages/CategoriesPage";
-import NotFound from "./pages/NotFound";
-import BlogPage from "./pages/BlogPage";
-import BlogDetail from "./pages/BlogDetail";
-import ComparePage from "./pages/ComparePage";
-import CollectionsPage from "./pages/CollectionsPage";
-import CollectionDetail from "./pages/CollectionDetail";
-import TrendingPage from "./pages/TrendingPage";
-import ProfilePage from "./pages/ProfilePage";
-import BookmarksPage from "./pages/BookmarksPage";
-import WorkflowsPage from "./pages/WorkflowsPage";
-import WorkflowDetail from "./pages/WorkflowDetail";
-import { AIChatWidget } from "./components/chat/AIChatWidget";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminTools from "./pages/admin/AdminTools";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminReviews from "./pages/admin/AdminReviews";
-import AdminModeration from "./pages/admin/AdminModeration";
-import AdminBlog from "./pages/admin/AdminBlog";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminMenus from "./pages/admin/AdminMenus";
-import AdminPages from "./pages/admin/AdminPages";
-import AdminPageEditor from "./pages/admin/AdminPageEditor";
-import AdminCollectAI from "./pages/admin/AdminCollectAI";
-import AdminWorkflows from "./pages/admin/AdminWorkflows";
-import AdminSearchAnalytics from "./pages/admin/AdminSearchAnalytics";
-import AdminDeals from "./pages/admin/AdminDeals";
-import AdminLaunches from "./pages/admin/AdminLaunches";
-import AdminTasks from "./pages/admin/AdminTasks";
-import DynamicPage from "./pages/DynamicPage";
-import LeaderboardPage from "./pages/LeaderboardPage";
-import DealsPage from "./pages/DealsPage";
-import TasksPage from "./pages/TasksPage";
-import LaunchesPage from "./pages/LaunchesPage";
-import LaunchDetailPage from "./pages/LaunchDetailPage";
-import AdminSettings from "./pages/admin/AdminSettings";
-import AdminReports from "./pages/admin/AdminReports";
-import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
-import AdminNewsletter from "./pages/admin/AdminNewsletter";
-import AdminTranslations from "./pages/admin/AdminTranslations";
-import AdminBackup from "./pages/admin/AdminBackup";
-import AdminAnalytics from "./pages/admin/AdminAnalytics";
-import AdminSync from "./pages/admin/AdminSync";
-import SubmitToolPage from "./pages/SubmitToolPage";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AdminGuard } from "@/components/AdminGuard";
+import { PageSuspense } from "@/components/PageSuspense";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 import { useModules } from "./hooks/useModules";
 
-const queryClient = new QueryClient();
+// ── Lazy-loaded public pages ─────────────────────────────────────────
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ToolsPage = lazy(() => import("./pages/ToolsPage"));
+const ToolDetail = lazy(() => import("./pages/ToolDetail"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage"));
+const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const BlogPage = lazy(() => import("./pages/BlogPage"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail"));
+const ComparePage = lazy(() => import("./pages/ComparePage"));
+const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
+const CollectionDetail = lazy(() => import("./pages/CollectionDetail"));
+const TrendingPage = lazy(() => import("./pages/TrendingPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const BookmarksPage = lazy(() => import("./pages/BookmarksPage"));
+const WorkflowsPage = lazy(() => import("./pages/WorkflowsPage"));
+const WorkflowDetail = lazy(() => import("./pages/WorkflowDetail"));
+const DynamicPage = lazy(() => import("./pages/DynamicPage"));
+const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
+const DealsPage = lazy(() => import("./pages/DealsPage"));
+const TasksPage = lazy(() => import("./pages/TasksPage"));
+const LaunchesPage = lazy(() => import("./pages/LaunchesPage"));
+const LaunchDetailPage = lazy(() => import("./pages/LaunchDetailPage"));
+const SubmitToolPage = lazy(() => import("./pages/SubmitToolPage"));
+
+// ── Lazy-loaded admin pages (separate chunk) ─────────────────────────
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminTools = lazy(() => import("./pages/admin/AdminTools"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
+const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminMenus = lazy(() => import("./pages/admin/AdminMenus"));
+const AdminPages = lazy(() => import("./pages/admin/AdminPages"));
+const AdminPageEditor = lazy(() => import("./pages/admin/AdminPageEditor"));
+const AdminCollectAI = lazy(() => import("./pages/admin/AdminCollectAI"));
+const AdminWorkflows = lazy(() => import("./pages/admin/AdminWorkflows"));
+const AdminSearchAnalytics = lazy(() => import("./pages/admin/AdminSearchAnalytics"));
+const AdminDeals = lazy(() => import("./pages/admin/AdminDeals"));
+const AdminLaunches = lazy(() => import("./pages/admin/AdminLaunches"));
+const AdminTasks = lazy(() => import("./pages/admin/AdminTasks"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminAuditLogs = lazy(() => import("./pages/admin/AdminAuditLogs"));
+const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
+const AdminTranslations = lazy(() => import("./pages/admin/AdminTranslations"));
+const AdminBackup = lazy(() => import("./pages/admin/AdminBackup"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminSync = lazy(() => import("./pages/admin/AdminSync"));
+
+// ── Lazy-loaded heavy components ─────────────────────────────────────
+const AIChatWidget = lazy(() =>
+  import("./components/chat/AIChatWidget").then((m) => ({ default: m.AIChatWidget }))
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 /** Maps module IDs to their public routes */
 const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNode }>> = {
@@ -94,6 +113,11 @@ const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNo
   ],
 };
 
+/** Wraps admin element with auth guard */
+function adminRoute(element: React.ReactNode) {
+  return <AdminGuard>{element}</AdminGuard>;
+}
+
 function AppRoutes() {
   const { isEnabled } = useModules();
 
@@ -120,35 +144,39 @@ function AppRoutes() {
             : routes.map((r) => <Route key={r.path} path={r.path} element={<NotFound />} />)
         )}
 
-        {/* Admin routes (always available) */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/tools" element={<AdminTools />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/reviews" element={<AdminReviews />} />
-        <Route path="/admin/moderation" element={<AdminModeration />} />
-        <Route path="/admin/blog" element={<AdminBlog />} />
-        <Route path="/admin/categories" element={<AdminCategories />} />
-        <Route path="/admin/menus" element={<AdminMenus />} />
-        <Route path="/admin/pages" element={<AdminPages />} />
-        <Route path="/admin/pages/:id" element={<AdminPageEditor />} />
-        <Route path="/admin/collect" element={<AdminCollectAI />} />
-        <Route path="/admin/workflows" element={<AdminWorkflows />} />
-        <Route path="/admin/search-analytics" element={<AdminSearchAnalytics />} />
-        <Route path="/admin/deals" element={<AdminDeals />} />
-        <Route path="/admin/launches" element={<AdminLaunches />} />
-        <Route path="/admin/tasks" element={<AdminTasks />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
-        <Route path="/admin/reports" element={<AdminReports />} />
-        <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-        <Route path="/admin/newsletter" element={<AdminNewsletter />} />
-        <Route path="/admin/translations" element={<AdminTranslations />} />
-        <Route path="/admin/backup" element={<AdminBackup />} />
-        <Route path="/admin/analytics" element={<AdminAnalytics />} />
-        <Route path="/admin/sync" element={<AdminSync />} />
+        {/* Admin routes (guarded) */}
+        <Route path="/admin" element={adminRoute(<AdminDashboard />)} />
+        <Route path="/admin/tools" element={adminRoute(<AdminTools />)} />
+        <Route path="/admin/users" element={adminRoute(<AdminUsers />)} />
+        <Route path="/admin/reviews" element={adminRoute(<AdminReviews />)} />
+        <Route path="/admin/moderation" element={adminRoute(<AdminModeration />)} />
+        <Route path="/admin/blog" element={adminRoute(<AdminBlog />)} />
+        <Route path="/admin/categories" element={adminRoute(<AdminCategories />)} />
+        <Route path="/admin/menus" element={adminRoute(<AdminMenus />)} />
+        <Route path="/admin/pages" element={adminRoute(<AdminPages />)} />
+        <Route path="/admin/pages/:id" element={adminRoute(<AdminPageEditor />)} />
+        <Route path="/admin/collect" element={adminRoute(<AdminCollectAI />)} />
+        <Route path="/admin/workflows" element={adminRoute(<AdminWorkflows />)} />
+        <Route path="/admin/search-analytics" element={adminRoute(<AdminSearchAnalytics />)} />
+        <Route path="/admin/deals" element={adminRoute(<AdminDeals />)} />
+        <Route path="/admin/launches" element={adminRoute(<AdminLaunches />)} />
+        <Route path="/admin/tasks" element={adminRoute(<AdminTasks />)} />
+        <Route path="/admin/settings" element={adminRoute(<AdminSettings />)} />
+        <Route path="/admin/reports" element={adminRoute(<AdminReports />)} />
+        <Route path="/admin/audit-logs" element={adminRoute(<AdminAuditLogs />)} />
+        <Route path="/admin/newsletter" element={adminRoute(<AdminNewsletter />)} />
+        <Route path="/admin/translations" element={adminRoute(<AdminTranslations />)} />
+        <Route path="/admin/backup" element={adminRoute(<AdminBackup />)} />
+        <Route path="/admin/analytics" element={adminRoute(<AdminAnalytics />)} />
+        <Route path="/admin/sync" element={adminRoute(<AdminSync />)} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AnalyticsProvider />
-      {isEnabled("ai_chat") && <AIChatWidget />}
+      {isEnabled("ai_chat") && (
+        <PageSuspense>
+          <AIChatWidget />
+        </PageSuspense>
+      )}
     </>
   );
 }
@@ -158,11 +186,14 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <I18nProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+          <ErrorBoundary>
+            <Sonner />
+            <BrowserRouter>
+              <PageSuspense>
+                <AppRoutes />
+              </PageSuspense>
+            </BrowserRouter>
+          </ErrorBoundary>
         </I18nProvider>
       </AuthProvider>
     </TooltipProvider>

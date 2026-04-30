@@ -3,15 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedList } from "@/hooks/useTranslatedContent";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { DealCard } from "@/components/deals/DealCard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag, Search } from "lucide-react";
-import { SEOHead } from "@/components/seo/SEOHead";
 
 export default function DealsPage() {
   const { t } = useI18n();
@@ -61,10 +58,8 @@ export default function DealsPage() {
     });
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${t("deals.pageTitle")} - ToolScope`} description={t("deals.pageSubtitle")} />
-      <Header />
-      <main className="flex-1 container py-8">
+    <PageLayout title={`${t("deals.pageTitle")} - ToolScope`} description={t("deals.pageSubtitle")}>
+      <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <Tag className="h-7 w-7 text-primary" /> {t("deals.pageTitle")}
@@ -132,9 +127,7 @@ export default function DealsPage() {
         <div className="mt-6 text-center text-sm text-muted-foreground">
           {filtered.length} {t("deals.activeCount")}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

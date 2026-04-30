@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface AISearchResult {
   id: string;
@@ -14,8 +14,6 @@ export function useAISearch() {
   const [results, setResults] = useState<AISearchResult[] | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
   const search = async (query: string) => {
     if (!query.trim()) return;
     setLoading(true);
@@ -33,11 +31,7 @@ export function useAISearch() {
       setResults(data.results || []);
       setSummary(data.summary || null);
     } catch (e: any) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi tìm kiếm AI",
-        description: e.message || "Không thể thực hiện tìm kiếm",
-      });
+      toast.error("Lỗi tìm kiếm AI", { description: e.message || "Không thể thực hiện tìm kiếm" });
     } finally {
       setLoading(false);
     }

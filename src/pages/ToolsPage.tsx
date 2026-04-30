@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -100,9 +98,7 @@ export default function ToolsPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
+    <PageLayout title={t("tools.title")} description={t("tools.subtitle")}>
         <div className="container py-8">
           <div className="mb-6">
             <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t("tools.title")}</h1>
@@ -247,9 +243,6 @@ export default function ToolsPage() {
             </>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

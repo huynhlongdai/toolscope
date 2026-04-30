@@ -17,12 +17,24 @@
     <meta name="twitter:site" content="@ToolScope" />
     <meta name="twitter:image" content="/og-image.png" />
 
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/og-image.png" />
     <link rel="preconnect" href="https://pzwtcburehrbxfangtzc.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://pzwtcburehrbxfangtzc.supabase.co" />
   </head>
 
   <body>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md">
+      Bỏ qua điều hướng
+    </a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>

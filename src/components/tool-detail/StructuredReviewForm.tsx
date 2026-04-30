@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { PenLine, Sparkles, Loader2, Star } from "lucide-react";
 
@@ -40,7 +40,6 @@ function StarRating({ value, onChange, label }: { value: number; onChange: (v: n
 }
 
 export function StructuredReviewForm({ toolId, userId }: Props) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -57,7 +56,7 @@ export function StructuredReviewForm({ toolId, userId }: Props) {
   const [useCase, setUseCase] = useState("");
 
   const generateDraft = async () => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-review", { body: { tool_id: toolId } });
@@ -65,17 +64,17 @@ export function StructuredReviewForm({ toolId, userId }: Props) {
       if (data?.error) throw new Error(data.error);
       setTitle(data.title || "");
       setContent(data.content || "");
-      toast({ title: "Đã tạo bản nháp AI!" });
+      toast.success("Đã tạo bản nháp AI!");
     } catch (e: any) {
-      toast({ title: "Lỗi tạo AI draft", description: e.message, variant: "destructive" });
+      toast.error("Lỗi tạo AI draft", { description: e.message });
     } finally {
       setGenerating(false);
     }
   };
 
   const submit = async () => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
-    if (!title.trim() || !content.trim()) { toast({ title: "Vui lòng điền tiêu đề và nội dung", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
+    if (!title.trim() || !content.trim()) { toast.error("Vui lòng điền tiêu đề và nội dung"); return; }
     setSubmitting(true);
     const { error } = await supabase.from("reviews").insert({
       tool_id: toolId,
@@ -91,11 +90,11 @@ export function StructuredReviewForm({ toolId, userId }: Props) {
       use_case: useCase.trim() || null,
     } as any);
     setSubmitting(false);
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
     setTitle(""); setContent(""); setPros(""); setCons(""); setUseCase("");
     setEaseOfUse(0); setCustomerSupport(0); setValueForMoney(0); setNps(0);
     setOpen(false);
-    toast({ title: "Đã gửi review!" });
+    toast.success("Đã gửi review!");
     queryClient.invalidateQueries({ queryKey: ["tool-reviews", toolId] });
   };
 

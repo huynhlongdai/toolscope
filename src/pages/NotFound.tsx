@@ -1,7 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Home, Search, ArrowLeft, Compass } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -24,9 +23,8 @@ const NotFound = () => {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex flex-1 items-center justify-center px-4">
+    <PageLayout>
+      <div className="flex flex-1 items-center justify-center px-4 py-16">
         <div className="w-full max-w-lg text-center">
           <div className="relative mb-8 select-none">
             <h1 className={`text-[10rem] font-black leading-none tracking-tighter transition-all duration-100 ${glitch ? "text-destructive skew-x-2" : "text-foreground/10"}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>404</h1>
@@ -53,9 +51,8 @@ const NotFound = () => {
             </Button>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 

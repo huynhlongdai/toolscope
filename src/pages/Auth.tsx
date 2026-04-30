@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
@@ -15,7 +15,6 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { t } = useI18n();
 
@@ -26,20 +25,20 @@ export default function Auth() {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth` });
         if (error) throw error;
-        toast({ title: t("auth.resetSent"), description: t("auth.checkInbox") });
+        toast.success(t("auth.resetSent"), { description: t("auth.checkInbox") });
         setMode("login");
       } else if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast({ title: t("auth.loginSuccess") });
+        toast.success(t("auth.loginSuccess"));
         navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
         if (error) throw error;
-        toast({ title: t("auth.confirmSent"), description: t("auth.confirmCheck") });
+        toast.success(t("auth.confirmSent"), { description: t("auth.confirmCheck") });
       }
     } catch (error: any) {
-      toast({ title: t("auth.error"), description: error.message, variant: "destructive" });
+      toast.error(t("auth.error"), { description: error.message });
     } finally {
       setLoading(false);
     }

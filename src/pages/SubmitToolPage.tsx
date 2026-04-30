@@ -4,24 +4,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Send, CheckCircle } from "lucide-react";
 
 export default function SubmitToolPage() {
   const { user } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", website_url: "", short_description: "", description: "", pricing_type: "free", category_id: "" });
@@ -35,21 +31,19 @@ export default function SubmitToolPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { toast({ title: t("common.loginRequired"), variant: "destructive" }); navigate("/auth"); return; }
-    if (!form.name.trim() || !form.website_url.trim()) { toast({ title: t("submit.nameUrlRequired"), variant: "destructive" }); return; }
+    if (!user) { toast.error(t("common.loginRequired")); navigate("/auth"); return; }
+    if (!form.name.trim() || !form.website_url.trim()) { toast.error(t("submit.nameUrlRequired")); return; }
     setLoading(true);
     const slug = form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 100);
     const { error } = await supabase.from("tools").insert({ name: form.name.trim(), slug, website_url: form.website_url.trim(), short_description: form.short_description.trim() || null, description: form.description.trim() || null, pricing_type: form.pricing_type as any, category_id: form.category_id || null, status: "pending_review" as any, submitted_by: user.id });
     setLoading(false);
-    if (error) { toast({ title: t("common.error"), description: error.message, variant: "destructive" }); } else { setSubmitted(true); }
+    if (error) { toast.error(t("common.error"), { description: error.message }); } else { setSubmitted(true); }
   };
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <SEOHead title={t("submit.seoTitle")} description={t("submit.seoDesc")} />
-        <Header />
-        <main className="flex-1 flex items-center justify-center pb-20 md:pb-0">
+      <PageLayout title={t("submit.seoTitle")} description={t("submit.seoDesc")}>
+        <div className="flex items-center justify-center py-16">
           <Card className="max-w-md w-full mx-4">
             <CardContent className="p-8 text-center">
               <CheckCircle className="mx-auto h-12 w-12 text-emerald-500 mb-4" />
@@ -61,17 +55,13 @@ export default function SubmitToolPage() {
               </div>
             </CardContent>
           </Card>
-        </main>
-        <Footer /><MobileBottomNav />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={t("submit.seoTitle")} description={t("submit.seoDesc")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={t("submit.seoTitle")} description={t("submit.seoDesc")}>
         <div className="container py-8 max-w-2xl">
           <Card>
             <CardHeader>
@@ -134,8 +124,6 @@ export default function SubmitToolPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
-      <Footer /><MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

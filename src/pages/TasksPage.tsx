@@ -4,9 +4,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedList } from "@/hooks/useTranslatedContent";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search, Star, SlidersHorizontal } from "lucide-react";
-import { SEOHead } from "@/components/seo/SEOHead";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { TaskSuggestDialog } from "@/components/tasks/TaskSuggestDialog";
 
@@ -205,10 +202,7 @@ export default function TasksPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={t("tasks.seoTitle")} description={t("tasks.seoDesc")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={t("tasks.seoTitle")} description={t("tasks.seoDesc")}>
         <div className="container py-8">
           {!selectedTask ? (
             <>
@@ -393,9 +387,6 @@ export default function TasksPage() {
             </>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

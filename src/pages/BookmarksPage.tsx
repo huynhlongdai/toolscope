@@ -1,7 +1,4 @@
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
@@ -32,10 +29,7 @@ const BookmarksPage = () => {
   if (!user) return <Navigate to="/auth" />;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={t("bookmarks.seoTitle")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={t("bookmarks.seoTitle")}>
         <div className="container py-8">
           <div className="mb-8 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -79,10 +73,7 @@ const BookmarksPage = () => {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 };
 

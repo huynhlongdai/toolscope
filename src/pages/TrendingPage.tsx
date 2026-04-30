@@ -1,7 +1,4 @@
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { useI18n } from "@/lib/i18n";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useQuery } from "@tanstack/react-query";
@@ -92,10 +89,7 @@ const TrendingPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${t("trending.title")} - ToolScope`} description={t("trending.subtitle")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${t("trending.title")} - ToolScope`} description={t("trending.subtitle")}>
         <div className="container py-8">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -133,10 +127,7 @@ const TrendingPage = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 };
 

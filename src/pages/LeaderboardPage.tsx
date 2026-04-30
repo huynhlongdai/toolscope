@@ -1,7 +1,4 @@
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,10 +124,7 @@ export default function LeaderboardPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={t("leaderboard.seoTitle")} description={t("leaderboard.seoDesc")} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={t("leaderboard.seoTitle")} description={t("leaderboard.seoDesc")}>
         <div className="container py-8 max-w-3xl">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -194,9 +188,6 @@ export default function LeaderboardPage() {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

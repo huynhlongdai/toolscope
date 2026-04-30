@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
+import { initTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -50,8 +51,9 @@ const URL_MODULE_MAP: Record<string, string> = {
 };
 
 export function Header() {
-  const [isDark, setIsDark] = useState(false);
+  const [theme, setTheme] = useState<Theme>(initTheme);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isDark = theme === "dark";
   const { user, signOut } = useAuth();
   const { isAdminOrEditor } = useAdminAuth();
   const { locale, setLocale, t } = useI18n();
@@ -110,8 +112,9 @@ export function Header() {
   }));
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
+    const next: Theme = isDark ? "light" : "dark";
+    setTheme(next);
+    setStoredTheme(next);
   };
 
   const renderLink = (item: MenuItem, onClick?: () => void) => {
@@ -146,17 +149,17 @@ export function Header() {
               ToolScope
             </span>
           </Link>
-          <nav className="hidden items-center gap-6 md:flex">
+          <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">
             {navItems.map((item) => renderLink(item))}
           </nav>
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex" aria-label="Tìm kiếm">
             <Search className="h-4 w-4" />
           </Button>
           {user && <NotificationDropdown />}
-          <Button variant="ghost" size="icon" onClick={toggleTheme}>
+          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
@@ -200,7 +203,7 @@ export function Header() {
             <Button size="sm" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={mobileMenuOpen}>
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>

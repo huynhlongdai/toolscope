@@ -3,10 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedList } from "@/hooks/useTranslatedContent";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -71,13 +68,10 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead
-        title={t("categories.pageSeoTitle")}
-        description={t("categories.pageSeoDesc")}
-      />
-      <Header />
-      <main className="flex-1">
+    <PageLayout
+      title={t("categories.pageSeoTitle")}
+      description={t("categories.pageSeoDesc")}
+    >
         <div className="container py-10">
           <div className="mb-10 text-center">
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -145,9 +139,6 @@ export default function CategoriesPage() {
             </div>
           )}
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

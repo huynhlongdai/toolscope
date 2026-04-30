@@ -5,9 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 import { StructuredReviewForm } from "@/components/tool-detail/StructuredReviewForm";
 import { ReviewBreakdown } from "@/components/tool-detail/ReviewBreakdown";
@@ -28,7 +26,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Star, Bookmark, BookmarkCheck,
   MessageCircle, ArrowLeft, GitCompareArrows,
@@ -36,6 +34,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { UpvoteButton } from "@/components/UpvoteButton";
@@ -46,7 +45,6 @@ import { AdUnit } from "@/components/ads/AdUnit";
 export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { t, locale } = useI18n();
   const [userRating, setUserRating] = useState(0);
@@ -118,7 +116,7 @@ export default function ToolDetail() {
   });
 
   const toggleBookmark = async () => {
-    if (!user) { toast({ title: t("tool.loginRequired"), variant: "destructive" }); return; }
+    if (!user) { toast.error(t("tool.loginRequired")); return; }
     if (isBookmarked) {
       await supabase.from("bookmarks").delete().eq("tool_id", tool!.id).eq("user_id", user.id);
     } else {
@@ -128,14 +126,14 @@ export default function ToolDetail() {
   };
 
   const submitRating = async (score: number) => {
-    if (!user) { toast({ title: t("tool.loginRequired"), variant: "destructive" }); return; }
+    if (!user) { toast.error(t("tool.loginRequired")); return; }
     setUserRating(score);
     const { error } = await supabase.from("ratings").upsert(
       { tool_id: tool!.id, user_id: user.id, score },
       { onConflict: "tool_id,user_id" }
     );
-    if (error) { toast({ title: t("tool.ratingError"), description: error.message, variant: "destructive" }); return; }
-    toast({ title: t("tool.ratingSuccess").replace("{n}", String(score)) });
+    if (error) { toast.error(t("tool.ratingError"), { description: error.message }); return; }
+    toast.success(t("tool.ratingSuccess").replace("{n}", String(score)));
   };
 
   const faqItems: { question: string; answer: string }[] = Array.isArray((tool as any)?.faq) ? (tool as any).faq : [];
@@ -160,27 +158,23 @@ export default function ToolDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1 container py-8">
+      <PageLayout>
+        <div className="container py-8">
           <Skeleton className="mb-4 h-8 w-48" />
           <Skeleton className="mb-8 h-64 rounded-xl" />
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   if (!tool) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1 container py-16 text-center">
+      <PageLayout>
+        <div className="container py-16 text-center">
           <p className="text-xl text-muted-foreground">{t("tool.notFound")}</p>
           <Link to="/tools" className="mt-4 inline-block text-primary hover:underline">{t("tool.backToTools")}</Link>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
@@ -188,9 +182,7 @@ export default function ToolDetail() {
   const cat = tool.categories as any;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
+    <PageLayout>
         <div className="container py-8">
           <Link to="/tools" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> {t("tool.backToList")}
@@ -275,7 +267,7 @@ export default function ToolDetail() {
                   <CardHeader><CardTitle>{t("tool.introduction")}</CardTitle></CardHeader>
                   <CardContent>
                     {displayDesc.startsWith("<") ? (
-                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: displayDesc }} />
+                      <div className="prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(displayDesc) }} />
                     ) : (
                       <p className="text-muted-foreground whitespace-pre-wrap">{displayDesc}</p>
                     )}
@@ -487,9 +479,6 @@ export default function ToolDetail() {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

@@ -1,11 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export function useFollow(targetType: "tool" | "user" | "category", targetId: string | undefined) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const queryKey = ["follow", targetType, targetId, user?.id];
 
@@ -56,10 +55,10 @@ export function useFollow(targetType: "tool" | "user" | "category", targetId: st
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       queryClient.invalidateQueries({ queryKey: ["follower-count", targetType, targetId] });
-      toast({ title: isFollowing ? "Đã bỏ theo dõi" : "Đang theo dõi!" });
+      toast.success(isFollowing ? "Đã bỏ theo dõi" : "Đang theo dõi!");
     },
     onError: () => {
-      toast({ title: "Vui lòng đăng nhập", variant: "destructive" });
+      toast.error("Vui lòng đăng nhập");
     },
   });
 

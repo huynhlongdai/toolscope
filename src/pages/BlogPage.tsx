@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,9 +26,8 @@ export default function BlogPage() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-8">
+    <PageLayout title={t("blog.pageTitle")} description={t("blog.pageSubtitle")}>
+      <div className="container py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             {t("blog.pageTitle")}
@@ -90,9 +87,7 @@ export default function BlogPage() {
             <p className="text-lg text-muted-foreground">{t("blog.noPosts")}</p>
           </div>
         )}
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

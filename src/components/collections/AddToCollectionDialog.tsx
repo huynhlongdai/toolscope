@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useCollections } from "@/hooks/useCollections";
 import { useAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Props {
   toolId: string;
@@ -22,7 +22,6 @@ interface Props {
 
 export function AddToCollectionDialog({ toolId, toolName }: Props) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const { myCollections, createCollection, addToCollection } = useCollections();
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -73,7 +72,7 @@ export function AddToCollectionDialog({ toolId, toolName }: Props) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => toast({ title: "Vui lòng đăng nhập", variant: "destructive" })}
+            onClick={() => toast.error("Vui lòng đăng nhập")}
           >
             <FolderPlus className="h-4 w-4" />
           </Button>

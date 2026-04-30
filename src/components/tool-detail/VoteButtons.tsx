@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -13,7 +13,6 @@ interface VoteButtonsProps {
 }
 
 export function VoteButtons({ targetId, targetType, upvotes, downvotes, userId }: VoteButtonsProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: userVote } = useQuery({
@@ -32,7 +31,7 @@ export function VoteButtons({ targetId, targetType, upvotes, downvotes, userId }
   });
 
   const handleVote = async (vote: "up" | "down") => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
 
     if (userVote === vote) {
       await supabase.from("votes").delete().eq("target_id", targetId).eq("target_type", targetType).eq("user_id", userId);

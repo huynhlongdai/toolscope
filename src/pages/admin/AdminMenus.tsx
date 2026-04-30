@@ -12,8 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { Plus, Trash2, GripVertical, Save, ChevronUp, ChevronDown, FolderPlus, Eye, Link as LinkIcon, Smile, Download, Upload, RotateCcw } from "lucide-react";
-import dynamicIconImports from "lucide-react/dynamicIconImports";
 import { icons, type LucideIcon } from "lucide-react";
+
+const toKebab = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const ALL_ICON_NAMES = Object.keys(icons).map(toKebab);
 
 const POPULAR_ICONS = [
   "home", "search", "compass", "trending-up", "rocket", "briefcase", "zap",
@@ -47,9 +49,8 @@ function IconPicker({ value, onChange }: { value?: string; onChange: (v: string)
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
 
-  const allIconNames = Object.keys(dynamicIconImports);
   const filtered = search
-    ? allIconNames.filter((n) => n.includes(search.toLowerCase())).slice(0, 60)
+    ? ALL_ICON_NAMES.filter((n) => n.includes(search.toLowerCase())).slice(0, 60)
     : POPULAR_ICONS;
 
   return (

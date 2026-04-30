@@ -2,10 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -93,9 +90,9 @@ export default function WorkflowDetail() {
     return () => { document.getElementById("workflow-howto-schema")?.remove(); };
   }, [steps, wf, translated]);
 
-  if (isLoading) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container max-w-4xl py-8"><Skeleton className="h-8 w-64 mb-4" /><Skeleton className="h-48 rounded-xl mb-4" /><Skeleton className="h-4 w-full mb-2" /><Skeleton className="h-4 w-3/4" /></main><Footer /></div>);
+  if (isLoading) return (<PageLayout><div className="container max-w-4xl py-8"><Skeleton className="h-8 w-64 mb-4" /><Skeleton className="h-48 rounded-xl mb-4" /><Skeleton className="h-4 w-full mb-2" /><Skeleton className="h-4 w-3/4" /></div></PageLayout>);
 
-  if (!wf) return (<div className="flex min-h-screen flex-col"><Header /><main className="flex-1 container py-16 text-center"><Workflow className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" /><p className="text-xl text-muted-foreground">{t("workflow.notFound")}</p><Link to="/workflows" className="mt-4 inline-block text-primary hover:underline">← {t("workflow.backToList")}</Link></main><Footer /></div>);
+  if (!wf) return (<PageLayout><div className="container py-16 text-center"><Workflow className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" /><p className="text-xl text-muted-foreground">{t("workflow.notFound")}</p><Link to="/workflows" className="mt-4 inline-block text-primary hover:underline">← {t("workflow.backToList")}</Link></div></PageLayout>);
 
   const displayTitle = translated.title || wf.title;
   const displayDesc = translated.description || wf.description;
@@ -108,10 +105,7 @@ export default function WorkflowDetail() {
   const displayTargetAudience = translated.seo_content_target_audience || seo.target_audience;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${seoTitle} - ToolScope`} description={seoDesc} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${seoTitle} - ToolScope`} description={seoDesc}>
         <article className="container max-w-4xl py-8">
           <Link to="/workflows" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> {t("workflow.backToList")}
@@ -190,8 +184,6 @@ export default function WorkflowDetail() {
             </div>
           )}
         </article>
-      </main>
-      <Footer /><MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

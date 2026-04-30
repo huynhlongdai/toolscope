@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { VoteButtons } from "./VoteButtons";
 import { HelpCircle, CheckCircle2, Send, Flag } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +17,6 @@ interface QASectionProps {
 }
 
 export function QASection({ toolId, userId }: QASectionProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [qTitle, setQTitle] = useState("");
@@ -65,34 +64,34 @@ export function QASection({ toolId, userId }: QASectionProps) {
   });
 
   const submitQuestion = async () => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
     if (!qTitle.trim()) return;
     const { error } = await supabase.from("questions").insert({
       tool_id: toolId, user_id: userId, title: qTitle.trim(), content: qContent.trim() || null,
     });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
     setQTitle(""); setQContent(""); setShowForm(false);
-    toast({ title: "Đã đặt câu hỏi!" });
+    toast.success("Đã đặt câu hỏi!");
     queryClient.invalidateQueries({ queryKey: ["questions", toolId] });
   };
 
   const submitAnswer = async (questionId: string) => {
-    if (!userId) { toast({ title: "Vui lòng đăng nhập", variant: "destructive" }); return; }
+    if (!userId) { toast.error("Vui lòng đăng nhập"); return; }
     const text = answerTexts[questionId]?.trim();
     if (!text) return;
     const { error } = await supabase.from("answers").insert({
       question_id: questionId, user_id: userId, content: text,
     });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
     setAnswerTexts(prev => ({ ...prev, [questionId]: "" }));
-    toast({ title: "Đã trả lời!" });
+    toast.success("Đã trả lời!");
     queryClient.invalidateQueries({ queryKey: ["answers", toolId] });
   };
 
   const markResolved = async (questionId: string) => {
     const { error } = await supabase.from("questions").update({ is_resolved: true }).eq("id", questionId);
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Đã đánh dấu giải quyết!" });
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
+    toast.success("Đã đánh dấu giải quyết!");
     queryClient.invalidateQueries({ queryKey: ["questions", toolId] });
   };
 
@@ -102,8 +101,8 @@ export function QASection({ toolId, userId }: QASectionProps) {
       reporter_id: userId, target_type: reportTarget.type, target_id: reportTarget.id,
       reason: reportReason, details: reportDetails || null,
     });
-    if (error) { toast({ title: "Lỗi", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Đã gửi báo cáo" });
+    if (error) { toast.error("Lỗi", { description: error.message }); return; }
+    toast.success("Đã gửi báo cáo");
     setReportTarget(null); setReportDetails("");
   };
 

@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Eye, User, List, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useMemo } from "react";
@@ -107,9 +107,8 @@ export default function BlogDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1 container max-w-6xl py-8">
+      <PageLayout>
+        <div className="container max-w-6xl py-8">
           <div className="flex gap-8">
             <div className="flex-1 min-w-0">
               <Skeleton className="h-8 w-64 mb-4" />
@@ -122,29 +121,24 @@ export default function BlogDetail() {
               <Skeleton className="h-32 rounded-lg" />
             </div>
           </div>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   if (!post) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <Header />
-        <main className="flex-1 container py-16 text-center">
+      <PageLayout>
+        <div className="container py-16 text-center">
           <p className="text-xl text-muted-foreground">{t("blog.postNotFound")}</p>
           <Link to="/blog" className="mt-4 inline-block text-primary hover:underline">← {t("blog.backToBlog")}</Link>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1">
+    <PageLayout>
         <div className="container max-w-6xl py-8">
           <div className="flex gap-8">
             {/* Main article */}
@@ -200,7 +194,7 @@ export default function BlogDetail() {
 
               <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
                 {contentWithIds.startsWith("<") ? (
-                  <div dangerouslySetInnerHTML={{ __html: contentWithIds }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds) }} />
                 ) : (
                   <ReactMarkdown>{displayContent}</ReactMarkdown>
                 )}
@@ -337,8 +331,6 @@ export default function BlogDetail() {
             </aside>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+    </PageLayout>
   );
 }

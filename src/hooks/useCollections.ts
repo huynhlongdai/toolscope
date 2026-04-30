@@ -1,11 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export function useCollections() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: myCollections, isLoading } = useQuery({
@@ -35,9 +34,9 @@ export function useCollections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-collections", user?.id] });
-      toast({ title: "Đã tạo collection!" });
+      toast.success("Đã tạo collection!");
     },
-    onError: (e: any) => toast({ title: "Lỗi", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast.error("Lỗi", { description: e.message }),
   });
 
   const addToCollection = useMutation({
@@ -49,9 +48,9 @@ export function useCollections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-collections"] });
-      toast({ title: "Đã thêm vào collection!" });
+      toast.success("Đã thêm vào collection!");
     },
-    onError: (e: any) => toast({ title: "Đã có trong collection", variant: "destructive" }),
+    onError: () => toast.error("Đã có trong collection"),
   });
 
   const removeFromCollection = useMutation({
@@ -64,7 +63,7 @@ export function useCollections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-collections"] });
-      toast({ title: "Đã xóa khỏi collection" });
+      toast.success("Đã xóa khỏi collection");
     },
   });
 
@@ -74,7 +73,7 @@ export function useCollections() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-collections", user?.id] });
-      toast({ title: "Đã xóa collection" });
+      toast.success("Đã xóa collection");
     },
   });
 

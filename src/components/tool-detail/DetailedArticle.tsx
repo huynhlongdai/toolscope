@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles, Loader2, BookOpen, Info, Layers, Award, CreditCard,
   Users, Rocket, ThumbsUp, CheckCircle, List, ChevronDown, ChevronUp, ArrowUp,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { DealsWidget } from "@/components/deals/DealsWidget";
 
@@ -173,7 +174,7 @@ function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml:
           }
           if (!part) return null;
           if (isHtml) {
-            return <div key={i} className={proseClasses} dangerouslySetInnerHTML={{ __html: part }} />;
+            return <div key={i} className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(part) }} />;
           }
           return <article key={i} className={proseClasses}><ReactMarkdown>{part}</ReactMarkdown></article>;
         })}
@@ -182,7 +183,7 @@ function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml:
   }
 
   if (isHtml) {
-    return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: content }} />;
+    return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />;
   }
   return (
     <article className={proseClasses}>
@@ -257,7 +258,6 @@ function BackToTop() {
 
 /* ── Main Component ──────────────────────────────────────── */
 export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: DetailedArticleProps) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [allExpanded, setAllExpanded] = useState(true);
@@ -280,10 +280,10 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Đã tạo bài viết!", description: "Bài giới thiệu chi tiết đã được lưu." });
+      toast.success("Đã tạo bài viết!", { description: "Bài giới thiệu chi tiết đã được lưu." });
       queryClient.invalidateQueries({ queryKey: ["tool"] });
     } catch (e: any) {
-      toast({ title: "Lỗi", description: e.message, variant: "destructive" });
+      toast.error("Lỗi", { description: e.message });
     } finally {
       setGenerating(false);
     }

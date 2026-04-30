@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,10 @@ import { logAuditAction } from "@/hooks/useAuditLog";
 import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { BatchImportDialog } from "@/components/admin/tools/BatchImportDialog";
+import { TranslateButton } from "@/components/admin/tools/TranslateButton";
+import { BatchTranslateButton } from "@/components/admin/tools/BatchTranslateButton";
+import { GenerateAIScoreButton } from "@/components/admin/tools/GenerateAIScoreButton";
 
 const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
@@ -1533,7 +1538,7 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Mô tả</h3>
             {form.description ? (
-              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: form.description }} />
+              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.description) }} />
             ) : (
               <p className="text-sm text-muted-foreground italic">Chưa có mô tả</p>
             )}
@@ -1542,7 +1547,7 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-2">Nội dung chi tiết</h3>
             {form.detailed_content ? (
-              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: form.detailed_content }} />
+              <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(form.detailed_content) }} />
             ) : (
               <p className="text-sm text-muted-foreground italic">Chưa có nội dung chi tiết</p>
             )}
@@ -1616,333 +1621,3 @@ function FAQTab({ tool, form, updateField }: { tool: any; form: any; updateField
   );
 }
 
-// ====== Batch Import Dialog ======
-type BatchItem = {
-  url: string;
-  status: "pending" | "processing" | "done" | "error";
-  name?: string;
-  error?: string;
-};
-
-function BatchImportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [urlsText, setUrlsText] = useState("");
-  const [items, setItems] = useState<BatchItem[]>([]);
-  const [running, setRunning] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(-1);
-
-  const parseUrls = () => {
-    const urls = urlsText
-      .split("\n")
-      .map((u) => u.trim())
-      .filter((u) => u.length > 0);
-    if (urls.length === 0) {
-      toast.error("Nhập ít nhất 1 URL");
-      return;
-    }
-    if (urls.length > 50) {
-      toast.error("Tối đa 50 URL mỗi lần");
-      return;
-    }
-    setItems(urls.map((url) => ({ url, status: "pending" })));
-  };
-
-  const startImport = async () => {
-    if (items.length === 0) return;
-    setRunning(true);
-
-    for (let i = 0; i < items.length; i++) {
-      setCurrentIndex(i);
-      setItems((prev) =>
-        prev.map((item, idx) => (idx === i ? { ...item, status: "processing" } : item))
-      );
-
-      try {
-        const { data, error } = await supabase.functions.invoke("collect-tool-data", {
-          body: { url: items[i].url, save_to_db: true },
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        setItems((prev) =>
-          prev.map((item, idx) =>
-            idx === i ? { ...item, status: "done", name: data.name || items[i].url } : item
-          )
-        );
-      } catch (e: any) {
-        setItems((prev) =>
-          prev.map((item, idx) =>
-            idx === i ? { ...item, status: "error", error: e.message || "Lỗi không xác định" } : item
-          )
-        );
-      }
-
-      if (i < items.length - 1) {
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-    }
-
-    setRunning(false);
-    setCurrentIndex(-1);
-    toast.success("Batch import hoàn tất!");
-  };
-
-  const doneCount = items.filter((i) => i.status === "done").length;
-  const errorCount = items.filter((i) => i.status === "error").length;
-  const progress = items.length > 0 ? ((doneCount + errorCount) / items.length) * 100 : 0;
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && !running && onClose()}>
-      <DialogContent className="w-full sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" /> Batch Import Tools
-          </DialogTitle>
-        </DialogHeader>
-
-        {items.length === 0 ? (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nhập danh sách URL (mỗi dòng 1 URL)</Label>
-              <Textarea
-                rows={10}
-                placeholder={"https://figma.com\nhttps://notion.so\nhttps://slack.com\nhttps://linear.app"}
-                value={urlsText}
-                onChange={(e) => setUrlsText(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Tối đa 50 URL. AI sẽ tự động thu thập thông tin và tạo tool với trạng thái "pending_review".
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row justify-end gap-2">
-              <Button variant="outline" onClick={onClose}>Hủy</Button>
-              <Button onClick={parseUrls}>
-                <Sparkles className="h-4 w-4 mr-2" /> Chuẩn bị Import ({urlsText.split("\n").filter((l) => l.trim()).length} URL)
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {running && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Đang xử lý... ({doneCount + errorCount}/{items.length})</span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-                <Progress value={progress} />
-              </div>
-            )}
-
-            <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 px-3 py-2 text-sm">
-                  <div className="shrink-0">
-                    {item.status === "pending" && <Clock className="h-4 w-4 text-muted-foreground" />}
-                    {item.status === "processing" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                    {item.status === "done" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                    {item.status === "error" && <XCircle className="h-4 w-4 text-destructive" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate">{item.name || item.url}</p>
-                    {item.error && <p className="text-xs text-destructive truncate">{item.error}</p>}
-                  </div>
-                  <Badge variant={
-                    item.status === "done" ? "default" :
-                    item.status === "error" ? "destructive" :
-                    item.status === "processing" ? "secondary" : "outline"
-                  } className="text-xs shrink-0">
-                    {item.status === "pending" ? "Chờ" : item.status === "processing" ? "Đang xử lý" : item.status === "done" ? "Xong" : "Lỗi"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-
-            {!running && doneCount + errorCount === items.length && items.length > 0 && (
-              <div className="text-sm text-center py-2">
-                <span className="text-green-600 font-medium">{doneCount} thành công</span>
-                {errorCount > 0 && <span className="text-destructive font-medium ml-3">{errorCount} lỗi</span>}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              {!running && doneCount + errorCount < items.length && (
-                <>
-                  <Button variant="outline" onClick={() => setItems([])}>Quay lại</Button>
-                  <Button onClick={startImport}>
-                    <Sparkles className="h-4 w-4 mr-2" /> Bắt đầu Import
-                  </Button>
-                </>
-              )}
-              {!running && doneCount + errorCount === items.length && items.length > 0 && (
-                <Button onClick={onClose}>Đóng</Button>
-              )}
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TranslateButton({ toolId, toolName }: { toolId: string; toolName: string }) {
-  const [translating, setTranslating] = useState(false);
-  const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleTranslate = async (locale: string) => {
-    setTranslating(true);
-    setOpen(false);
-    try {
-      const { data, error } = await supabase.functions.invoke("translate-tool", {
-        body: { tool_id: toolId, locale },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      const localeMeta = SUPPORTED_LOCALES[locale as Locale];
-      toast.success(`Đã dịch "${toolName}" sang ${localeMeta?.nativeName || locale} (${data.saved} trường)`);
-      queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi dịch tự động");
-    } finally {
-      setTranslating(false);
-    }
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={translating} title="Dịch tool" className="h-8 w-8">
-          {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-1" align="end">
-        {TARGET_LOCALES.map(([code, meta]) => (
-          <Button key={code} variant="ghost" size="sm" className="w-full justify-start text-sm h-8" onClick={() => handleTranslate(code)}>
-            {meta.flag} {meta.nativeName}
-          </Button>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function BatchTranslateButton({ tools, isMobile }: { tools: any[]; isMobile: boolean }) {
-  const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [batchLocale, setBatchLocale] = useState<Locale>("en");
-  const queryClient = useQueryClient();
-
-  const handleBatchTranslate = async () => {
-    const publishedTools = tools.filter((t: any) => t.status === "published");
-    if (publishedTools.length === 0) { toast.error("Không có tool published nào"); return; }
-    const localeMeta = SUPPORTED_LOCALES[batchLocale];
-    if (!confirm(`Dịch ${publishedTools.length} tools sang ${localeMeta.nativeName}?`)) return;
-
-    setRunning(true);
-    setProgress({ done: 0, total: publishedTools.length });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const tool of publishedTools) {
-      try {
-        const { data, error } = await supabase.functions.invoke("translate-tool", {
-          body: { tool_id: tool.id, locale: batchLocale },
-        });
-        if (error || data?.error) throw error || new Error(data?.error);
-        successCount++;
-      } catch {
-        errorCount++;
-      }
-      setProgress(prev => ({ ...prev, done: prev.done + 1 }));
-      await new Promise(r => setTimeout(r, 1500));
-    }
-
-    setRunning(false);
-    queryClient.invalidateQueries({ queryKey: ["admin-tools-translation-map"] });
-    toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
-  };
-
-  if (isMobile) {
-    return (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" disabled={running}>
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-56 p-3 space-y-2" align="end">
-          <p className="text-xs font-medium">Dịch hàng loạt</p>
-          <Select value={batchLocale} onValueChange={(v) => setBatchLocale(v as Locale)}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TARGET_LOCALES.map(([code, meta]) => (
-                <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" className="w-full" onClick={handleBatchTranslate} disabled={running}>
-            {running ? `${progress.done}/${progress.total}` : "Bắt đầu dịch"}
-          </Button>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <Select value={batchLocale} onValueChange={(v) => setBatchLocale(v as Locale)}>
-        <SelectTrigger className="h-8 w-[110px] text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {TARGET_LOCALES.map(([code, meta]) => (
-            <SelectItem key={code} value={code}>{meta.flag} {meta.nativeName}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Button variant="outline" size="sm" onClick={handleBatchTranslate} disabled={running}>
-        {running ? (
-          <>
-            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-            {progress.done}/{progress.total}
-          </>
-        ) : (
-          <>
-            <Languages className="mr-1 h-3.5 w-3.5" /> Dịch hàng loạt
-          </>
-        )}
-      </Button>
-    </div>
-  );
-}
-
-function GenerateAIScoreButton({ toolId, toolName }: { toolId: string; toolName: string }) {
-  const [generating, setGenerating] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-ai-score", {
-        body: { tool_id: toolId },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      toast.success(`Đã tạo AI Score cho ${toolName}`);
-      queryClient.invalidateQueries({ queryKey: ["tool"] });
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi tạo AI Score");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  return (
-    <Button variant="ghost" size="icon" onClick={handleGenerate} disabled={generating} title="Tạo AI Score">
-      {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-primary" />}
-    </Button>
-  );
-}

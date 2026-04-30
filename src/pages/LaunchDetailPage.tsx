@@ -2,10 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,22 +59,18 @@ export default function LaunchDetailPage() {
   };
 
   if (isLoading) return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-8"><Skeleton className="h-96" /></main>
-      <Footer />
-    </div>
+    <PageLayout>
+      <div className="container py-8"><Skeleton className="h-96" /></div>
+    </PageLayout>
   );
 
   if (!launch) return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 container py-16 text-center">
+    <PageLayout>
+      <div className="container py-16 text-center">
         <p className="text-lg">Launch không tồn tại</p>
         <Link to="/launches" className="text-primary hover:underline mt-2 inline-block">← Quay lại</Link>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 
   const tool = launch.tools as any;
@@ -91,10 +84,7 @@ export default function LaunchDetailPage() {
   const isScheduled = launch.scheduled_at && new Date(launch.scheduled_at) > new Date();
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${name} - Launch | ToolScope`} description={description || ""} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${name} - Launch | ToolScope`} description={description || ""}>
         <div className="container py-8 max-w-4xl">
           <Link to="/launches" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="h-4 w-4" /> Quay lại Launches
@@ -234,9 +224,6 @@ export default function LaunchDetailPage() {
             </Card>
           </div>
         </div>
-      </main>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 }

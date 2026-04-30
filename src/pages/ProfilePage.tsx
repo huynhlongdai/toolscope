@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { SEOHead } from "@/components/seo/SEOHead";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -361,10 +358,7 @@ const ProfilePage = () => {
   const dateLocale = LOCALE_MAP[locale] || "vi-VN";
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <SEOHead title={`${profile?.display_name || "Profile"} - ToolScope`} />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">
+    <PageLayout title={`${profile?.display_name || "Profile"} - ToolScope`}>
         <div className="container py-8 max-w-4xl">
           {isLoading ? (
             <Skeleton className="h-48 rounded-xl" />
@@ -477,7 +471,6 @@ const ProfilePage = () => {
             <p className="text-center text-muted-foreground py-12">{t("profile.notFound")}</p>
           )}
         </div>
-      </main>
       {/* Report User Dialog */}
       <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
         <DialogContent className="max-w-sm">
@@ -497,9 +490,7 @@ const ProfilePage = () => {
           </div>
         </DialogContent>
       </Dialog>
-      <Footer />
-      <MobileBottomNav />
-    </div>
+    </PageLayout>
   );
 };
 
