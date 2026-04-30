@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchProfile as fetchProfileData, updateProfile as updateProfileData, fetchUserBadges, fetchUserReviews, fetchUserComments, fetchUserStats, fetchUserWarnings, fetchUserBookmarks, submitUserReport as submitReport } from "@/services/profile";
 import { Navigate, useParams, Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,14 +124,7 @@ function BookmarksTab({ userId }: { userId: string }) {
   const { t } = useI18n();
   const { data: bookmarks, isLoading } = useQuery({
     queryKey: ["bookmarks", userId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bookmarks")
-        .select("tool_id, tools(*, categories(name), ai_scores(overall_score, is_recommended))")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      return data?.map((b: any) => b.tools).filter(Boolean) || [];
-    },
+    queryFn: () => fetchUserBookmarks(userId),
   });
 
   if (isLoading) return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[1,2,3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}</div>;
@@ -249,89 +242,58 @@ const ProfilePage = () => {
   // Warnings for own profile
   const { data: myWarnings = [] } = useQuery({
     queryKey: ["my-warnings", profileId],
-    queryFn: async () => {
-      if (!profileId) return [];
-      const { data } = await supabase.from("user_warnings").select("*").eq("user_id", profileId).order("created_at", { ascending: false });
-      return data ?? [];
-    },
+    queryFn: () => fetchUserWarnings(profileId!),
     enabled: !!profileId && isOwnProfile,
   });
 
-  const submitUserReport = async () => {
+  const handleSubmitReport = async () => {
     if (!user?.id || !profileId) return;
-    const { error } = await supabase.from("reports").insert({
-      reporter_id: user.id, target_type: "user", target_id: profileId,
-      reason: reportReason, details: reportDetails || null,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Đã gửi báo cáo");
-    setShowReportDialog(false); setReportDetails("");
+    try {
+      await submitReport(user.id, profileId, reportReason, reportDetails || null);
+      toast.success("Đã gửi báo cáo");
+      setShowReportDialog(false); setReportDetails("");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", profileId],
-    queryFn: async () => {
-      if (!profileId) return null;
-      const { data } = await supabase.from("profiles").select("*").eq("id", profileId).single();
-      return data;
-    },
+    queryFn: () => fetchProfileData(profileId!),
     enabled: !!profileId,
   });
 
   const { data: badges } = useQuery({
     queryKey: ["user-badges", profileId],
-    queryFn: async () => {
-      if (!profileId) return [];
-      const { data } = await supabase.from("user_badges").select("*").eq("user_id", profileId);
-      return data || [];
-    },
+    queryFn: () => fetchUserBadges(profileId!),
     enabled: !!profileId,
   });
 
   const { data: reviews } = useQuery({
     queryKey: ["user-reviews", profileId],
-    queryFn: async () => {
-      if (!profileId) return [];
-      const { data } = await supabase.from("reviews").select("*, tools(name, slug)").eq("author_id", profileId).eq("status", "published").order("created_at", { ascending: false }).limit(10);
-      return data || [];
-    },
+    queryFn: () => fetchUserReviews(profileId!),
     enabled: !!profileId,
   });
 
   const { data: stats } = useQuery({
     queryKey: ["user-stats", profileId],
-    queryFn: async () => {
-      if (!profileId) return { reviews: 0, comments: 0, questions: 0 };
-      const [r, c, q] = await Promise.all([
-        supabase.from("reviews").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-        supabase.from("comments").select("id", { count: "exact", head: true }).eq("user_id", profileId),
-        supabase.from("questions").select("id", { count: "exact", head: true }).eq("user_id", profileId),
-      ]);
-      return { reviews: r.count || 0, comments: c.count || 0, questions: q.count || 0 };
-    },
+    queryFn: () => fetchUserStats(profileId!),
     enabled: !!profileId,
   });
 
   const { data: comments } = useQuery({
     queryKey: ["user-comments", profileId],
-    queryFn: async () => {
-      if (!profileId) return [];
-      const { data } = await supabase.from("comments").select("*, tools:tool_id(name, slug)").eq("user_id", profileId).order("created_at", { ascending: false }).limit(10);
-      return data || [];
-    },
+    queryFn: () => fetchUserComments(profileId!),
     enabled: !!profileId,
   });
 
   const updateProfile = useMutation({
     mutationFn: async () => {
       if (!profileId) return;
-      const { error } = await supabase.from("profiles").update({
+      await updateProfileData(profileId, {
         display_name: editForm.display_name,
         username: editForm.username || null,
         bio: editForm.bio || null,
         website: editForm.website || null,
-      }).eq("id", profileId);
-      if (error) throw error;
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", profileId] });
@@ -486,7 +448,7 @@ const ProfilePage = () => {
               </SelectContent>
             </Select>
             <Input placeholder="Chi tiết (tùy chọn)" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} />
-            <Button size="sm" onClick={submitUserReport} className="w-full">Gửi báo cáo</Button>
+            <Button size="sm" onClick={handleSubmitReport} className="w-full">Gửi báo cáo</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO, isToday, isThisWeek } from "date-fns";
 import { vi as viLocale } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchLaunches, fetchUserLaunchVotes, toggleLaunchVote } from "@/services/launches";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -30,17 +30,7 @@ export default function LaunchesPage() {
 
   const { data: launches, isLoading } = useQuery({
     queryKey: ["launches"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("launches")
-        .select("*, profiles:maker_id(display_name, avatar_url), tools(name, slug, logo_url, website_url, short_description, pricing_type)")
-        .in("status", ["approved", "featured"])
-        .order("launch_date", { ascending: false })
-        .order("upvotes", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchLaunches(),
   });
 
   const todayLaunches = launches?.filter(l => isToday(parseISO(l.launch_date))) || [];
@@ -50,10 +40,7 @@ export default function LaunchesPage() {
 
   const { data: userVotes } = useQuery({
     queryKey: ["launch-votes", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("votes").select("target_id").eq("user_id", user!.id).eq("target_type", "launch").eq("vote", "up");
-      return new Set(data?.map((v) => v.target_id));
-    },
+    queryFn: () => fetchUserLaunchVotes(user!.id),
     enabled: !!user,
   });
 
@@ -61,13 +48,7 @@ export default function LaunchesPage() {
     if (!user) { toast.error(t("launches.loginToVote")); return; }
     const hasVoted = userVotes?.has(launchId);
     try {
-      if (hasVoted) {
-        await supabase.from("votes").delete().eq("target_id", launchId).eq("target_type", "launch").eq("user_id", user.id);
-        await supabase.from("launches").update({ upvotes: Math.max(0, currentUpvotes - 1) }).eq("id", launchId);
-      } else {
-        await supabase.from("votes").insert({ target_id: launchId, target_type: "launch", user_id: user.id, vote: "up" as const });
-        await supabase.from("launches").update({ upvotes: currentUpvotes + 1 }).eq("id", launchId);
-      }
+      await toggleLaunchVote(launchId, user.id, currentUpvotes, hasVoted);
       queryClient.invalidateQueries({ queryKey: ["launches"] });
       queryClient.invalidateQueries({ queryKey: ["launch-votes"] });
     } catch { toast.error(t("launches.voteError")); }

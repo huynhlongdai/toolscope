@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchToolBySlug, fetchToolReviews, checkBookmark, toggleBookmark, upsertRating } from "@/services/tools";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
@@ -52,16 +52,7 @@ export default function ToolDetail() {
 
   const { data: tool, isLoading } = useQuery({
     queryKey: ["tool", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tools")
-        .select("*, categories(name, slug), ai_scores(*)")
-        .eq("slug", slug!)
-        .eq("status", "published")
-        .maybeSingle() as any;
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchToolBySlug(slug!),
     enabled: !!slug,
   });
 
@@ -87,53 +78,31 @@ export default function ToolDetail() {
 
   const { data: reviews } = useQuery({
     queryKey: ["tool-reviews", tool?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("*, profiles:author_id(display_name, avatar_url)")
-        .eq("tool_id", tool!.id)
-        .eq("status", "published")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchToolReviews(tool!.id),
     enabled: !!tool?.id,
   });
 
   const { data: isBookmarked, refetch: refetchBookmark } = useQuery({
     queryKey: ["bookmark", tool?.id, user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("bookmarks")
-        .select("id")
-        .eq("tool_id", tool!.id)
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      return !!data;
-    },
+    queryFn: () => checkBookmark(tool!.id, user!.id),
     enabled: !!tool?.id && !!user?.id,
   });
 
-  const toggleBookmark = async () => {
+  const handleToggleBookmark = async () => {
     if (!user) { toast.error(t("tool.loginRequired")); return; }
-    if (isBookmarked) {
-      await supabase.from("bookmarks").delete().eq("tool_id", tool!.id).eq("user_id", user.id);
-    } else {
-      await supabase.from("bookmarks").insert({ tool_id: tool!.id, user_id: user.id });
-    }
+    await toggleBookmark(tool!.id, user.id, !!isBookmarked);
     refetchBookmark();
   };
 
   const submitRating = async (score: number) => {
     if (!user) { toast.error(t("tool.loginRequired")); return; }
     setUserRating(score);
-    const { error } = await supabase.from("ratings").upsert(
-      { tool_id: tool!.id, user_id: user.id, score },
-      { onConflict: "tool_id,user_id" }
-    );
-    if (error) { toast.error(t("tool.ratingError"), { description: error.message }); return; }
-    toast.success(t("tool.ratingSuccess").replace("{n}", String(score)));
+    try {
+      await upsertRating(tool!.id, user.id, score);
+      toast.success(t("tool.ratingSuccess").replace("{n}", String(score)));
+    } catch (error: any) {
+      toast.error(t("tool.ratingError"), { description: error.message });
+    }
   };
 
   const faqItems: { question: string; answer: string }[] = Array.isArray((tool as any)?.faq) ? (tool as any).faq : [];
@@ -247,7 +216,7 @@ export default function ToolDetail() {
               <AddToCollectionDialog toolId={tool.id} toolName={displayName} />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" onClick={toggleBookmark}>
+                  <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" onClick={handleToggleBookmark}>
                     {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
                   </Button>
                 </TooltipTrigger>

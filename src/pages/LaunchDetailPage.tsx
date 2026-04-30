@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchLaunchById, checkLaunchVote, toggleLaunchVote } from "@/services/launches";
 import { useAuth } from "@/lib/auth";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
@@ -24,36 +24,19 @@ export default function LaunchDetailPage() {
 
   const { data: launch, isLoading } = useQuery({
     queryKey: ["launch-detail", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("launches")
-        .select("*, profiles:maker_id(display_name, avatar_url, bio), tools(name, slug, logo_url, website_url, short_description, pricing_type)")
-        .eq("id", id!)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchLaunchById(id!),
     enabled: !!id,
   });
 
   const { data: userVote } = useQuery({
     queryKey: ["launch-vote", id, user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("votes").select("id").eq("target_id", id!).eq("target_type", "launch").eq("user_id", user!.id).eq("vote", "up").maybeSingle();
-      return !!data;
-    },
+    queryFn: () => checkLaunchVote(id!, user!.id),
     enabled: !!user && !!id,
   });
 
   const handleVote = async () => {
     if (!user || !launch) { toast.error("Vui lòng đăng nhập"); return; }
-    if (userVote) {
-      await supabase.from("votes").delete().eq("target_id", launch.id).eq("target_type", "launch").eq("user_id", user.id);
-      await supabase.from("launches").update({ upvotes: Math.max(0, (launch.upvotes || 0) - 1) }).eq("id", launch.id);
-    } else {
-      await supabase.from("votes").insert({ target_id: launch.id, target_type: "launch", user_id: user.id, vote: "up" as const });
-      await supabase.from("launches").update({ upvotes: (launch.upvotes || 0) + 1 }).eq("id", launch.id);
-    }
+    await toggleLaunchVote(launch.id, user.id, launch.upvotes || 0, userVote);
     queryClient.invalidateQueries({ queryKey: ["launch-detail", id] });
     queryClient.invalidateQueries({ queryKey: ["launch-vote", id] });
   };

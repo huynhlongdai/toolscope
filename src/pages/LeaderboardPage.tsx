@@ -1,7 +1,7 @@
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useI18n } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchTopUsers, fetchTopReviewers, fetchTopCommenters, fetchAllUserBadges } from "@/services/leaderboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,60 +27,22 @@ export default function LeaderboardPage() {
 
   const { data: topUsers, isLoading } = useQuery({
     queryKey: ["leaderboard-all"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, display_name, avatar_url, reputation_score, username, created_at")
-        .order("reputation_score", { ascending: false })
-        .limit(50);
-      return data || [];
-    },
+    queryFn: () => fetchTopUsers(),
   });
 
   const { data: topReviewers } = useQuery({
     queryKey: ["leaderboard-reviewers"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("reviews")
-        .select("author_id, profiles:author_id(id, display_name, avatar_url, reputation_score)")
-        .eq("status", "published");
-      const counts: Record<string, { profile: any; count: number }> = {};
-      (data || []).forEach((r: any) => {
-        const uid = r.author_id;
-        if (!counts[uid]) counts[uid] = { profile: r.profiles, count: 0 };
-        counts[uid].count++;
-      });
-      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 20);
-    },
+    queryFn: () => fetchTopReviewers(),
   });
 
   const { data: topCommenters } = useQuery({
     queryKey: ["leaderboard-commenters"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("comments")
-        .select("user_id, profiles:user_id(id, display_name, avatar_url, reputation_score)");
-      const counts: Record<string, { profile: any; count: number }> = {};
-      (data || []).forEach((c: any) => {
-        const uid = c.user_id;
-        if (!counts[uid]) counts[uid] = { profile: c.profiles, count: 0 };
-        counts[uid].count++;
-      });
-      return Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 20);
-    },
+    queryFn: () => fetchTopCommenters(),
   });
 
   const { data: userBadges } = useQuery({
     queryKey: ["leaderboard-badges"],
-    queryFn: async () => {
-      const { data } = await supabase.from("user_badges").select("user_id, badge_type");
-      const map: Record<string, string[]> = {};
-      (data || []).forEach((b: any) => {
-        if (!map[b.user_id]) map[b.user_id] = [];
-        map[b.user_id].push(b.badge_type);
-      });
-      return map;
-    },
+    queryFn: fetchAllUserBadges,
   });
 
   const badgeEmoji: Record<string, string> = {

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { Star, ExternalLink, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ const pricingColor: Record<string, string> = {
   contact: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
 };
 
-export function ToolCard({
+export const ToolCard = memo(function ToolCard({
   name,
   slug,
   shortDescription,
@@ -183,4 +184,4 @@ export function ToolCard({
       </Card>
     </Link>
   );
-}
+});

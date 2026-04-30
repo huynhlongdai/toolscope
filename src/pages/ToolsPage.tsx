@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchCategories, fetchToolsList } from "@/services/tools";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,28 +44,19 @@ export default function ToolsPage() {
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: fetchCategories,
   });
 
   const { data: toolsResult, isLoading } = useQuery({
     queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter, page],
-    queryFn: async () => {
-      let q = supabase.from("tools").select("*, categories(name), ai_scores(overall_score, is_recommended)", { count: "exact" }).eq("status", "published");
-      if (search && !aiMode) q = q.or(`name.ilike.%${search}%,short_description.ilike.%${search}%`);
-      if (pricingFilter !== "all") q = q.eq("pricing_type", pricingFilter as any);
-      if (categoryFilter !== "all") q = q.eq("category_id", categoryFilter);
-      if (sortBy === "popular") q = q.order("view_count", { ascending: false });
-      else if (sortBy === "newest") q = q.order("created_at", { ascending: false });
-      else if (sortBy === "rating") q = q.order("avg_rating", { ascending: false });
-      else q = q.order("name");
-      const { data, error, count } = await q.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (error) throw error;
-      return { data: data ?? [], count: count ?? 0 };
-    },
+    queryFn: () => fetchToolsList({
+      search: search && !aiMode ? search : undefined,
+      sortBy,
+      pricingFilter,
+      categoryFilter,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
     enabled: !aiMode || !search,
   });
 

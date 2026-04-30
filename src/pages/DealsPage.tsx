@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchActiveDeals } from "@/services/deals";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedList } from "@/hooks/useTranslatedContent";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -18,15 +18,7 @@ export default function DealsPage() {
 
   const { data: deals = [], isLoading } = useQuery({
     queryKey: ["public-deals"],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("deals") as any)
-        .select("*, tools(name, slug, logo_url)")
-        .eq("is_active", true)
-        .order("is_exclusive", { ascending: false })
-        .order("discount_value", { ascending: false });
-      if (error) throw error;
-      return (data ?? []).filter((d: any) => !d.expires_at || new Date(d.expires_at) > new Date());
-    },
+    queryFn: fetchActiveDeals,
   });
 
   const dealIds = useMemo(() => deals.map((d: any) => d.id), [deals]);
