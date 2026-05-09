@@ -31,7 +31,7 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  locale: "vi",
+  locale: "en",
   setLocale: () => {},
   t: (key) => key,
 });
@@ -39,7 +39,7 @@ const I18nContext = createContext<I18nContextType>({
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     const stored = localStorage.getItem("locale") as Locale;
-    return stored && stored in SUPPORTED_LOCALES ? stored : "vi";
+    return stored && stored in SUPPORTED_LOCALES ? stored : "en";
   });
 
   const setLocale = useCallback((l: Locale) => {
