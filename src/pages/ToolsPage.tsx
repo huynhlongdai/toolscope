@@ -5,7 +5,7 @@ import { fetchCategories, fetchToolsList } from "@/services/tools";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ToolCardSkeletonGrid } from "@/components/ui/ToolCardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -222,16 +222,14 @@ export default function ToolsPage() {
           {!aiMode && (
             <>
               {isLoading ? (
-                <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
-                  {Array.from({ length: 9 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
-                </div>
+                <ToolCardSkeletonGrid count={9} variant={viewMode} />
               ) : tools && tools.length > 0 ? (
                 <>
                   <p className="mb-4 text-sm text-muted-foreground">{totalCount} {t("tools.count")}</p>
                   <AdUnit slotId="between_tools" className="mb-4" />
                   <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {tools.map((tool) => (
-                      <ToolCard key={tool.id} id={tool.id} name={tool.name} slug={tool.slug} shortDescription={tool.short_description || undefined} logoUrl={tool.logo_url || undefined} websiteUrl={tool.website_url || undefined} pricingType={tool.pricing_type} avgRating={Number(tool.avg_rating) || 0} ratingCount={tool.rating_count} categoryName={(tool.categories as any)?.name} isTrending={tool.is_trending} isAiRecommended={(tool.ai_scores as any)?.is_recommended} aiScore={(tool.ai_scores as any)?.overall_score ? Number((tool.ai_scores as any).overall_score) : undefined} />
+                      <ToolCard key={tool.id} id={tool.id} name={tool.name} slug={tool.slug} shortDescription={tool.short_description || undefined} logoUrl={tool.logo_url || undefined} websiteUrl={tool.website_url || undefined} pricingType={tool.pricing_type} avgRating={Number(tool.avg_rating) || 0} ratingCount={tool.rating_count} categoryName={(tool.categories as any)?.name} isTrending={tool.is_trending} isAiRecommended={(tool.ai_scores as any)?.is_recommended} aiScore={(tool.ai_scores as any)?.overall_score ? Number((tool.ai_scores as any).overall_score) : undefined} createdAt={tool.created_at || undefined} />
                     ))}
                   </div>
                   {totalPages > 1 && (
