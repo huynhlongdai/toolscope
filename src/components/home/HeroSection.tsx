@@ -87,7 +87,7 @@ export function HeroSection() {
 
         {/* Title with typewriter */}
         <h1
-          className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-6xl leading-tight"
+          className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-6xl leading-tight animate-slide-up"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
           {t("hero.title")}{" "}

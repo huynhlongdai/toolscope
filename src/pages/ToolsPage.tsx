@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
 import { useI18n } from "@/lib/i18n";
@@ -246,11 +247,16 @@ export default function ToolsPage() {
                   )}
                 </>
               ) : (
-                <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
-                  <Search className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                  <p className="mt-3 text-lg font-medium">{t("tools.noResults")}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{t("tools.noResultsHint")}</p>
-                </div>
+                <EmptyState
+                  icon={Wrench}
+                  title={t("tools.noResults")}
+                  description={t("tools.noResultsHint")}
+                  action={activeFilters.length > 0 ? {
+                    label: t("tools.clearFilters"),
+                    onClick: () => { handlePricingChange("all"); handleCategoryChange("all"); },
+                    variant: "outline",
+                  } : undefined}
+                />
               )}
             </>
           )}

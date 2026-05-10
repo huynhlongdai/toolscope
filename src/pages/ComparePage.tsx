@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchCompareTools, searchToolsForCompare, fetchPricingHistoryForTools } from "@/services/compare";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   GitCompareArrows, Plus, X, Star, Check, Minus, Calculator,
-  TrendingUp, Users, DollarSign, BarChart3, Clock, Zap, ArrowRightLeft
+  TrendingUp, Users, DollarSign, BarChart3, Clock, Zap, ArrowRightLeft, Share2
 } from "lucide-react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -163,15 +165,7 @@ function CompareBarChart({ tools, t }: { tools: ToolWithScores[]; t: (key: strin
 function PricingTrendChart({ toolIds, tools, t }: { toolIds: string[]; tools: ToolWithScores[]; t: (key: string) => string }) {
   const { data: allHistory } = useQuery({
     queryKey: ["pricing-history-compare", toolIds],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pricing_history")
-        .select("*")
-        .in("tool_id", toolIds)
-        .order("recorded_at", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => fetchPricingHistoryForTools(toolIds),
     enabled: toolIds.length > 0,
   });
 
@@ -430,33 +424,22 @@ export default function ComparePage() {
 
   const { data: selectedTools, isLoading } = useQuery({
     queryKey: ["compare-tools", selectedIds],
-    queryFn: async () => {
-      if (selectedIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("tools")
-        .select("*, categories(name), ai_scores(*)")
-        .in("id", selectedIds)
-        .eq("status", "published");
-      if (error) throw error;
-      return (data || []) as unknown as ToolWithScores[];
-    },
+    queryFn: () => fetchCompareTools(selectedIds) as Promise<ToolWithScores[]>,
     enabled: selectedIds.length > 0,
   });
 
   const { data: searchResults } = useQuery({
     queryKey: ["search-tools-compare", searchQuery],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tools")
-        .select("id, name, slug, logo_url, pricing_type, short_description")
-        .eq("status", "published")
-        .ilike("name", `%${searchQuery}%`)
-        .limit(8);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => searchToolsForCompare(searchQuery),
     enabled: searchQuery.length >= 2,
   });
+
+  const handleShareUrl = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Link copied!", { description: url });
+    });
+  };
 
   const addTool = (id: string) => {
     if (selectedIds.includes(id) || selectedIds.length >= 4) return;
@@ -571,19 +554,24 @@ export default function ComparePage() {
           {isLoading ? (
             <Skeleton className="h-96 rounded-xl" />
           ) : tools.length < 2 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-16 text-center">
-              <GitCompareArrows className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-4 text-lg font-medium">{t("compare.selectMin")}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{t("compare.searchHint")}</p>
-            </div>
+            <EmptyState
+              icon={GitCompareArrows}
+              title={t("compare.selectMin")}
+              description={t("compare.searchHint")}
+            />
           ) : (
             <Tabs defaultValue="table" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4 max-w-lg">
-                <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
-                <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
-                <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
-                <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between">
+                <TabsList className="grid grid-cols-4 max-w-lg">
+                  <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
+                  <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
+                  <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
+                  <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
+                </TabsList>
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleShareUrl}>
+                  <Share2 className="h-4 w-4" /> Share
+                </Button>
+              </div>
 
               {/* TAB: Table */}
               <TabsContent value="table" className="space-y-6">

@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchToolBySlug, fetchToolReviews, checkBookmark, toggleBookmark, upsertRating, fetchUserRating } from "@/services/tools";
 import { useAuth } from "@/lib/auth";
@@ -30,9 +30,8 @@ import { toast } from "sonner";
 import {
   Star, Bookmark, BookmarkCheck,
   MessageCircle, ArrowLeft, GitCompareArrows,
-  Globe, DollarSign, Zap, Shield, BarChart3, Sparkles
+  Globe, DollarSign, Zap, Shield, BarChart3, Sparkles, ChevronUp
 } from "lucide-react";
-import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { getToolLogoUrl } from "@/lib/favicon";
@@ -49,6 +48,13 @@ export default function ToolDetail() {
   const { t, locale } = useI18n();
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 400);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const { data: tool, isLoading } = useQuery({
     queryKey: ["tool", slug],
@@ -359,7 +365,7 @@ export default function ToolDetail() {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6 sticky top-20 max-h-[calc(100vh-5rem)] overflow-y-auto pr-2">
+            <div className="space-y-6 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-2">
               <DealsSection toolId={tool.id} toolName={displayName} />
               {aiScore ? (
                 <Card className="border-primary/20">
@@ -458,6 +464,17 @@ export default function ToolDetail() {
             </div>
           </div>
         </div>
+
+        {/* Back to top */}
+        {showBackToTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
+            aria-label="Back to top"
+          >
+            <ChevronUp className="h-5 w-5" />
+          </button>
+        )}
     </PageLayout>
   );
 }
