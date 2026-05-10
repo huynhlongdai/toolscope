@@ -120,6 +120,9 @@ const en: Record<string, string> = {
   "auth.confirmSent": "Confirmation email sent",
   "auth.confirmCheck": "Please check your inbox.",
   "auth.error": "Error",
+  "auth.continueWithGoogle": "Continue with Google",
+  "auth.continueWithGitHub": "Continue with GitHub",
+  "auth.orEmail": "or continue with email",
 
   // Tools page
   "tools.title": "Explore Tools",

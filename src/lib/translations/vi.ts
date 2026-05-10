@@ -120,6 +120,9 @@ const vi: Record<string, string> = {
   "auth.confirmSent": "Đã gửi email xác nhận",
   "auth.confirmCheck": "Vui lòng kiểm tra hộp thư của bạn.",
   "auth.error": "Lỗi",
+  "auth.continueWithGoogle": "Tiếp tục với Google",
+  "auth.continueWithGitHub": "Tiếp tục với GitHub",
+  "auth.orEmail": "hoặc đăng nhập bằng email",
 
   // Tools page
   "tools.title": "Khám phá công cụ",

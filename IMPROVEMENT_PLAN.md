@@ -1,0 +1,47 @@
+# ToolScope — Improvement Plan
+
+## Status Legend
+- [ ] Pending
+- [x] Done
+- [~] In Progress
+
+---
+
+## Priority 1 — High Impact UI/UX
+
+- [ ] 1.1 Hero Section: typewriter animation, floating search dropdown, animated stats
+- [ ] 1.2 ToolCard: logo skeleton, hover preview tooltip, "New" badge
+- [ ] 1.3 ToolDetail: mobile bottom-sheet sidebar, sticky only lg+, back-to-top button
+- [ ] 1.4 Auth: Google OAuth + GitHub OAuth buttons
+
+## Priority 2 — Functionality
+
+- [ ] 2.1 ToolsPage: multi-select categories, free-trial filter, AI score range, URL-persisted filters
+- [ ] 2.2 Search: 300ms debounce, autocomplete dropdown, localStorage history
+- [ ] 2.3 ComparePage: extract services/compare.ts, URL sharing, export PDF
+- [ ] 2.4 ToolDetail: load user's existing rating on mount
+- [ ] 2.5 OptimizedImage component: lazy load, blur placeholder, Intersection Observer
+
+## Priority 3 — Performance & Technical Debt
+
+- [ ] 3.1 Bundle: further split vendor-icons via dynamic import grouping
+- [ ] 3.2 Virtual list: @tanstack/react-virtual for ToolsPage list view
+- [ ] 3.3 SEO: Edge Function sitemap.xml, public/robots.txt
+- [ ] 3.4 Skeleton loading: unified skeleton components across all pages
+
+## Priority 4 — UI Polish
+
+- [ ] 4.1 Micro-animations: page transitions, card hover, button spinners
+- [ ] 4.2 Empty states: illustrated, with CTA suggestions
+- [ ] 4.3 Dark mode: border/bg consistency, code block syntax highlight
+
+---
+
+## Roadmap
+
+| Week | Tasks |
+|------|-------|
+| 1 | 1.4 Google OAuth · 2.4 user rating load · 3.3 sitemap |
+| 2 | 1.1 Hero upgrade · 2.2 search debounce · 2.1 advanced filters |
+| 3 | 1.2 ToolCard hover · 2.5 OptimizedImage · 3.1 bundle split |
+| 4 | 1.3 mobile layout · 2.3 Compare refactor · 4.x polish |

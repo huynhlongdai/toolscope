@@ -86,6 +86,16 @@ export async function upsertRating(toolId: string, userId: string, score: number
   if (error) throw error;
 }
 
+export async function fetchUserRating(toolId: string, userId: string): Promise<number> {
+  const { data } = await supabase
+    .from("ratings")
+    .select("score")
+    .eq("tool_id", toolId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.score ?? 0;
+}
+
 export async function fetchCategories() {
   const { data, error } = await supabase.from("categories").select("*").order("sort_order");
   if (error) throw error;

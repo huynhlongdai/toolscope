@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchToolBySlug, fetchToolReviews, checkBookmark, toggleBookmark, upsertRating } from "@/services/tools";
+import { fetchToolBySlug, fetchToolReviews, checkBookmark, toggleBookmark, upsertRating, fetchUserRating } from "@/services/tools";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
@@ -81,6 +81,16 @@ export default function ToolDetail() {
     queryFn: () => fetchToolReviews(tool!.id),
     enabled: !!tool?.id,
   });
+
+  const { data: existingRating } = useQuery({
+    queryKey: ["user-rating", tool?.id, user?.id],
+    queryFn: () => fetchUserRating(tool!.id, user!.id),
+    enabled: !!tool?.id && !!user?.id,
+  });
+
+  useEffect(() => {
+    if (existingRating) setUserRating(existingRating);
+  }, [existingRating]);
 
   const { data: isBookmarked, refetch: refetchBookmark } = useQuery({
     queryKey: ["bookmark", tool?.id, user?.id],
