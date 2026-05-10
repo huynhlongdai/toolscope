@@ -1,8 +1,9 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, ExternalLink, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ interface ToolCardProps {
   hasFreeTrial?: boolean;
   trialDays?: number | null;
   requiresCard?: boolean | null;
+  createdAt?: string;
 }
 
 const pricingLabel: Record<string, string> = {
@@ -60,16 +62,36 @@ export const ToolCard = memo(function ToolCard({
   hasFreeTrial,
   trialDays,
   requiresCard,
+  createdAt,
 }: ToolCardProps) {
   const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
+  const isNew = createdAt
+    ? (Date.now() - new Date(createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
+    : false;
 
   const logoEl = (
     <div className={cn(
-      "flex shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground",
+      "relative flex shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground overflow-hidden",
       variant === "list" ? "h-10 w-10" : "h-12 w-12"
     )}>
-      {resolvedLogo ? (
-        <img src={resolvedLogo} alt={name} className="h-full w-full rounded-xl object-cover" />
+      {resolvedLogo && !imgError ? (
+        <>
+          {!imgLoaded && <Skeleton className="absolute inset-0 rounded-xl" />}
+          <img
+            src={resolvedLogo}
+            alt={name}
+            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+            className={cn(
+              "h-full w-full rounded-xl object-cover transition-opacity duration-200",
+              imgLoaded ? "opacity-100" : "opacity-0"
+            )}
+          />
+        </>
       ) : (
         name.charAt(0).toUpperCase()
       )}
@@ -146,13 +168,18 @@ export const ToolCard = memo(function ToolCard({
   return (
     <Link to={`/tool/${slug}`}>
       <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20">
-        {isAiRecommended && (
-          <div className="absolute right-3 top-3 z-10">
+        <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1">
+          {isAiRecommended && (
             <Badge className="bg-primary/90 text-primary-foreground text-[10px] px-2 py-0.5">
               ⚡ AI Recommended
             </Badge>
-          </div>
-        )}
+          )}
+          {isNew && (
+            <Badge className="bg-emerald-500 text-white text-[10px] px-2 py-0.5">
+              New
+            </Badge>
+          )}
+        </div>
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
             {logoEl}

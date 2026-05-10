@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, Link } from "react-router-dom";
 import { fetchCategories, fetchToolsList } from "@/services/tools";
+import { useDebounce } from "@/hooks/useDebounce";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,19 +23,21 @@ export default function ToolsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQ = searchParams.get("q") || "";
   const initialCategory = searchParams.get("category") || "all";
+  const initialPricing = searchParams.get("pricing") || "all";
+  const initialSort = (searchParams.get("sort") as SortOption) || "popular";
   const isSimilarQuery = initialQ.toLowerCase().startsWith("similar to ");
   const { t } = useI18n();
 
   const [query, setQuery] = useState(initialQ);
-  const [search, setSearch] = useState(isSimilarQuery ? "" : initialQ);
-  const [sortBy, setSortBy] = useState<SortOption>("popular");
+  const [sortBy, setSortBy] = useState<SortOption>(initialSort);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [pricingFilter, setPricingFilter] = useState("all");
+  const [pricingFilter, setPricingFilter] = useState(initialPricing);
   const [categoryFilter, setCategoryFilter] = useState(initialCategory);
   const [showFilters, setShowFilters] = useState(false);
   const [aiMode, setAiMode] = useState(isSimilarQuery);
   const [page, setPage] = useState(0);
 
+  const debouncedQuery = useDebounce(query, 300);
   const aiSearch = useAISearch();
 
   useEffect(() => {
@@ -42,22 +45,38 @@ export default function ToolsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync URL params whenever filters change
+  const syncParams = useCallback((overrides: Record<string, string> = {}) => {
+    const params: Record<string, string> = {};
+    if (debouncedQuery && !aiMode) params.q = debouncedQuery;
+    if (sortBy !== "popular") params.sort = sortBy;
+    if (pricingFilter !== "all") params.pricing = pricingFilter;
+    if (categoryFilter !== "all") params.category = categoryFilter;
+    setSearchParams({ ...params, ...overrides }, { replace: true });
+  }, [debouncedQuery, sortBy, pricingFilter, categoryFilter, aiMode, setSearchParams]);
+
+  // Auto-search and URL update on debounced query change
+  useEffect(() => {
+    if (!aiMode) { setPage(0); syncParams(); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
+
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: fetchCategories,
   });
 
   const { data: toolsResult, isLoading } = useQuery({
-    queryKey: ["tools-list", search, sortBy, pricingFilter, categoryFilter, page],
+    queryKey: ["tools-list", debouncedQuery, sortBy, pricingFilter, categoryFilter, page],
     queryFn: () => fetchToolsList({
-      search: search && !aiMode ? search : undefined,
+      search: debouncedQuery && !aiMode ? debouncedQuery : undefined,
       sortBy,
       pricingFilter,
       categoryFilter,
       page,
       pageSize: PAGE_SIZE,
     }),
-    enabled: !aiMode || !search,
+    enabled: !aiMode || !debouncedQuery,
   });
 
   const tools = toolsResult?.data;
@@ -67,10 +86,12 @@ export default function ToolsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim()) return;
-    if (aiMode) { aiSearch.search(query.trim()); }
-    else { setSearch(query); setSearchParams(query ? { q: query } : {}); }
+    if (aiMode) aiSearch.search(query.trim());
   };
 
+  const handleSortChange = (v: SortOption) => { setSortBy(v); setPage(0); syncParams({ sort: v !== "popular" ? v : "" }); };
+  const handlePricingChange = (v: string) => { setPricingFilter(v); setPage(0); syncParams({ pricing: v !== "all" ? v : "" }); };
+  const handleCategoryChange = (v: string) => { setCategoryFilter(v); setPage(0); syncParams({ category: v !== "all" ? v : "" }); };
   const toggleAiMode = () => { setAiMode(!aiMode); aiSearch.clear(); };
 
   const activeFilters = [
@@ -111,7 +132,7 @@ export default function ToolsPage() {
                   {activeFilters.length > 0 && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{activeFilters.length}</span>}
                 </Button>
               )}
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <Select value={sortBy} onValueChange={(v) => handleSortChange(v as SortOption)}>
                 <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="popular">{t("tools.sort.popular")}</SelectItem>
@@ -132,7 +153,7 @@ export default function ToolsPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium">{t("tools.filter.category")}</label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <Select value={categoryFilter} onValueChange={handleCategoryChange}>
                     <SelectTrigger><SelectValue placeholder={t("tools.filter.all")} /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t("tools.filter.allCategories")}</SelectItem>
@@ -142,7 +163,7 @@ export default function ToolsPage() {
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium">{t("tools.filter.price")}</label>
-                  <Select value={pricingFilter} onValueChange={setPricingFilter}>
+                  <Select value={pricingFilter} onValueChange={handlePricingChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {pricingFilters.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
@@ -158,10 +179,10 @@ export default function ToolsPage() {
               {activeFilters.map((f) => (
                 <Badge key={f as string} variant="secondary" className="gap-1 px-3 py-1">
                   {f as string}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => { if (pricingFilter === f) setPricingFilter("all"); else setCategoryFilter("all"); }} />
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => { if (pricingFilter === f) handlePricingChange("all"); else handleCategoryChange("all"); }} />
                 </Badge>
               ))}
-              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => { setPricingFilter("all"); setCategoryFilter("all"); }}>{t("tools.clearFilters")}</button>
+              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => { handlePricingChange("all"); handleCategoryChange("all"); }}>{t("tools.clearFilters")}</button>
             </div>
           )}
 
