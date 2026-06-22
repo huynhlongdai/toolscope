@@ -14,8 +14,8 @@ const Index = () => {
 
   return (
     <PageLayout
-      title="ToolScope - Khám phá & Review công cụ tốt nhất"
-      description="Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn với AI. So sánh, đánh giá và khám phá hàng ngàn công cụ."
+      title="ToolScope — Find the Perfect AI Tool for Your Workflow"
+      description="Compare 800+ tools across 67 categories. AI-powered recommendations, honest reviews, and exclusive deals."
       canonical={origin}
       ogImage={`${origin}/og-image.png`}
       jsonLd={{
@@ -41,12 +41,12 @@ const Index = () => {
       }}
     >
       <HeroSection />
+      <StatsCounter />
       <AdUnit slotId="hero_below" className="container my-4" />
       <CategoryGrid />
       <FeaturedTools />
-      <StatsCounter />
-      <RecentReviews />
       <TrendingDeals />
+      <RecentReviews />
       <BlogPreview />
       <NewsletterCTA />
       <AdUnit slotId="footer_above" className="container my-4" />

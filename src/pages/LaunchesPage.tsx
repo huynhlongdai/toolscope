@@ -169,7 +169,7 @@ export default function LaunchesPage() {
         <div className="container py-8">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h1 className="text-3xl font-bold">
                 <Rocket className="mr-2 inline h-7 w-7 text-primary" />
                 {t("launches.title")}
               </h1>

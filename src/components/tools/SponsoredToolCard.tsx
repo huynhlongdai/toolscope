@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ExternalLink, Award } from "lucide-react";
+import { Star, ExternalLink, Award, Sparkles } from "lucide-react";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { useI18n } from "@/lib/i18n";
 
@@ -44,13 +44,10 @@ export function SponsoredToolsSection({ className }: { className?: string }) {
   return (
     <div className={className}>
       <div className="flex items-center gap-2 mb-3">
-        <Award className="h-4 w-4 text-amber-500" />
-        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-          {t("tools.sponsored") || "Đối tác nổi bật"}
-        </h3>
-        <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-600">
+        <Sparkles className="h-4 w-4 text-amber-500" />
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Sponsored
-        </Badge>
+        </h3>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         {sponsoredTools.map((tool) => {
@@ -58,11 +55,11 @@ export function SponsoredToolsSection({ className }: { className?: string }) {
           return (
             <Card
               key={tool.id}
-              className="overflow-hidden border-amber-200/50 bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-800/30 transition-all hover:shadow-md hover:border-amber-300/70"
+              className="overflow-hidden border-amber-200/60 bg-gradient-to-br from-amber-50/60 to-orange-50/40 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-800/30 card-hover hover:border-amber-300/80"
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-muted border">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-muted border border-border/60 shadow-sm">
                     {logo ? (
                       <img src={logo} alt={tool.name} className="h-8 w-8 rounded-lg object-contain" />
                     ) : (
@@ -90,10 +87,10 @@ export function SponsoredToolsSection({ className }: { className?: string }) {
                   </div>
                 </div>
                 {(tool.affiliate_url || tool.website_url) && (
-                  <Button asChild variant="outline" size="sm" className="w-full mt-3 h-8 text-xs border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30">
+                  <Button asChild variant="outline" size="sm" className="w-full mt-3 h-8 text-xs border-amber-200/80 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950/30">
                     <a href={tool.affiliate_url || tool.website_url!} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-3 w-3 mr-1.5" />
-                      {t("tools.tryNow") || "Dùng thử ngay"}
+                      {t("tools.tryNow") || "Try Now"}
                     </a>
                   </Button>
                 )}

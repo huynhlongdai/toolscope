@@ -92,7 +92,7 @@ export default function CategoriesPage() {
     >
         <div className="container py-10">
           <div className="mb-10 text-center">
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
               {t("categories.pageTitle")}
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-lg text-muted-foreground">

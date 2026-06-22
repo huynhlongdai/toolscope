@@ -57,7 +57,7 @@ export default function CollectionsPage() {
       <div className="container py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-3xl font-bold">
               {t("collections.title")}
             </h1>
             <p className="mt-1 text-muted-foreground">{t("collections.subtitle")}</p>

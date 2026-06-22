@@ -27,7 +27,7 @@ const NotFound = () => {
       <div className="flex flex-1 items-center justify-center px-4 py-16">
         <div className="w-full max-w-lg text-center">
           <div className="relative mb-8 select-none">
-            <h1 className={`text-[10rem] font-black leading-none tracking-tighter transition-all duration-100 ${glitch ? "text-destructive skew-x-2" : "text-foreground/10"}`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>404</h1>
+            <h1 className={`text-[10rem] font-black leading-none tracking-tighter transition-all duration-100 ${glitch ? "text-destructive skew-x-2" : "text-foreground/10"}`}>404</h1>
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="rounded-2xl border bg-card/80 px-6 py-4 shadow-xl backdrop-blur-sm">
                 <p className="text-xl font-semibold text-foreground">{t("notFound.title")}</p>

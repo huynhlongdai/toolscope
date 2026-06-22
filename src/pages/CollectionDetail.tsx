@@ -47,7 +47,7 @@ export default function CollectionDetail() {
         </Link>
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{collection.name}</h1>
+            <h1 className="text-3xl font-bold">{collection.name}</h1>
             <Badge variant="outline">{collection.is_public ? <Globe className="h-3 w-3 mr-1" /> : <Lock className="h-3 w-3 mr-1" />}{collection.is_public ? "Public" : "Private"}</Badge>
           </div>
           {collection.description && (<p className="text-muted-foreground">{collection.description}</p>)}

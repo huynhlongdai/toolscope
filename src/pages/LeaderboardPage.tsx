@@ -93,7 +93,7 @@ export default function LeaderboardPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <Trophy className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h1 className="text-3xl font-bold tracking-tight">
                 {t("leaderboard.title")}
               </h1>
             </div>

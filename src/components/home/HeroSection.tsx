@@ -8,35 +8,15 @@ import { usePopularKeywords } from "@/hooks/usePopularKeywords";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n";
 
-const TYPEWRITER_WORDS = ["AI Writing", "Design", "Analytics", "No-Code", "Marketing", "Productivity"];
-
-function useTypewriter(words: string[], speed = 80, pause = 1800) {
-  const [display, setDisplay] = useState("");
-  const [wordIdx, setWordIdx] = useState(0);
-  const [charIdx, setCharIdx] = useState(0);
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    const current = words[wordIdx];
-    const delay = deleting ? speed / 2 : charIdx === current.length ? pause : speed;
-
-    const timer = setTimeout(() => {
-      if (!deleting && charIdx === current.length) {
-        setDeleting(true);
-      } else if (deleting && charIdx === 0) {
-        setDeleting(false);
-        setWordIdx((i) => (i + 1) % words.length);
-      } else {
-        setCharIdx((i) => i + (deleting ? -1 : 1));
-        setDisplay(current.slice(0, charIdx + (deleting ? -1 : 1)));
-      }
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [charIdx, deleting, wordIdx, words, speed, pause]);
-
-  return display;
-}
+const QUICK_TAGS = [
+  { label: "🔥 AI Writing", query: "AI Writing" },
+  { label: "🎨 Design", query: "Design" },
+  { label: "💻 Development", query: "Development" },
+  { label: "📊 Analytics", query: "Analytics" },
+  { label: "🎬 Video", query: "Video" },
+  { label: "🚀 No-Code", query: "No-Code" },
+  { label: "📈 Marketing", query: "Marketing" },
+];
 
 export function HeroSection() {
   const [query, setQuery] = useState("");
@@ -45,8 +25,6 @@ export function HeroSection() {
   const { results, summary, loading, search, clear } = useAISearch();
   const { data: popularKeywords } = usePopularKeywords();
   const { t } = useI18n();
-  const typeword = useTypewriter(TYPEWRITER_WORDS);
-  const fallbackTags = ["AI Writing", "Design Tools", "Project Management", "No-Code", "Analytics"];
 
   const showDropdown = loading || (results !== null);
 
@@ -70,55 +48,45 @@ export function HeroSection() {
   }, [clear]);
 
   return (
-    <section className="relative overflow-hidden py-12 md:py-24">
-      {/* Background glows */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-[300px] w-[500px] rounded-full bg-accent/5 blur-3xl" />
-        <div className="absolute -left-20 bottom-0 h-[300px] w-[400px] rounded-full bg-primary/3 blur-3xl" />
-      </div>
-
-      <div className="container text-center">
+    <section className="relative overflow-hidden bg-mesh-hero py-16 md:py-28">
+      <div className="container text-center relative z-10">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-6 animate-fade-in">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-8 animate-fade-in">
           <Sparkles className="h-3.5 w-3.5" />
           {t("hero.badge")}
         </div>
 
-        {/* Title with typewriter */}
-        <h1
-          className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-6xl leading-tight animate-slide-up"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        >
+        {/* Static gradient headline — no typewriter */}
+        <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl leading-[1.1] animate-slide-up">
           {t("hero.title")}{" "}
-          <span className="text-primary relative">
-            {typeword}
-            <span className="ml-0.5 inline-block w-[2px] h-[1em] align-middle bg-primary animate-pulse" />
-          </span>{" "}
-          {t("hero.titleEnd")}
+          <span className="text-gradient">{t("hero.titleHighlight") || "Perfect AI Tool"}</span>
+          <br className="hidden sm:block" />
+          {" "}{t("hero.titleEnd")}
         </h1>
 
-        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed">
           {t("hero.subtitle")}
         </p>
 
-        {/* Search box with floating dropdown */}
-        <div className="mx-auto mt-8 max-w-xl relative">
+        {/* Large search box */}
+        <div className="mx-auto mt-10 max-w-2xl relative">
           <form onSubmit={handleSearch}>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={inputRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t("hero.placeholder")}
-                  className="h-12 pl-10 text-base rounded-xl border-border/60 bg-card shadow-sm focus-visible:ring-primary/30"
-                />
-              </div>
-              <Button type="submit" size="lg" className="h-12 rounded-xl px-6 gap-2" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                {t("hero.search")}
+            <div className="relative flex items-center rounded-2xl border-2 border-border/60 bg-card shadow-card hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 focus-within:border-primary/40 focus-within:shadow-glow-sm">
+              <Search className="absolute left-5 h-5 w-5 text-muted-foreground" />
+              <Input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("hero.placeholder")}
+                className="h-14 pl-14 pr-32 text-base border-0 bg-transparent shadow-none focus-visible:ring-0 rounded-2xl"
+              />
+              <Button
+                type="submit"
+                size="lg"
+                className="absolute right-2 h-10 rounded-xl px-6 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 shadow-sm"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("hero.search")}
               </Button>
             </div>
           </form>
@@ -188,32 +156,18 @@ export function HeroSection() {
               )}
             </div>
           )}
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span className="font-medium">{t("hero.trySearch")}</span>
-            <span className="italic">"{t("hero.example1")}"</span>
-            <span>•</span>
-            <span className="italic">"{t("hero.example2")}"</span>
-            <span>•</span>
-            <span className="italic">"{t("hero.example3")}"</span>
-          </div>
         </div>
 
-        {/* Popular tags */}
+        {/* Quick tag pills */}
         {!results && (
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
-            <TrendingUp className="h-3.5 w-3.5" />
-            <span>{t("hero.popular")}</span>
-            {(popularKeywords && popularKeywords.length > 0
-              ? popularKeywords.map(k => k.keyword)
-              : fallbackTags
-            ).map((tag) => (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            {QUICK_TAGS.map((tag) => (
               <button
-                key={tag}
-                onClick={() => { setQuery(tag); search(tag); }}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                key={tag.label}
+                onClick={() => { setQuery(tag.query); search(tag.query); }}
+                className="rounded-full border border-border/60 bg-card/80 px-4 py-2 text-sm font-medium transition-all duration-200 hover:border-primary/30 hover:bg-primary/5 hover:text-primary hover:shadow-sm"
               >
-                {tag}
+                {tag.label}
               </button>
             ))}
           </div>

@@ -85,7 +85,7 @@ export function NewsletterPopup() {
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-accent/20">
             <Gift className="h-7 w-7 text-primary" />
           </div>
-          <DialogTitle className="text-xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <DialogTitle className="text-xl">
             {t("newsletter.popupTitle") || "Đừng bỏ lỡ deals hot! 🔥"}
           </DialogTitle>
           <DialogDescription className="mt-1">

@@ -20,9 +20,9 @@ const vi: Record<string, string> = {
 
   // Hero section
   "hero.badge": "Tìm kiếm thông minh bằng AI",
-  "hero.title": "Khám phá công cụ",
-  "hero.titleHighlight": "hoàn hảo",
-  "hero.titleEnd": "cho công việc của bạn",
+  "hero.title": "Tìm",
+  "hero.titleHighlight": "Công Cụ AI Hoàn Hảo",
+  "hero.titleEnd": "Cho Workflow Của Bạn",
   "hero.subtitle": "Tổng hợp, review và so sánh hàng ngàn công cụ. Được hỗ trợ bởi AI để giúp bạn chọn đúng tool.",
   "hero.placeholder": "Mô tả nhu cầu của bạn...",
   "hero.search": "Tìm kiếm",

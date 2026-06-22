@@ -488,7 +488,7 @@ export default function ComparePage() {
     <PageLayout>
         <div className="container py-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
               <GitCompareArrows className="h-8 w-8 text-primary" />
               {t("compare.title")}
             </h1>

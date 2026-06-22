@@ -113,7 +113,7 @@ export default function WorkflowDetail() {
 
           {wf.cover_image_url && (<div className="mb-6 aspect-video overflow-hidden rounded-xl"><img src={wf.cover_image_url} alt={displayTitle} className="h-full w-full object-cover" /></div>)}
 
-          <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{displayTitle}</h1>
+          <h1 className="text-3xl font-bold leading-tight md:text-4xl">{displayTitle}</h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
             {wf.category && <Badge variant="secondary">{wf.category}</Badge>}

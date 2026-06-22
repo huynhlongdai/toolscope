@@ -3,11 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
-import { Sparkles, TrendingUp, Clock } from "lucide-react";
+import { Sparkles, TrendingUp, Clock, Flame } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 
-type Tab = "featured" | "trending" | "newest";
+type Tab = "featured" | "trending" | "newest" | "rising";
 
 export function FeaturedTools() {
   const [tab, setTab] = useState<Tab>("featured");
@@ -19,6 +19,7 @@ export function FeaturedTools() {
       let query = supabase.from("tools").select("*, categories(name), ai_scores(overall_score, is_recommended)").eq("status", "published").limit(6);
       if (tab === "featured") query = query.eq("is_featured", true).order("avg_rating", { ascending: false });
       else if (tab === "trending") query = query.eq("is_trending", true).order("view_count", { ascending: false });
+      else if (tab === "rising") query = query.order("view_count", { ascending: false });
       else query = query.order("created_at", { ascending: false });
       const { data, error } = await query;
       if (error) throw error;
@@ -27,23 +28,33 @@ export function FeaturedTools() {
   });
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: "featured", label: t("featured.tab.featured"), icon: <Sparkles className="h-3.5 w-3.5" /> },
-    { key: "trending", label: t("featured.tab.trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
-    { key: "newest", label: t("featured.tab.newest"), icon: <Clock className="h-3.5 w-3.5" /> },
+    { key: "featured", label: "🔥 Hot", icon: <Flame className="h-3.5 w-3.5" /> },
+    { key: "trending", label: "⭐ Top Rated", icon: <TrendingUp className="h-3.5 w-3.5" /> },
+    { key: "newest", label: "🆕 New", icon: <Clock className="h-3.5 w-3.5" /> },
+    { key: "rising", label: "🌟 Rising", icon: <Sparkles className="h-3.5 w-3.5" /> },
   ];
 
   return (
-    <section className="py-10 md:py-12 bg-muted/30">
+    <section className="py-10 md:py-14">
       <div className="container">
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t("featured.title")}</h2>
+            <h2 className="text-2xl font-bold md:text-3xl tracking-tight">
+              {t("featured.title")}
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">{t("featured.subtitle")}</p>
           </div>
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
+          <div className="flex gap-1 rounded-xl bg-muted/60 p-1 border border-border/40">
             {tabs.map((tb) => (
-              <button key={tb.key} onClick={() => setTab(tb.key)} className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === tb.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                {tb.icon}
+              <button
+                key={tb.key}
+                onClick={() => setTab(tb.key)}
+                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
+                  tab === tb.key
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 {tb.label}
               </button>
             ))}
@@ -52,7 +63,7 @@ export function FeaturedTools() {
 
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
           </div>
         ) : tools && tools.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -61,13 +72,18 @@ export function FeaturedTools() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
             <p className="text-muted-foreground">{t("featured.empty")}</p>
           </div>
         )}
 
-        <div className="mt-6 text-center">
-          <Link to="/tools" className="text-sm font-medium text-primary hover:underline">{t("featured.viewAll")}</Link>
+        <div className="mt-8 text-center">
+          <Link
+            to="/tools"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            {t("featured.viewAll")} →
+          </Link>
         </div>
       </div>
     </section>

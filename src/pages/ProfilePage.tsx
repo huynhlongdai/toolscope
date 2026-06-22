@@ -46,7 +46,7 @@ function ProfileHeader({ profile, badges, isOwnProfile, editing, onStartEdit, ed
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-2xl font-bold">
               {profile.display_name || t("profile.defaultName")}
             </h1>
             {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}

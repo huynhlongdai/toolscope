@@ -54,7 +54,7 @@ export default function DealsPage() {
     <PageLayout title={`${t("deals.pageTitle")} - ToolScope`} description={t("deals.pageSubtitle")}>
       <div className="container py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-3" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
             <Tag className="h-7 w-7 text-primary" /> {t("deals.pageTitle")}
           </h1>
           <p className="mt-2 text-muted-foreground">{t("deals.pageSubtitle")}</p>

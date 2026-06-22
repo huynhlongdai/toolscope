@@ -20,10 +20,10 @@ const en: Record<string, string> = {
 
   // Hero section
   "hero.badge": "AI-Powered Smart Search",
-  "hero.title": "Discover the",
-  "hero.titleHighlight": "perfect",
-  "hero.titleEnd": "tools for your work",
-  "hero.subtitle": "Aggregate, review and compare thousands of tools. Powered by AI to help you choose the right one.",
+  "hero.title": "Find the",
+  "hero.titleHighlight": "Perfect AI Tool",
+  "hero.titleEnd": "for Your Workflow",
+  "hero.subtitle": "Compare 800+ tools across 67 categories. AI-powered recommendations, honest reviews, and exclusive deals.",
   "hero.placeholder": "Describe what you need...",
   "hero.search": "Search",
   "hero.trySearch": "Try:",

@@ -1,11 +1,6 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
-import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
 interface MenuItem {
@@ -20,61 +15,36 @@ interface FooterColumn {
   children?: MenuItem[];
 }
 
-function NewsletterForm() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { t } = useI18n();
-
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    const { error } = await supabase.from("newsletter_subscribers").insert({ email });
-    setLoading(false);
-    if (error) {
-      if (error.code === "23505") toast.info(t("newsletter.alreadySubscribed"));
-      else toast.error(t("newsletter.error"));
-    } else {
-      toast.success(t("newsletter.success"));
-      setEmail("");
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubscribe} className="flex gap-2">
-      <Input type="email" placeholder={t("newsletter.placeholder")} value={email} onChange={(e) => setEmail(e.target.value)} className="h-9 text-xs" required />
-      <Button type="submit" size="sm" disabled={loading} className="shrink-0"><Mail className="h-3 w-3" /></Button>
-    </form>
-  );
-}
-
 export function Footer() {
   const { t, locale } = useI18n();
 
   const defaultFooterColumns = [
     {
-      title: t("footer.explore"),
+      title: "Product",
       items: [
         { label: t("footer.allTools"), url: "/tools" },
         { label: t("footer.categories"), url: "/categories" },
         { label: t("footer.trending"), url: "/trending" },
-        { label: t("footer.compare"), url: "/compare" },
+        { label: "Deals", url: "/deals" },
+        { label: "Blog", url: "/blog" },
       ],
     },
     {
-      title: t("footer.community"),
+      title: "Community",
       items: [
-        { label: t("footer.blog"), url: "/blog" },
-        { label: t("footer.collections"), url: "/collections" },
-        { label: t("footer.submitTool"), url: "/submit" },
+        { label: "Submit a Tool", url: "/submit" },
+        { label: "Submit a Deal", url: "/submit-deal" },
+        { label: "Write a Review", url: "/tools" },
+        { label: "Leaderboard", url: "/leaderboard" },
       ],
     },
     {
-      title: t("footer.about"),
+      title: "Company",
       items: [
-        { label: t("footer.intro"), url: "/about" },
+        { label: "About", url: "/about" },
         { label: t("footer.contact"), url: "/contact" },
         { label: t("footer.privacy"), url: "/privacy" },
+        { label: "Terms of Service", url: "/terms" },
       ],
     },
   ];
@@ -91,7 +61,6 @@ export function Footer() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Load menu translations
   const menuId = dbMenuData?.id;
   const { data: menuTranslations } = useQuery({
     queryKey: ["menu-translations-footer", menuId, locale],
@@ -123,33 +92,57 @@ export function Footer() {
   const renderLink = (item: MenuItem) => {
     const isExternal = item.url.startsWith("http");
     if (isExternal || item.open_new_tab) {
-      return <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">{item.label}</a>;
+      return (
+        <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {item.label}
+        </a>
+      );
     }
-    return <Link key={item.label} to={item.url} className="text-sm text-muted-foreground hover:text-foreground">{item.label}</Link>;
+    return (
+      <Link key={item.label} to={item.url}
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        {item.label}
+      </Link>
+    );
   };
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <span className="text-xs font-bold text-primary-foreground">T</span>
+    <footer className="border-t border-border/40 bg-card/50">
+      <div className="container py-14">
+        <div className="grid gap-10 md:grid-cols-5">
+          {/* Brand column */}
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-500">
+                <span className="text-sm font-bold text-white">T</span>
               </div>
-              <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ToolScope</span>
+              <span className="text-xl font-extrabold tracking-tight text-gradient">ToolScope</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">{t("footer.description")}</p>
-            <NewsletterForm />
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+              {t("footer.description")}
+            </p>
           </div>
+
+          {/* Link columns */}
           {footerColumns.map((col: any) => (
             <div key={col.title}>
-              <h4 className="mb-3 text-sm font-semibold">{col.title}</h4>
-              <div className="flex flex-col gap-2">{col.items.map((item: MenuItem) => renderLink(item))}</div>
+              <h4 className="mb-4 text-sm font-semibold text-foreground">{col.title}</h4>
+              <div className="flex flex-col gap-2.5">
+                {col.items.map((item: MenuItem) => renderLink(item))}
+              </div>
             </div>
           ))}
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">© 2026 ToolScope. All rights reserved.</div>
+
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-border/40 pt-8">
+          <p className="text-sm text-muted-foreground">© 2025 ToolScope. All rights reserved.</p>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Twitter</a>
+            <a href="https://discord.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Discord</a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+          </div>
+        </div>
       </div>
     </footer>
   );

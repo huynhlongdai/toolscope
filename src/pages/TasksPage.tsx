@@ -207,7 +207,7 @@ export default function TasksPage() {
           {!selectedTask ? (
             <>
               <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h1 className="text-3xl font-bold md:text-4xl">
                   {t("tasks.title")}
                 </h1>
                 <p className="mt-2 text-lg text-muted-foreground">{t("tasks.subtitle")}</p>
@@ -306,7 +306,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-3">
                   <span className="text-3xl">{selectedTaskData?.icon}</span>
                   <div>
-                    <h1 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <h1 className="text-2xl font-bold">
                       {selectedTaskData ? getTaskName(selectedTaskData) : ""}
                     </h1>
                     {selectedTaskData && getTaskDesc(selectedTaskData) && (

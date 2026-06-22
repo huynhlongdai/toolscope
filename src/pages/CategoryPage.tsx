@@ -234,7 +234,7 @@ export default function CategoryPage() {
           </Breadcrumb>
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <h1 className="text-3xl font-bold">
               {category?.name || t("common.loading")}
             </h1>
             {category?.description && (

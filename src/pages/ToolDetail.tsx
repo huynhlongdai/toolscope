@@ -238,7 +238,7 @@ export default function ToolDetail() {
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <h1 className="text-3xl font-bold">
                     {displayName}
                   </h1>
                   {isTranslated && locale !== "vi" && (

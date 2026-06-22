@@ -96,7 +96,7 @@ const TrendingPage = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
                 <TrendingUp className="h-5 w-5 text-accent" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h1 className="text-3xl font-bold tracking-tight">
                 {t("trending.title")}
               </h1>
             </div>

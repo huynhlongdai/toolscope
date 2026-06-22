@@ -202,7 +202,7 @@ function SectionCard({ section, defaultOpen = true, toolId }: { section: Section
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between bg-muted/30 border-b border-border/50 px-6 py-3.5 text-left hover:bg-muted/50 transition-colors group"
       >
-        <span className="flex items-center gap-2.5 text-lg font-semibold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <span className="flex items-center gap-2.5 text-lg font-semibold">
           {getIconForTitle(section.title)}
           {section.title}
         </span>
@@ -321,7 +321,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-xl font-bold flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h2 className="text-xl font-bold flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" /> Giới thiệu chi tiết về {toolName}
           </h2>
           {isAdmin && generateButton("ghost", "Tạo lại")}
@@ -345,7 +345,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <h2 className="text-xl font-bold flex items-center gap-2">
           <BookOpen className="h-5 w-5 text-primary" /> Giới thiệu chi tiết về {toolName}
         </h2>
         <div className="flex items-center gap-2">

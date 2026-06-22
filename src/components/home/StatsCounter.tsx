@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wrench, MessageSquare, Grid3X3, Users } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 function roundUp(n: number) {
@@ -29,21 +28,22 @@ export function StatsCounter() {
   if (!data) return null;
 
   const stats = [
-    { icon: Wrench, value: roundUp(data.tools), label: t("stats.tools") },
-    { icon: MessageSquare, value: roundUp(data.reviews), label: t("stats.reviews") },
-    { icon: Grid3X3, value: roundUp(data.categories), label: t("stats.categories") },
-    { icon: Users, value: roundUp(data.users), label: t("stats.users") },
+    { value: roundUp(data.tools), label: t("stats.tools"), color: "text-indigo-600 dark:text-indigo-400" },
+    { value: roundUp(data.categories), label: t("stats.categories"), color: "text-coral-600 dark:text-coral-400" },
+    { value: roundUp(data.reviews), label: t("stats.reviews"), color: "text-emerald-600 dark:text-emerald-400" },
+    { value: roundUp(data.users), label: t("stats.users"), color: "text-indigo-600 dark:text-indigo-400" },
   ];
 
   return (
-    <section className="py-8 md:py-10 bg-primary/5" aria-label={t("stats.tools")}>
+    <section className="py-10 md:py-14 border-y border-border/40" aria-label={t("stats.tools")}>
       <div className="container">
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-12">
           {stats.map((s) => (
-            <div key={s.label} className="flex flex-col items-center gap-2 text-center">
-              <s.icon className="h-6 w-6 text-primary" />
-              <span className="text-2xl font-bold md:text-3xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{s.value}</span>
-              <span className="text-sm text-muted-foreground">{s.label}</span>
+            <div key={s.label} className="flex flex-col items-center gap-1 text-center">
+              <span className={`text-3xl font-extrabold md:text-4xl tracking-tight ${s.color}`}>
+                {s.value}
+              </span>
+              <span className="text-sm font-medium text-muted-foreground">{s.label}</span>
             </div>
           ))}
         </div>

@@ -29,7 +29,7 @@ export function BlogPreview() {
     <section className="py-8 md:py-10" aria-label={t("blog.title")}>
       <div className="container">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold md:text-2xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t("blog.title")}</h2>
+          <h2 className="text-xl font-bold md:text-2xl">{t("blog.title")}</h2>
           <Link to="/blog" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
             {t("blog.viewAll")} <ChevronRight className="h-3.5 w-3.5" />
           </Link>

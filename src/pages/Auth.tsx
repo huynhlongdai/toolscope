@@ -64,7 +64,7 @@ export default function Auth() {
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
               <span className="text-lg font-bold text-primary-foreground">T</span>
             </div>
-            <CardTitle style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <CardTitle>
               {mode === "login" ? t("auth.login") : mode === "signup" ? t("auth.signup") : t("auth.forgotPassword")}
             </CardTitle>
             <CardDescription>

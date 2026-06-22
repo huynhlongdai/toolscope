@@ -29,7 +29,7 @@ export default function BlogPage() {
     <PageLayout title={t("blog.pageTitle")} description={t("blog.pageSubtitle")}>
       <div className="container py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-3xl font-bold">
             {t("blog.pageTitle")}
           </h1>
           <p className="mt-2 text-muted-foreground">{t("blog.pageSubtitle")}</p>

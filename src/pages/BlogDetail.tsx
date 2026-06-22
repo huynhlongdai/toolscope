@@ -154,7 +154,7 @@ export default function BlogDetail() {
               )}
 
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h1 className="text-3xl font-bold leading-tight md:text-4xl">
                   {displayTitle}
                 </h1>
                 {isTranslated && locale !== "vi" && (

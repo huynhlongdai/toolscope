@@ -174,7 +174,7 @@ export default function ToolsPage() {
     <PageLayout title={t("tools.title")} description={t("tools.subtitle")}>
         <div className="container py-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t("tools.title")}</h1>
+            <h1 className="text-3xl font-bold">{t("tools.title")}</h1>
             <p className="mt-1 text-muted-foreground">{t("tools.subtitle")}</p>
           </div>
 

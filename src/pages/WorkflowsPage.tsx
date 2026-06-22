@@ -39,7 +39,7 @@ const WorkflowsPage = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
                 <Workflow className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h1 className="text-3xl font-bold tracking-tight">
                 {t("workflows.title")}
               </h1>
             </div>
