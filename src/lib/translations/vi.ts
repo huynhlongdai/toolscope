@@ -148,6 +148,8 @@ const vi: Record<string, string> = {
   "tools.noAiResults": "Không tìm thấy kết quả phù hợp",
   "tools.noAiResultsHint": "Thử mô tả nhu cầu chi tiết hơn",
   "tools.count": "công cụ",
+  "tools.sponsored": "Đối tác nổi bật",
+  "tools.tryNow": "Dùng thử ngay",
   "tools.noResults": "Không tìm thấy công cụ",
   "tools.noResultsHint": "Thử thay đổi từ khóa hoặc bộ lọc",
   "tools.prevPage": "Trước",

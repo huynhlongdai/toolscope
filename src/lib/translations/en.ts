@@ -148,6 +148,8 @@ const en: Record<string, string> = {
   "tools.noAiResults": "No matching results found",
   "tools.noAiResultsHint": "Try a more detailed description",
   "tools.count": "tools",
+  "tools.sponsored": "Sponsored",
+  "tools.tryNow": "Try Now",
   "tools.noResults": "No tools found",
   "tools.noResultsHint": "Try changing keywords or filters",
   "tools.prevPage": "Previous",
