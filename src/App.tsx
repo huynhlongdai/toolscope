@@ -36,6 +36,7 @@ const TasksPage = lazy(() => import("./pages/TasksPage"));
 const LaunchesPage = lazy(() => import("./pages/LaunchesPage"));
 const LaunchDetailPage = lazy(() => import("./pages/LaunchDetailPage"));
 const SubmitToolPage = lazy(() => import("./pages/SubmitToolPage"));
+const SubmitDealPage = lazy(() => import("./pages/SubmitDealPage"));
 
 // ── Lazy-loaded admin pages (separate chunk) ─────────────────────────
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -110,6 +111,7 @@ const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNo
   ],
   submit_tool: [
     { path: "/submit", element: <SubmitToolPage /> },
+    { path: "/submit-deal", element: <SubmitDealPage /> },
   ],
 };
 

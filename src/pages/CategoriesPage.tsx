@@ -67,10 +67,28 @@ export default function CategoriesPage() {
     return iconMap[icon] || icon;
   };
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const categoriesJsonLd = parentCategories.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "AI Tool Categories",
+    description: "Browse AI tools by category",
+    url: `${origin}/categories`,
+    hasPart: parentCategories.map((cat) => ({
+      "@type": "CollectionPage",
+      name: getCatName(cat),
+      url: `${origin}/category/${cat.slug}`,
+      description: getCatDesc(cat) || undefined,
+    })),
+  } : undefined;
+
   return (
     <PageLayout
       title={t("categories.pageSeoTitle")}
       description={t("categories.pageSeoDesc")}
+      canonical={`${origin}/categories`}
+      jsonLd={categoriesJsonLd}
     >
         <div className="container py-10">
           <div className="mb-10 text-center">

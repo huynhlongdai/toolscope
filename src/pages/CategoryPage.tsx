@@ -146,25 +146,59 @@ export default function CategoryPage() {
     setSortBy("rating");
   };
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
   const breadcrumbJsonLd = category ? {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: t("category.home"), item: window.location.origin + "/" },
-      { "@type": "ListItem", position: 2, name: t("category.categories"), item: window.location.origin + "/categories" },
-      ...(parentCategory ? [{ "@type": "ListItem", position: 3, name: parentCategory.name, item: window.location.origin + "/category/" + parentCategory.slug }] : []),
+      { "@type": "ListItem", position: 1, name: t("category.home"), item: origin + "/" },
+      { "@type": "ListItem", position: 2, name: t("category.categories"), item: origin + "/categories" },
+      ...(parentCategory ? [{ "@type": "ListItem", position: 3, name: parentCategory.name, item: origin + "/category/" + parentCategory.slug }] : []),
       { "@type": "ListItem", position: parentCategory ? 4 : 3, name: category.name },
     ],
   } : null;
+
+  // ItemList JSON-LD for rich search results (top 10 tools)
+  const itemListJsonLd = category && filteredTools.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Best ${category.name} Tools`,
+    description: category.description || `Top ${category.name} tools and software`,
+    numberOfItems: filteredTools.length,
+    itemListElement: filteredTools.slice(0, 10).map((tool, idx) => ({
+      "@type": "ListItem",
+      position: idx + 1,
+      item: {
+        "@type": "SoftwareApplication",
+        name: tool.name,
+        url: `${origin}/tool/${tool.slug}`,
+        applicationCategory: category.name,
+        ...(tool.logo_url && { image: tool.logo_url }),
+        ...(Number(tool.avg_rating) > 0 && {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: Number(tool.avg_rating).toFixed(1),
+            ratingCount: tool.rating_count,
+            bestRating: 5,
+          },
+        }),
+      },
+    })),
+  } : null;
+
+  const combinedJsonLd = breadcrumbJsonLd || itemListJsonLd ? {
+    "@context": "https://schema.org",
+    "@graph": [breadcrumbJsonLd, itemListJsonLd].filter(Boolean),
+  } : undefined;
 
   return (
     <PageLayout
       title={category ? `${category.name} — ${t("tools.title")} | ToolScope` : undefined}
       description={category ? (category.description || `${t("categories.title")} ${category.name}`) : undefined}
+      canonical={category ? `${origin}/category/${slug}` : undefined}
+      jsonLd={combinedJsonLd}
     >
-      {breadcrumbJsonLd && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      )}
         <div className="container py-8">
           <Breadcrumb className="mb-6">
             <BreadcrumbList>
