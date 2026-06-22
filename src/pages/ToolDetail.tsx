@@ -165,13 +165,65 @@ export default function ToolDetail() {
 
   const aiScore = tool.ai_scores as any;
   const cat = tool.categories as any;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  // Product JSON-LD for rich search results
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: displayName,
+    description: displayShort || displayDesc?.slice(0, 200),
+    url: `${origin}/tool/${slug}`,
+    applicationCategory: cat?.name || "WebApplication",
+    operatingSystem: "Web",
+    ...(tool.logo_url && { image: tool.logo_url }),
+    ...(tool.rating_count > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: Number(tool.avg_rating).toFixed(1),
+        ratingCount: tool.rating_count,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    }),
+    ...(tool.pricing_type === "free" && { offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }),
+    ...(tool.pricing_type === "paid" && { offers: { "@type": "Offer", availability: "https://schema.org/InStock" } }),
+  };
+
+  // Breadcrumb JSON-LD
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Tools", item: `${origin}/tools` },
+      ...(cat ? [{ "@type": "ListItem", position: 2, name: cat.name, item: `${origin}/category/${cat.slug}` }] : []),
+      { "@type": "ListItem", position: cat ? 3 : 2, name: displayName, item: `${origin}/tool/${slug}` },
+    ],
+  };
 
   return (
-    <PageLayout>
+    <PageLayout
+      title={`${displayName} - Review & Đánh giá | ToolScope`}
+      description={displayShort || displayDesc?.slice(0, 160)}
+      canonical={`${origin}/tool/${slug}`}
+      ogImage={tool.logo_url || undefined}
+      jsonLd={{ "@context": "https://schema.org", "@graph": [productJsonLd, breadcrumbJsonLd] }}
+    >
         <div className="container py-8">
-          <Link to="/tools" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-3.5 w-3.5" /> {t("tool.backToList")}
-          </Link>
+          {/* Breadcrumb */}
+          <nav className="mb-4 text-sm text-muted-foreground" aria-label="Breadcrumb">
+            <ol className="flex items-center gap-1.5 flex-wrap">
+              <li><Link to="/tools" className="hover:text-foreground transition-colors">Tools</Link></li>
+              <li className="text-muted-foreground/50">/</li>
+              {cat && (
+                <>
+                  <li><Link to={`/category/${cat.slug}`} className="hover:text-foreground transition-colors">{cat.name}</Link></li>
+                  <li className="text-muted-foreground/50">/</li>
+                </>
+              )}
+              <li className="text-foreground font-medium truncate max-w-[200px]">{displayName}</li>
+            </ol>
+          </nav>
 
           {/* Tool Header */}
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
