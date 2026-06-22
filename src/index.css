@@ -62,22 +62,22 @@
 
   .dark {
     --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --foreground: 210 20% 85%;
 
     --card: 224 71% 7%;
-    --card-foreground: 213 31% 91%;
+    --card-foreground: 210 20% 85%;
 
     --popover: 224 71% 7%;
-    --popover-foreground: 213 31% 91%;
+    --popover-foreground: 210 20% 85%;
 
     --primary: 239 84% 72%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 223 47% 14%;
-    --secondary-foreground: 213 31% 91%;
+    --secondary-foreground: 210 20% 85%;
 
     --muted: 223 47% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted-foreground: 215 15% 60%;
 
     --accent: 25 95% 58%;
     --accent-foreground: 0 0% 100%;
@@ -119,8 +119,13 @@
     font-family: var(--font-cjk, 'Inter'), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  /* Unified typography — Inter only */
-  h1, h2, h3, h4, h5, h6 {
+  /* Dual-font typography: Serif headings + Sans body (inspired by getaiperks.com) */
+  h1, h2, h3 {
+    font-family: var(--font-cjk, Georgia), Georgia, Cambria, 'Times New Roman', serif;
+    @apply tracking-tight;
+    letter-spacing: -0.03em;
+  }
+  h4, h5, h6 {
     font-family: var(--font-cjk, 'Inter'), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     @apply tracking-tight;
   }

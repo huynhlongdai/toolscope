@@ -133,27 +133,40 @@ function parseHtmlSections(html: string): Section[] {
 }
 
 /* ── Prose class string ─────────────────────────────────── */
+/* ── Prose typography matching getaiperks.com style ─────── */
+/* Key principles: 18px body, 32px line-height, muted gray text,
+   serif headings, generous 24px paragraph spacing, font-medium bold */
 const proseClasses = cn(
   "prose prose-neutral dark:prose-invert max-w-none",
-  /* Body text: larger line-height, more paragraph spacing for readability */
-  "prose-p:text-[15px] prose-p:text-muted-foreground prose-p:leading-[1.9] prose-p:mb-5",
-  "prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground prose-headings:mt-8 prose-headings:mb-4",
+  /* Body: 18px Inter, line-height 32px (1.78), muted color, 24px margin */
+  "prose-p:text-[17px] prose-p:text-muted-foreground prose-p:leading-[1.78] prose-p:mb-6 prose-p:font-normal",
+  /* Headings: serif font, tight tracking, generous spacing */
+  "prose-headings:font-serif prose-headings:font-bold prose-headings:text-foreground",
+  "prose-h2:text-[28px] prose-h2:leading-[1.3] prose-h2:tracking-[-0.03em] prose-h2:mt-12 prose-h2:mb-6",
+  "prose-h3:text-[22px] prose-h3:leading-[1.4] prose-h3:tracking-[-0.02em] prose-h3:mt-10 prose-h3:mb-4",
+  "prose-h4:text-[18px] prose-h4:font-sans prose-h4:font-semibold prose-h4:leading-[1.5] prose-h4:mt-8 prose-h4:mb-3",
+  /* Links */
   "prose-a:text-primary prose-a:underline-offset-2 prose-a:decoration-primary/40 hover:prose-a:decoration-primary",
   "prose-img:rounded-lg prose-img:shadow-sm",
-  /* Bold text: use primary color to differentiate from body, slightly heavier */
-  "prose-strong:text-foreground prose-strong:font-semibold",
-  "prose-em:text-muted-foreground",
+  /* Bold text: medium weight, foreground color — not heavy */
+  "prose-strong:text-foreground prose-strong:font-medium",
+  "prose-em:text-muted-foreground prose-em:italic",
+  /* Lists: same body size, generous spacing */
   "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
-  "prose-li:text-[15px] prose-li:leading-[1.9] prose-li:mb-2.5 prose-li:pl-1",
+  "prose-li:text-[17px] prose-li:leading-[1.78] prose-li:mb-2 prose-li:pl-1",
   "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-5 prose-ol:my-5",
   "prose-ul:list-disc prose-ol:list-decimal",
-  "[&_ul]:marker:text-primary/60 [&_ol]:marker:text-primary/60 [&_ol]:marker:font-semibold",
-  "prose-blockquote:border-l-4 prose-blockquote:border-primary/30 prose-blockquote:bg-muted/30 prose-blockquote:rounded-r-lg prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-6",
+  "[&_ul]:marker:text-muted-foreground/50 [&_ol]:marker:text-muted-foreground/50 [&_ol]:marker:font-medium",
+  /* Blockquotes */
+  "prose-blockquote:border-l-[3px] prose-blockquote:border-border prose-blockquote:bg-transparent prose-blockquote:rounded-none prose-blockquote:py-1 prose-blockquote:px-6 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-8",
+  /* Code */
   "prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.85em] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
+  /* Tables */
   "prose-table:text-sm prose-table:border prose-table:border-border prose-table:rounded-lg prose-table:overflow-hidden",
   "prose-th:bg-muted/60 prose-th:p-3 prose-th:text-left prose-th:font-semibold prose-th:text-foreground prose-th:border prose-th:border-border",
   "prose-td:p-3 prose-td:border prose-td:border-border prose-td:text-muted-foreground",
-  "prose-hr:border-border/50 prose-hr:my-8",
+  /* Dividers */
+  "prose-hr:border-border/40 prose-hr:my-10",
 );
 
 /* ── Content renderer (HTML or Markdown) with shortcode support ── */
@@ -203,9 +216,9 @@ function SectionCard({ section, defaultOpen = true, toolId }: { section: Section
     <Card id={`section-${section.id}`} className="overflow-hidden scroll-mt-20">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between bg-muted/30 border-b border-border/50 px-6 py-3.5 text-left hover:bg-muted/50 transition-colors group"
+        className="w-full flex items-center justify-between bg-muted/20 border-b border-border/30 px-6 md:px-8 py-4 text-left hover:bg-muted/40 transition-colors group"
       >
-        <span className="flex items-center gap-2.5 text-lg font-semibold">
+        <span className="flex items-center gap-3 text-xl font-bold font-serif tracking-[-0.02em]">
           {getIconForTitle(section.title)}
           {section.title}
         </span>
@@ -222,7 +235,7 @@ function SectionCard({ section, defaultOpen = true, toolId }: { section: Section
         )}
       >
         <div className="overflow-hidden">
-          <CardContent className="pt-6 pb-8 px-6 md:px-8">
+          <CardContent className="pt-8 pb-10 px-6 md:px-10">
              <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
           </CardContent>
         </div>
@@ -322,15 +335,15 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
   // If no sections found (simple HTML without h2), render as single block
   if (sections.length === 0 || (sections.length === 1 && !sections[0].title)) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-xl font-bold flex items-center gap-2">
+          <h2 className="text-2xl font-bold font-serif tracking-[-0.03em] flex items-center gap-2.5">
             <BookOpen className="h-5 w-5 text-primary" /> Giới thiệu chi tiết về {toolName}
           </h2>
           {isAdmin && generateButton("ghost", "Tạo lại")}
         </div>
         <Card>
-          <CardContent className="py-6">
+          <CardContent className="py-8 px-6 md:px-10">
             <ContentRenderer content={detailedContent} isHtml={isHtmlContent(detailedContent)} toolId={toolId} />
           </CardContent>
         </Card>
@@ -345,10 +358,10 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold flex items-center gap-2">
+        <h2 className="text-2xl font-bold font-serif tracking-[-0.03em] flex items-center gap-2.5">
           <BookOpen className="h-5 w-5 text-primary" /> Giới thiệu chi tiết về {toolName}
         </h2>
         <div className="flex items-center gap-2">
@@ -403,7 +416,7 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
         if (!section.title) {
           return (
             <Card key={idx}>
-              <CardContent className="py-6">
+              <CardContent className="py-8 px-6 md:px-10">
                 <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
               </CardContent>
             </Card>
