@@ -133,14 +133,12 @@ function parseHtmlSections(html: string): Section[] {
 }
 
 /* ── Prose class string ─────────────────────────────────── */
-/* ── Prose typography matching getaiperks.com style ─────── */
-/* Key principles: 18px body, 32px line-height, muted gray text,
-   serif headings, generous 24px paragraph spacing, font-medium bold */
+/* ── Prose typography — getaiperks-inspired + card-style lists ── */
 const proseClasses = cn(
   "prose prose-neutral dark:prose-invert max-w-none",
-  /* Body: 18px Inter, line-height 32px (1.78), muted color, 24px margin */
+  /* Body: 17px, generous line-height and paragraph spacing */
   "prose-p:text-[17px] prose-p:text-muted-foreground prose-p:leading-[1.78] prose-p:mb-6 prose-p:font-normal",
-  /* Headings: serif font, tight tracking, generous spacing */
+  /* Headings: serif font, tight tracking */
   "prose-headings:font-serif prose-headings:font-bold prose-headings:text-foreground",
   "prose-h2:text-[28px] prose-h2:leading-[1.3] prose-h2:tracking-[-0.03em] prose-h2:mt-12 prose-h2:mb-6",
   "prose-h3:text-[22px] prose-h3:leading-[1.4] prose-h3:tracking-[-0.02em] prose-h3:mt-10 prose-h3:mb-4",
@@ -148,17 +146,15 @@ const proseClasses = cn(
   /* Links */
   "prose-a:text-primary prose-a:underline-offset-2 prose-a:decoration-primary/40 hover:prose-a:decoration-primary",
   "prose-img:rounded-lg prose-img:shadow-sm",
-  /* Bold text: medium weight, foreground color — not heavy */
+  /* Bold text: medium weight */
   "prose-strong:text-foreground prose-strong:font-medium",
   "prose-em:text-muted-foreground prose-em:italic",
-  /* Lists: same body size, generous spacing */
+  /* Lists: card-style items (main styling in index.css) */
   "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
-  "prose-li:text-[17px] prose-li:leading-[1.78] prose-li:mb-2 prose-li:pl-1",
-  "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-5 prose-ol:my-5",
-  "prose-ul:list-disc prose-ol:list-decimal",
-  "[&_ul]:marker:text-muted-foreground/50 [&_ol]:marker:text-muted-foreground/50 [&_ol]:marker:font-medium",
+  "prose-li:text-[16px] prose-li:leading-[1.75]",
+  "prose-ul:my-6 prose-ol:my-6",
   /* Blockquotes */
-  "prose-blockquote:border-l-[3px] prose-blockquote:border-border prose-blockquote:bg-transparent prose-blockquote:rounded-none prose-blockquote:py-1 prose-blockquote:px-6 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-8",
+  "prose-blockquote:border-l-[3px] prose-blockquote:border-primary/30 prose-blockquote:bg-transparent prose-blockquote:rounded-none prose-blockquote:py-1 prose-blockquote:px-8 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-8",
   /* Code */
   "prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.85em] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
   /* Tables */
