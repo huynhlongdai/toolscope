@@ -30,8 +30,29 @@ export const SUPPORTED_LOCALES: Record<Locale, { label: string; flag: string; na
 };
 
 const SYSTEM_ENTITY_ID = "00000000-0000-0000-0000-000000000001";
+const CACHE_KEY_PREFIX = "i18n_sys_";
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 const dictionaries: Record<string, Record<string, string>> = { vi, en, zh, ja, ko, th, id, es, fr, pt, de };
+
+/** Try to read system override cache from localStorage */
+function readCachedOverrides(locale: string): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem(`${CACHE_KEY_PREFIX}${locale}`);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (Date.now() - entry.ts < CACHE_TTL) return entry.data;
+    localStorage.removeItem(`${CACHE_KEY_PREFIX}${locale}`);
+  } catch {}
+  return null;
+}
+
+/** Save system override cache to localStorage */
+function writeCachedOverrides(locale: string, data: Record<string, string>) {
+  try {
+    localStorage.setItem(`${CACHE_KEY_PREFIX}${locale}`, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
 
 interface I18nContextType {
   locale: Locale;
@@ -56,10 +77,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("locale", l);
   }, []);
 
-  // Load system translation overrides from DB
+  // Load system translation overrides from DB with localStorage cache
   const { data: dbOverrides } = useQuery({
     queryKey: ["system-translations-override", locale],
     queryFn: async () => {
+      // Check localStorage cache first
+      const cached = readCachedOverrides(locale);
+      if (cached) return cached;
+
       const { data, error } = await supabase
         .from("translations")
         .select("field_name, translated_text")
@@ -71,15 +96,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       data?.forEach((row: any) => {
         map[row.field_name] = row.translated_text;
       });
+      // Persist to localStorage
+      writeCachedOverrides(locale, map);
       return map;
     },
     enabled: locale !== "en",
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 min (matches localStorage TTL)
+    gcTime: 60 * 60 * 1000,    // 1 hour garbage collection
   });
 
   const t = useCallback(
     (key: string, fallback?: string) => {
-      // Priority: DB override > static file > vi fallback > fallback > key
+      // Priority: DB override > static file > en fallback > vi fallback > fallback > key
       if (dbOverrides?.[key]) return dbOverrides[key];
       return dictionaries[locale]?.[key] ?? dictionaries["en"]?.[key] ?? dictionaries["vi"]?.[key] ?? fallback ?? key;
     },

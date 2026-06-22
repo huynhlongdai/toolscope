@@ -13,7 +13,9 @@ import { useModules } from "./hooks/useModules";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { HreflangMeta } from "./components/seo/HreflangMeta";
 import { useAutoLocale } from "./hooks/useAutoLocale";
+import { useRoutePrefetch } from "./hooks/useRoutePrefetch";
 import { LocaleLayout, DefaultLocaleLayout } from "./components/locale/LocaleLayout";
+import { CJKFontLoader } from "./components/locale/CJKFontLoader";
 
 // ── Lazy-loaded public pages ─────────────────────────────────────────
 const Index = lazy(() => import("./pages/Index"));
@@ -166,11 +168,13 @@ function PublicRoutes({ isEnabled }: { isEnabled: (id: string) => boolean }) {
 function AppRoutes() {
   const { isEnabled } = useModules();
   useAutoLocale();
+  useRoutePrefetch();
 
   return (
     <>
       <ScrollToTop />
       <HreflangMeta />
+      <CJKFontLoader />
       <Routes>
         {/*
           Locale-prefixed routes: /vi/tools, /ja/tool/chatgpt, etc.
