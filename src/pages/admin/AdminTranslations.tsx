@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Languages, Globe, FileText, Menu, Download, Upload, BarChart3 } from "lucide-react";
+import { Languages, Globe, FileText, Menu, Download, Upload, BarChart3, ListTodo } from "lucide-react";
 import { ContentTranslationsTab } from "@/components/admin/translations/ContentTranslationsTab";
 import { SystemTranslationsTab } from "@/components/admin/translations/SystemTranslationsTab";
 import { MenuTranslationsTab } from "@/components/admin/translations/MenuTranslationsTab";
+import { TranslationQueuePanel } from "@/components/admin/TranslationQueuePanel";
 import { toast } from "sonner";
 
 const LOCALES = ["en", "zh", "ja", "ko", "th", "id", "es", "fr", "pt", "de"];
@@ -158,21 +159,29 @@ export default function AdminTranslations() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <Tabs defaultValue="queue" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+            <TabsTrigger value="queue" className="flex items-center gap-1.5">
+              <ListTodo className="h-4 w-4" />
+              Auto-Translate
+            </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center gap-1.5">
               <FileText className="h-4 w-4" />
-              Dịch nội dung
+              Content
             </TabsTrigger>
             <TabsTrigger value="menu" className="flex items-center gap-1.5">
               <Menu className="h-4 w-4" />
-              Dịch menu
+              Menu
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-1.5">
               <Globe className="h-4 w-4" />
-              Dịch hệ thống
+              System
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="queue" className="mt-4">
+            <TranslationQueuePanel />
+          </TabsContent>
 
           <TabsContent value="content" className="mt-4">
             <ContentTranslationsTab />
