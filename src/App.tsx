@@ -141,10 +141,10 @@ function adminRoute(element: ReactNode) {
 }
 
 /**
- * Renders all public routes (always-on + module-gated) as child <Route> elements.
- * Reused inside both LocaleLayout (/:locale/*) and DefaultLocaleLayout (/*).
+ * Returns public route elements (always-on + module-gated) for nesting inside <Route>.
+ * Must be called as a function (not a component) so React Router sees raw <Route> children.
  */
-function PublicRoutes({ isEnabled }: { isEnabled: (id: string) => boolean }) {
+function renderPublicRoutes(isEnabled: (id: string) => boolean) {
   return (
     <>
       {/* Index route */}
@@ -182,12 +182,12 @@ function AppRoutes() {
           English URLs (/en/tools) redirect to /tools (no prefix).
         */}
         <Route path="/:locale" element={<LocaleLayout />}>
-          <PublicRoutes isEnabled={isEnabled} />
+          {renderPublicRoutes(isEnabled)}
         </Route>
 
         {/* Default routes (English, no locale prefix) */}
         <Route element={<DefaultLocaleLayout />}>
-          <PublicRoutes isEnabled={isEnabled} />
+          {renderPublicRoutes(isEnabled)}
         </Route>
 
         {/* Admin routes — no locale prefix, always English */}
