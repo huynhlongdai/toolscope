@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { useI18n, SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
+import { useLocation } from "react-router-dom";
 import { useModules } from "@/hooks/useModules";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,25 @@ export function Header() {
   const { locale, setLocale, t } = useI18n();
   const { isEnabled } = useModules();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  const VALID_LOCALE_CODES = new Set(Object.keys(SUPPORTED_LOCALES));
+  const handleLocaleChange = (newLocale: Locale) => {
+    if (newLocale === locale) return;
+    // Strip any existing locale prefix from current path
+    const parts = pathname.split("/").filter(Boolean);
+    let basePath = pathname;
+    if (parts.length > 0 && VALID_LOCALE_CODES.has(parts[0])) {
+      basePath = "/" + parts.slice(1).join("/") || "/";
+    }
+    setLocale(newLocale);
+    // English (default) → no prefix; others → /:locale prefix
+    if (newLocale === "en") {
+      navigate(basePath);
+    } else {
+      navigate(`/${newLocale}${basePath === "/" ? "" : basePath}`);
+    }
+  };
 
   const { data: dbMenuData } = useQuery({
     queryKey: ["menu-header-with-id"],
@@ -171,7 +191,7 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
               {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
-                <DropdownMenuItem key={code} onClick={() => setLocale(code)} className="flex items-center justify-between">
+                <DropdownMenuItem key={code} onClick={() => handleLocaleChange(code)} className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="text-base">{meta.flag}</span>
                     <span className="text-sm">{meta.nativeName}</span>
@@ -222,7 +242,7 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 max-h-72 overflow-y-auto">
                 {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
-                  <DropdownMenuItem key={code} onClick={() => { setLocale(code); setMobileMenuOpen(false); }} className="flex items-center justify-between">
+                  <DropdownMenuItem key={code} onClick={() => { handleLocaleChange(code); setMobileMenuOpen(false); }} className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <span className="text-base">{meta.flag}</span>
                       <span className="text-sm">{meta.nativeName}</span>

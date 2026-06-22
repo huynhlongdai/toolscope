@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, type ReactNode } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { useModules } from "./hooks/useModules";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { HreflangMeta } from "./components/seo/HreflangMeta";
 import { useAutoLocale } from "./hooks/useAutoLocale";
+import { LocaleLayout, DefaultLocaleLayout } from "./components/locale/LocaleLayout";
 
 // ── Lazy-loaded public pages ─────────────────────────────────────────
 const Index = lazy(() => import("./pages/Index"));
@@ -83,44 +84,83 @@ const queryClient = new QueryClient({
 });
 
 /** Maps module IDs to their public routes */
-const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNode }>> = {
+const MODULE_ROUTES: Record<string, Array<{ path: string; element: ReactNode }>> = {
   blog: [
-    { path: "/blog", element: <BlogPage /> },
-    { path: "/blog/:slug", element: <BlogDetail /> },
+    { path: "blog", element: <BlogPage /> },
+    { path: "blog/:slug", element: <BlogDetail /> },
   ],
   workflows: [
-    { path: "/workflows", element: <WorkflowsPage /> },
-    { path: "/workflow/:slug", element: <WorkflowDetail /> },
+    { path: "workflows", element: <WorkflowsPage /> },
+    { path: "workflow/:slug", element: <WorkflowDetail /> },
   ],
   deals: [
-    { path: "/deals", element: <DealsPage /> },
+    { path: "deals", element: <DealsPage /> },
   ],
   launches: [
-    { path: "/launches", element: <LaunchesPage /> },
-    { path: "/launch/:id", element: <LaunchDetailPage /> },
+    { path: "launches", element: <LaunchesPage /> },
+    { path: "launch/:id", element: <LaunchDetailPage /> },
   ],
   tasks: [
-    { path: "/tasks", element: <TasksPage /> },
+    { path: "tasks", element: <TasksPage /> },
   ],
   collections: [
-    { path: "/collections", element: <CollectionsPage /> },
-    { path: "/collection/:id", element: <CollectionDetail /> },
+    { path: "collections", element: <CollectionsPage /> },
+    { path: "collection/:id", element: <CollectionDetail /> },
   ],
   compare: [
-    { path: "/compare", element: <ComparePage /> },
+    { path: "compare", element: <ComparePage /> },
   ],
   leaderboard: [
-    { path: "/leaderboard", element: <LeaderboardPage /> },
+    { path: "leaderboard", element: <LeaderboardPage /> },
   ],
   submit_tool: [
-    { path: "/submit", element: <SubmitToolPage /> },
-    { path: "/submit-deal", element: <SubmitDealPage /> },
+    { path: "submit", element: <SubmitToolPage /> },
+    { path: "submit-deal", element: <SubmitDealPage /> },
   ],
 };
 
+/** Always-on public routes (no module gate) */
+const ALWAYS_ON_ROUTES: Array<{ path: string; element: ReactNode }> = [
+  { path: "auth", element: <Auth /> },
+  { path: "tools", element: <ToolsPage /> },
+  { path: "tool/:slug", element: <ToolDetail /> },
+  { path: "categories", element: <CategoriesPage /> },
+  { path: "category/:slug", element: <CategoryPage /> },
+  { path: "trending", element: <TrendingPage /> },
+  { path: "profile", element: <ProfilePage /> },
+  { path: "profile/:id", element: <ProfilePage /> },
+  { path: "bookmarks", element: <BookmarksPage /> },
+  { path: "p/:slug", element: <DynamicPage /> },
+];
+
 /** Wraps admin element with auth guard */
-function adminRoute(element: React.ReactNode) {
+function adminRoute(element: ReactNode) {
   return <AdminGuard>{element}</AdminGuard>;
+}
+
+/**
+ * Renders all public routes (always-on + module-gated) as child <Route> elements.
+ * Reused inside both LocaleLayout (/:locale/*) and DefaultLocaleLayout (/*).
+ */
+function PublicRoutes({ isEnabled }: { isEnabled: (id: string) => boolean }) {
+  return (
+    <>
+      {/* Index route */}
+      <Route index element={<Index />} />
+
+      {/* Always-on routes */}
+      {ALWAYS_ON_ROUTES.map((r) => (
+        <Route key={r.path} path={r.path} element={r.element} />
+      ))}
+
+      {/* Module-gated routes */}
+      {Object.entries(MODULE_ROUTES).map(([moduleId, routes]) =>
+        isEnabled(moduleId)
+          ? routes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)
+          : routes.map((r) => <Route key={r.path} path={r.path} element={<NotFound />} />)
+      )}
+    </>
+  );
 }
 
 function AppRoutes() {
@@ -132,27 +172,21 @@ function AppRoutes() {
       <ScrollToTop />
       <HreflangMeta />
       <Routes>
-        {/* Always-on routes */}
-        <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/tools" element={<ToolsPage />} />
-        <Route path="/tool/:slug" element={<ToolDetail />} />
-        <Route path="/categories" element={<CategoriesPage />} />
-        <Route path="/category/:slug" element={<CategoryPage />} />
-        <Route path="/trending" element={<TrendingPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/profile/:id" element={<ProfilePage />} />
-        <Route path="/bookmarks" element={<BookmarksPage />} />
-        <Route path="/p/:slug" element={<DynamicPage />} />
+        {/*
+          Locale-prefixed routes: /vi/tools, /ja/tool/chatgpt, etc.
+          LocaleLayout reads :locale param → syncs i18n context.
+          English URLs (/en/tools) redirect to /tools (no prefix).
+        */}
+        <Route path="/:locale" element={<LocaleLayout />}>
+          <PublicRoutes isEnabled={isEnabled} />
+        </Route>
 
-        {/* Module-gated routes */}
-        {Object.entries(MODULE_ROUTES).map(([moduleId, routes]) =>
-          isEnabled(moduleId)
-            ? routes.map((r) => <Route key={r.path} path={r.path} element={r.element} />)
-            : routes.map((r) => <Route key={r.path} path={r.path} element={<NotFound />} />)
-        )}
+        {/* Default routes (English, no locale prefix) */}
+        <Route element={<DefaultLocaleLayout />}>
+          <PublicRoutes isEnabled={isEnabled} />
+        </Route>
 
-        {/* Admin routes (guarded) */}
+        {/* Admin routes — no locale prefix, always English */}
         <Route path="/admin" element={adminRoute(<AdminDashboard />)} />
         <Route path="/admin/tools" element={adminRoute(<AdminTools />)} />
         <Route path="/admin/users" element={adminRoute(<AdminUsers />)} />

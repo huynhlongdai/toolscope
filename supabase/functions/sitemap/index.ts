@@ -2,7 +2,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const BASE_URL = "https://toolscope.app";
-const LOCALES = ["vi", "en"];
+
+// All supported locales — English is default (no prefix)
+const ALL_LOCALES = ["en", "vi", "zh", "ja", "ko", "th", "id", "es", "fr", "pt", "de"];
+const DEFAULT_LOCALE = "en";
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -16,6 +19,22 @@ serve(async (req) => {
   // robots.txt
   if (path.endsWith("/robots.txt") || url.searchParams.get("type") === "robots") {
     const robotsTxt = `User-agent: *
+Allow: /
+
+# AI Crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
 Allow: /
 
 Sitemap: ${BASE_URL}/sitemap.xml
@@ -44,17 +63,48 @@ Sitemap: ${BASE_URL}/sitemap.xml
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
 `;
 
-    // Helper to add URL with hreflang alternates
-    const addUrl = (path: string, lastmod?: string, changefreq = "weekly", priority = "0.7") => {
-      xml += `  <url>\n    <loc>${BASE_URL}${path}</loc>\n`;
+    /**
+     * Adds a URL entry with hreflang alternates for all locales.
+     * Default locale (en) → no prefix: /tools
+     * Other locales → prefix: /vi/tools, /ja/tools
+     */
+    const addUrl = (pagePath: string, lastmod?: string, changefreq = "weekly", priority = "0.7") => {
+      // Generate the default (English) URL
+      const defaultUrl = `${BASE_URL}${pagePath}`;
+
+      xml += `  <url>\n    <loc>${defaultUrl}</loc>\n`;
       if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += `    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n`;
-      // Add hreflang for each locale pointing to same URL (content switches via locale toggle)
-      for (const locale of LOCALES) {
-        xml += `    <xhtml:link rel="alternate" hreflang="${locale}" href="${BASE_URL}${path}" />\n`;
+
+      // Hreflang alternates for all locales
+      for (const locale of ALL_LOCALES) {
+        const localeUrl = locale === DEFAULT_LOCALE
+          ? `${BASE_URL}${pagePath}`
+          : `${BASE_URL}/${locale}${pagePath === "/" ? "" : pagePath}`;
+        xml += `    <xhtml:link rel="alternate" hreflang="${locale}" href="${localeUrl}" />\n`;
       }
-      xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${BASE_URL}${path}" />\n`;
+      xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${defaultUrl}" />\n`;
       xml += `  </url>\n`;
+
+      // Also add entries for each non-default locale
+      for (const locale of ALL_LOCALES) {
+        if (locale === DEFAULT_LOCALE) continue;
+
+        const localeUrl = `${BASE_URL}/${locale}${pagePath === "/" ? "" : pagePath}`;
+        xml += `  <url>\n    <loc>${localeUrl}</loc>\n`;
+        if (lastmod) xml += `    <lastmod>${lastmod}</lastmod>\n`;
+        xml += `    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n`;
+
+        // Same hreflang alternates
+        for (const loc of ALL_LOCALES) {
+          const altUrl = loc === DEFAULT_LOCALE
+            ? `${BASE_URL}${pagePath}`
+            : `${BASE_URL}/${loc}${pagePath === "/" ? "" : pagePath}`;
+          xml += `    <xhtml:link rel="alternate" hreflang="${loc}" href="${altUrl}" />\n`;
+        }
+        xml += `    <xhtml:link rel="alternate" hreflang="x-default" href="${defaultUrl}" />\n`;
+        xml += `  </url>\n`;
+      }
     };
 
     // Static pages
@@ -68,6 +118,7 @@ Sitemap: ${BASE_URL}/sitemap.xml
     addUrl("/leaderboard", undefined, "daily", "0.6");
     addUrl("/deals", undefined, "daily", "0.7");
     addUrl("/launches", undefined, "daily", "0.7");
+    addUrl("/categories", undefined, "weekly", "0.7");
 
     for (const t of tools) {
       addUrl(`/tool/${t.slug}`, new Date(t.updated_at).toISOString().split("T")[0], "weekly", "0.8");
