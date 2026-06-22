@@ -10,6 +10,9 @@ import { AdminGuard } from "@/components/AdminGuard";
 import { PageSuspense } from "@/components/PageSuspense";
 import { AnalyticsProvider } from "./components/analytics/AnalyticsProvider";
 import { useModules } from "./hooks/useModules";
+import { ScrollToTop } from "./components/layout/ScrollToTop";
+import { HreflangMeta } from "./components/seo/HreflangMeta";
+import { useAutoLocale } from "./hooks/useAutoLocale";
 
 // ── Lazy-loaded public pages ─────────────────────────────────────────
 const Index = lazy(() => import("./pages/Index"));
@@ -122,9 +125,12 @@ function adminRoute(element: React.ReactNode) {
 
 function AppRoutes() {
   const { isEnabled } = useModules();
+  useAutoLocale();
 
   return (
     <>
+      <ScrollToTop />
+      <HreflangMeta />
       <Routes>
         {/* Always-on routes */}
         <Route path="/" element={<Index />} />
