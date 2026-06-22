@@ -149,10 +149,12 @@ const proseClasses = cn(
   /* Bold text: medium weight */
   "prose-strong:text-foreground prose-strong:font-medium",
   "prose-em:text-muted-foreground prose-em:italic",
-  /* Lists: card-style items (main styling in index.css) */
+  /* Lists: clean spacing, standard bullets */
   "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
-  "prose-li:text-[16px] prose-li:leading-[1.75]",
-  "prose-ul:my-6 prose-ol:my-6",
+  "prose-li:text-[17px] prose-li:leading-[1.78] prose-li:mb-3",
+  "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-5 prose-ol:my-5",
+  "prose-ul:list-disc prose-ol:list-decimal",
+  "[&_ul]:marker:text-primary/40 [&_ol]:marker:text-primary/40 [&_ol]:marker:font-medium",
   /* Blockquotes */
   "prose-blockquote:border-l-[3px] prose-blockquote:border-primary/30 prose-blockquote:bg-transparent prose-blockquote:rounded-none prose-blockquote:py-1 prose-blockquote:px-8 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-8",
   /* Code */
