@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
+import { Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
+import { CommandPalette } from "@/components/search/CommandPalette";
 import { initTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -155,9 +156,7 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex" aria-label="Tìm kiếm">
-            <Search className="h-4 w-4" />
-          </Button>
+          <CommandPalette />
           {user && <NotificationDropdown />}
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

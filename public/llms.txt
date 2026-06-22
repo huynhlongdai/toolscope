@@ -1,0 +1,31 @@
+# ToolScope
+
+> ToolScope is a comprehensive AI tools discovery and review platform. We help users find, compare, and evaluate the best AI tools, software deals, and workflows.
+
+## Core Features
+- AI-powered tool search and recommendations
+- Detailed tool reviews with structured scoring
+- Side-by-side tool comparison
+- Deals, discounts, and free trial tracking
+- Curated collections and workflows
+- Community reviews and leaderboards
+
+## Main Pages
+- /tools - Browse and search all tools
+- /trending - Currently trending tools
+- /deals - Active deals and discounts
+- /compare - Compare tools side by side
+- /collections - Curated tool collections
+- /workflows - AI workflow guides
+- /blog - Articles and guides
+- /launches - New product launches
+- /categories - Browse by category
+- /leaderboard - Top contributors
+
+## API
+- Tools data is available through our platform
+- Contact us for partnership and API access
+
+## Contact
+- Website: https://toolscope.app
+- Submit a tool: https://toolscope.app/submit
