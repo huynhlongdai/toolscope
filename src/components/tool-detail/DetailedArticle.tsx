@@ -135,22 +135,25 @@ function parseHtmlSections(html: string): Section[] {
 /* ── Prose class string ─────────────────────────────────── */
 const proseClasses = cn(
   "prose prose-neutral dark:prose-invert max-w-none",
-  "prose-p:text-muted-foreground prose-p:leading-[1.8] prose-p:mb-4",
-  "prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground",
+  /* Body text: larger line-height, more paragraph spacing for readability */
+  "prose-p:text-[15px] prose-p:text-muted-foreground prose-p:leading-[1.9] prose-p:mb-5",
+  "prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-foreground prose-headings:mt-8 prose-headings:mb-4",
   "prose-a:text-primary prose-a:underline-offset-2 prose-a:decoration-primary/40 hover:prose-a:decoration-primary",
   "prose-img:rounded-lg prose-img:shadow-sm",
-  "prose-strong:text-foreground prose-strong:font-semibold prose-em:text-muted-foreground",
+  /* Bold text: use primary color to differentiate from body, slightly heavier */
+  "prose-strong:text-foreground prose-strong:font-semibold",
+  "prose-em:text-muted-foreground",
   "prose-ul:text-muted-foreground prose-ol:text-muted-foreground",
-  "prose-li:leading-[1.8] prose-li:mb-2 prose-li:pl-1",
-  "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-4 prose-ol:my-4",
+  "prose-li:text-[15px] prose-li:leading-[1.9] prose-li:mb-2.5 prose-li:pl-1",
+  "prose-ul:pl-6 prose-ol:pl-6 prose-ul:my-5 prose-ol:my-5",
   "prose-ul:list-disc prose-ol:list-decimal",
-  "[&_ul]:marker:text-primary [&_ol]:marker:text-primary [&_ol]:marker:font-semibold",
-  "prose-blockquote:border-l-4 prose-blockquote:border-primary/40 prose-blockquote:bg-muted/40 prose-blockquote:rounded-r-lg prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:not-italic prose-blockquote:text-muted-foreground",
+  "[&_ul]:marker:text-primary/60 [&_ol]:marker:text-primary/60 [&_ol]:marker:font-semibold",
+  "prose-blockquote:border-l-4 prose-blockquote:border-primary/30 prose-blockquote:bg-muted/30 prose-blockquote:rounded-r-lg prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:not-italic prose-blockquote:text-muted-foreground prose-blockquote:my-6",
   "prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.85em] prose-code:font-normal prose-code:before:content-none prose-code:after:content-none",
   "prose-table:text-sm prose-table:border prose-table:border-border prose-table:rounded-lg prose-table:overflow-hidden",
   "prose-th:bg-muted/60 prose-th:p-3 prose-th:text-left prose-th:font-semibold prose-th:text-foreground prose-th:border prose-th:border-border",
   "prose-td:p-3 prose-td:border prose-td:border-border prose-td:text-muted-foreground",
-  "prose-hr:border-border/50 prose-hr:my-6",
+  "prose-hr:border-border/50 prose-hr:my-8",
 );
 
 /* ── Content renderer (HTML or Markdown) with shortcode support ── */
@@ -219,7 +222,7 @@ function SectionCard({ section, defaultOpen = true, toolId }: { section: Section
         )}
       >
         <div className="overflow-hidden">
-          <CardContent className="pt-5 pb-6">
+          <CardContent className="pt-6 pb-8 px-6 md:px-8">
              <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
           </CardContent>
         </div>
