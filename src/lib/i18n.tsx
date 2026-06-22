@@ -64,7 +64,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       });
       return map;
     },
-    enabled: locale !== "vi",
+    enabled: locale !== "en",
     staleTime: 5 * 60 * 1000,
   });
 
@@ -72,7 +72,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     (key: string, fallback?: string) => {
       // Priority: DB override > static file > vi fallback > fallback > key
       if (dbOverrides?.[key]) return dbOverrides[key];
-      return dictionaries[locale]?.[key] ?? dictionaries["vi"]?.[key] ?? fallback ?? key;
+      return dictionaries[locale]?.[key] ?? dictionaries["en"]?.[key] ?? dictionaries["vi"]?.[key] ?? fallback ?? key;
     },
     [locale, dbOverrides]
   );

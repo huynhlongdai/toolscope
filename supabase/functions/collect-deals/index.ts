@@ -63,8 +63,8 @@ ${content.slice(0, 10000) || `No search results available. Use your knowledge to
 
 Return ONLY a JSON array. Each deal object:
 {
-  "title": "Deal title in Vietnamese",
-  "description": "Brief description in Vietnamese",
+  "title": "Deal title in English",
+  "description": "Brief description in English",
   "coupon_code": "COUPON_CODE or null",
   "discount_type": "percentage|fixed|free_trial|custom",
   "discount_value": 50,
@@ -191,7 +191,7 @@ Only include real, verifiable deals. Max 20 items. If no deals found, return [].
 
     if (action === "generate-description") {
       const { deal_title, tool_name: tName, discount_type, discount_value } = body;
-      const prompt = `Write a short, engaging deal description in Vietnamese for:
+      const prompt = `Write a short, engaging deal description in English for:
 - Tool: ${tName || "unknown"}
 - Deal title: ${deal_title || "discount"}
 - Discount: ${discount_type === "percentage" ? `${discount_value}%` : discount_type === "fixed" ? `$${discount_value}` : discount_type}
@@ -201,7 +201,7 @@ Return ONLY the description text, 1-2 sentences, no quotes.`;
       const aiResponse = await callAI({
         feature: "content_generation",
         messages: [
-          { role: "system", content: "You write concise deal descriptions in Vietnamese." },
+          { role: "system", content: "You write concise deal descriptions in English." },
           { role: "user", content: prompt },
         ],
       });

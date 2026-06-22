@@ -234,14 +234,14 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
 {
   "name": "Tool name (string)",
   "slug": "url-friendly-slug (string, lowercase, hyphens)",
-  "short_description": "Brief description in Vietnamese, max 100 chars",
-  "description": "Detailed description in Vietnamese, 2-3 paragraphs",
-  "detailed_content": "A comprehensive HTML article in Vietnamese about this tool. Include sections: <h2>Tổng quan</h2>, <h2>Tính năng chính</h2> (with <ul><li> list), <h2>Bảng giá</h2>, <h2>Đối tượng sử dụng</h2>, <h2>Ưu điểm và nhược điểm</h2> (split into two <h3> subsections with lists), <h2>Kết luận</h2>. Use proper HTML tags: h2, h3, p, ul, li, strong, em. No markdown. Make it informative and at least 500 words.",
+  "short_description": "Brief description in English, max 100 chars",
+  "description": "Detailed description in English, 2-3 paragraphs",
+  "detailed_content": "A comprehensive HTML article in English about this tool. Include sections: <h2>Overview</h2>, <h2>Key Features</h2> (with <ul><li> list), <h2>Pricing</h2>, <h2>Target Users</h2>, <h2>Pros and Cons</h2> (split into two <h3> subsections with lists), <h2>Conclusion</h2>. Use proper HTML tags: h2, h3, p, ul, li, strong, em. No markdown. Make it informative and at least 500 words.",
   "pricing_type": "one of: free, freemium, paid, open_source, contact",
   "pricing_details": [{"name": "Plan name", "price": 0, "currency": "USD", "features": ["feature1", "feature2"]}],
-  "features": ["feature1 in Vietnamese", "feature2", ...],
+  "features": ["feature1 in English", "feature2", ...],
   "platforms": ["Web", "iOS", "Android", "Windows", "macOS", "Linux"],
-  "category_suggestion": "suggested category name in Vietnamese",
+  "category_suggestion": "suggested category name in English",
   "website_url": "${resolvedUrl || ""}",
   "logo_url": "best logo URL found, or null",
   "tags": ["tag1", "tag2", ...],
@@ -252,7 +252,7 @@ Return ONLY valid JSON (no markdown, no comments) with these fields:
   "signup_options": ["array of strings from: free_signup, google_sso, github_sso, email_only, demo_request, apple_sso"]
 }
 
-IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?".`;
+IMPORTANT: Generate 5-8 FAQ items in English. Each question must end with "?".`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -263,7 +263,7 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a tool/software analyst. Extract accurate information from websites. Always respond with valid JSON only. Write descriptions and detailed_content in Vietnamese. For detailed_content, write proper HTML (not markdown)." },
+          { role: "system", content: "You are a tool/software analyst. Extract accurate information from websites. Always respond with valid JSON only. Write descriptions and detailed_content in English. For detailed_content, write proper HTML (not markdown)." },
           { role: "user", content: prompt },
         ],
       }),

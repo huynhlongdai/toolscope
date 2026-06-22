@@ -62,7 +62,7 @@ serve(async (req) => {
       { field: "detailed_content", text: tool.detailed_content },
     ].filter(f => f.text);
 
-    const prompt = `Translate the following Vietnamese content about a tool called "${tool.name}" to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
+    const prompt = `Translate the following English content about a tool called "${tool.name}" to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
 
 Fields to translate:
 ${fields.map(f => `- ${f.field}: """${(f.text || "").substring(0, 3000)}"""`).join("\n\n")}
@@ -80,7 +80,7 @@ Important: Preserve all HTML tags, Markdown formatting, URLs, and technical term
     const response = await callAI({
       feature: "translation",
       messages: [
-        { role: "system", content: `You are a professional translator. Translate Vietnamese to ${targetLang} accurately while preserving all formatting.` },
+        { role: "system", content: `You are a professional translator. Translate English to ${targetLang} accurately while preserving all formatting.` },
         { role: "user", content: prompt },
       ],
     });

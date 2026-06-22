@@ -124,9 +124,9 @@ Return ONLY a JSON array of tools. Each tool object:
 {
   "name": "Tool name",
   "website_url": "https://...",
-  "description": "Brief description in Vietnamese",
+  "description": "Brief description in English",
   "pricing_type": "free|freemium|paid|open_source|contact",
-  "category_name": "suggested category in Vietnamese",
+  "category_name": "suggested category in English",
   "source_url": "URL where this was found"
 }
 
@@ -142,9 +142,9 @@ Return ONLY a JSON array of tools. Each tool object:
 {
   "name": "Tool name",
   "website_url": "https://... (if mentioned, otherwise null)",
-  "description": "Brief description in Vietnamese based on what's mentioned",
+  "description": "Brief description in English based on what's mentioned",
   "pricing_type": "free|freemium|paid|open_source|contact",
-  "category_name": "suggested category in Vietnamese",
+  "category_name": "suggested category in English",
   "source_url": null
 }
 
@@ -160,9 +160,9 @@ Return ONLY a JSON array of tools. Each tool object:
 {
   "name": "Tool name",
   "website_url": "https://...",
-  "description": "Brief description in Vietnamese",
+  "description": "Brief description in English",
   "pricing_type": "free|freemium|paid|open_source|contact",
-  "category_name": "suggested category in Vietnamese",
+  "category_name": "suggested category in English",
   "source_url": "${query}"
 }
 
@@ -514,11 +514,11 @@ ${scrapeContent ? `Website content:\n${scrapeContent}` : ""}
 
 Return ONLY valid JSON:
 {
-  "description": "Detailed description in Vietnamese, 2-3 paragraphs",
-  "short_description": "Brief, max 100 chars, Vietnamese",
+  "description": "Detailed description in English, 2-3 paragraphs",
+  "short_description": "Brief, max 100 chars, English",
   "pricing_type": "free|freemium|paid|open_source|contact",
   "logo_url": "best logo URL or null",
-  "category_name": "suggested category in Vietnamese"
+  "category_name": "suggested category in English"
 }`;
 
       const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -583,7 +583,7 @@ Return ONLY valid JSON:
             try { scrapeContent = (await scrapeListingUrl(item.website_url)).slice(0, 3000); } catch {}
           }
 
-          const prompt = `Analyze: ${item.name}\nURL: ${item.website_url || "unknown"}\nDesc: ${item.description || "none"}\n${scrapeContent ? `Content:\n${scrapeContent}` : ""}\n\nReturn JSON: {"description":"Vietnamese 2-3 paragraphs","short_description":"max 100 chars Vietnamese","pricing_type":"free|freemium|paid|open_source|contact","logo_url":"URL or null","category_name":"Vietnamese category"}`;
+          const prompt = `Analyze: ${item.name}\nURL: ${item.website_url || "unknown"}\nDesc: ${item.description || "none"}\n${scrapeContent ? `Content:\n${scrapeContent}` : ""}\n\nReturn JSON: {"description":"English 2-3 paragraphs","short_description":"max 100 chars English","pricing_type":"free|freemium|paid|open_source|contact","logo_url":"URL or null","category_name":"English category"}`;
 
           const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",

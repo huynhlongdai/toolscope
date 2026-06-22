@@ -28,7 +28,7 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are an expert content strategist creating workflow guides for ToolScope - an AI tools directory.
-Generate a COMPLETE, SEO-optimized workflow with rich content. Write ALL content in Vietnamese.
+Generate a COMPLETE, SEO-optimized workflow with rich content. Write ALL content in English.
 Categories: Design, Marketing, Development, Content, Productivity, Business, AI, Data${toolsContext}${popularToolsContext}`;
 
     const userPrompt = keyword

@@ -41,7 +41,7 @@ serve(async (req) => {
       const keysObj: Record<string, string> = {};
       chunk.forEach((k: { key: string; text: string }) => { keysObj[k.key] = k.text; });
 
-      const prompt = `Translate these Vietnamese UI strings to ${targetLang}. Return a JSON object with the same keys and translated values. Keep translations concise and appropriate for a web interface.
+      const prompt = `Translate these English UI strings to ${targetLang}. Return a JSON object with the same keys and translated values. Keep translations concise and appropriate for a web interface.
 
 ${JSON.stringify(keysObj, null, 2)}
 
@@ -50,7 +50,7 @@ Return ONLY a valid JSON object with the same keys and translated string values.
       const response = await callAI({
         feature: "translation",
         messages: [
-          { role: "system", content: `You are a UI translator. Translate Vietnamese to ${targetLang}. Keep translations short and natural for UI elements.` },
+          { role: "system", content: `You are a UI translator. Translate English to ${targetLang}. Keep translations short and natural for UI elements.` },
           { role: "user", content: prompt },
         ],
       });

@@ -21,12 +21,12 @@ export function HreflangMeta() {
       const link = document.createElement("link");
       link.rel = "alternate";
       link.hreflang = lang;
-      link.href = `${origin}${pathname}${lang === "vi" ? "" : `?lang=${lang}`}`;
+      link.href = `${origin}${pathname}${lang === "en" ? "" : `?lang=${lang}`}`;
       link.setAttribute("data-auto-hreflang", "true");
       document.head.appendChild(link);
     });
 
-    // x-default (Vietnamese is the default)
+    // x-default (English is the default)
     const xDefault = document.createElement("link");
     xDefault.rel = "alternate";
     xDefault.hreflang = "x-default";

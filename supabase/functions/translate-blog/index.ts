@@ -77,7 +77,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ translations: {}, saved: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const prompt = `Translate the following Vietnamese ${entityType} content to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
+    const prompt = `Translate the following English ${entityType} content to ${targetLang}. Keep all HTML/Markdown formatting intact. Return a JSON object with the translated fields.
 
 Fields to translate:
 ${fieldEntries.map(f => `- ${f.field}: """${f.text}"""`).join("\n\n")}
@@ -90,7 +90,7 @@ Important: Preserve all HTML tags, Markdown formatting, URLs. Only translate hum
     const response = await callAI({
       feature: "translation",
       messages: [
-        { role: "system", content: `You are a professional translator. Translate Vietnamese to ${targetLang} accurately while preserving all formatting.` },
+        { role: "system", content: `You are a professional translator. Translate English to ${targetLang} accurately while preserving all formatting.` },
         { role: "user", content: prompt },
       ],
     });

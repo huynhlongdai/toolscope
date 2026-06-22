@@ -109,7 +109,7 @@ serve(async (req) => {
                         properties: {
                           name: { type: "string", description: "Tool name" },
                           website_url: { type: "string", description: "Official website URL" },
-                          description_vi: { type: "string", description: "Brief description in Vietnamese (1-2 sentences)" },
+                          description_vi: { type: "string", description: "Brief description in English (1-2 sentences)" },
                           pricing_type: { type: "string", enum: ["free", "freemium", "paid", "open_source"], description: "Pricing model" },
                           category_name: { type: "string", description: "Category in English" },
                         },

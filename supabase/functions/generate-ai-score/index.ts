@@ -63,7 +63,7 @@ serve(async (req) => {
                   performance: { type: "number", description: "Performance score 0-10" },
                   pros: { type: "array", items: { type: "string" }, description: "List of 3-5 pros" },
                   cons: { type: "array", items: { type: "string" }, description: "List of 2-4 cons" },
-                  summary: { type: "string", description: "Brief summary in Vietnamese, 2-3 sentences" },
+                  summary: { type: "string", description: "Brief summary in English, 2-3 sentences" },
                   is_recommended: { type: "boolean", description: "Whether to recommend this tool" },
                 },
                 required: ["overall_score", "ease_of_use", "features", "value_for_money", "support", "performance", "pros", "cons", "summary", "is_recommended"],
