@@ -3,6 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import vi from "@/lib/translations/vi";
 import en from "@/lib/translations/en";
+import zh from "@/lib/translations/zh";
+import ja from "@/lib/translations/ja";
+import ko from "@/lib/translations/ko";
+import th from "@/lib/translations/th";
+import id from "@/lib/translations/id";
+import es from "@/lib/translations/es";
+import fr from "@/lib/translations/fr";
+import pt from "@/lib/translations/pt";
+import de from "@/lib/translations/de";
 
 export type Locale = "vi" | "en" | "zh" | "ja" | "ko" | "th" | "id" | "es" | "fr" | "pt" | "de";
 
@@ -22,7 +31,7 @@ export const SUPPORTED_LOCALES: Record<Locale, { label: string; flag: string; na
 
 const SYSTEM_ENTITY_ID = "00000000-0000-0000-0000-000000000001";
 
-const dictionaries: Record<string, Record<string, string>> = { vi, en };
+const dictionaries: Record<string, Record<string, string>> = { vi, en, zh, ja, ko, th, id, es, fr, pt, de };
 
 interface I18nContextType {
   locale: Locale;
