@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag, Search } from "lucide-react";
+import { EligibilityChecker } from "@/components/tools/EligibilityChecker";
 
 export default function DealsPage() {
   const { t } = useI18n();
@@ -118,6 +119,11 @@ export default function DealsPage() {
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
           {filtered.length} {t("deals.activeCount")}
+        </div>
+
+        {/* Eligibility Checker */}
+        <div className="mt-10">
+          <EligibilityChecker />
         </div>
       </div>
     </PageLayout>

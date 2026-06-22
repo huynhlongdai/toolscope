@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
 import { useI18n } from "@/lib/i18n";
 import { AdUnit } from "@/components/ads/AdUnit";
+import { SponsoredToolsSection } from "@/components/tools/SponsoredToolCard";
 import { supabase } from "@/integrations/supabase/client";
 
 type SortOption = "popular" | "newest" | "rating" | "name" | "most_claimed";
@@ -331,6 +332,7 @@ export default function ToolsPage() {
               ) : tools && tools.length > 0 ? (
                 <>
                   <p className="mb-4 text-sm text-muted-foreground">{totalCount} {t("tools.count")}</p>
+                  <SponsoredToolsSection className="mb-6" />
                   <AdUnit slotId="between_tools" className="mb-4" />
                   <div className={viewMode === "grid" ? "grid gap-4 md:grid-cols-2 lg:grid-cols-3" : "space-y-3"}>
                     {tools.map((tool) => (
