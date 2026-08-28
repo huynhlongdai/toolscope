@@ -13,6 +13,47 @@ import { ShareButtons } from "@/components/share/ShareButtons";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useMemo } from "react";
 import { AdUnit } from "@/components/ads/AdUnit";
+import { VerdictBox } from "@/components/blog/VerdictBox";
+import { ListicleItem, type ListicleItemData } from "@/components/blog/ListicleItem";
+import { CaseStudyStats, type CaseStudyStat } from "@/components/blog/CaseStudyStats";
+import { ToolsUsedSidebar, type ToolUsedEntry } from "@/components/blog/ToolsUsedSidebar";
+import { AffiliateDisclosure } from "@/components/blog/AffiliateDisclosure";
+
+type ArticleType = "review" | "listicle" | "case_study" | "comparison" | "howto";
+
+/**
+ * Graceful fallback: the article_type / verdict_ / listicle_items /
+ * case_study_ columns are added by a migration that may not be applied
+ * to the live DB yet (no elevated Supabase credentials available in this
+ * environment). When the explicit column is missing/empty, infer the
+ * type from tags/title so the site keeps rendering sensibly either way.
+ */
+function inferArticleType(post: any, listicleItems: unknown[], caseStudyStats: unknown[]): ArticleType {
+  const explicit = post?.article_type as string | undefined;
+  if (explicit && ["review", "listicle", "case_study", "comparison", "howto"].includes(explicit)) {
+    return explicit as ArticleType;
+  }
+  if (listicleItems.length > 0) return "listicle";
+  if (caseStudyStats.length > 0) return "case_study";
+
+  const tags: string[] = (post?.tags as string[]) ?? [];
+  const lowerTags = tags.map((t) => t.toLowerCase());
+  const title = (post?.title ?? "").toLowerCase();
+
+  if (/\btop\s?\d+\b/.test(title) || lowerTags.some((t) => t.includes("listicle") || t.includes("best-of") || t.includes("top-"))) {
+    return "listicle";
+  }
+  if (/case study/.test(title) || lowerTags.some((t) => t.includes("case-study") || t.includes("case_study"))) {
+    return "case_study";
+  }
+  if (/\bvs\b|comparison/.test(title) || lowerTags.some((t) => t.includes("comparison") || t === "vs")) {
+    return "comparison";
+  }
+  if (/review/.test(title) || lowerTags.some((t) => t.includes("review"))) {
+    return "review";
+  }
+  return "howto";
+}
 
 function parseHeadings(html: string) {
   const regex = /<h([23])[^>]*>(.*?)<\/h\1>/gi;
@@ -59,15 +100,70 @@ export default function BlogDetail() {
   const displayContent = translated.content || post?.content || "";
 
   const relatedToolIds = (post?.related_tool_ids as string[]) ?? [];
-  const { data: relatedTools = [] } = useQuery({
-    queryKey: ["blog-related-tools", relatedToolIds],
+
+  // Structured content-first fields (may be absent until the migration is
+  // applied to the live DB — always fall back to safe defaults).
+  const primaryToolId = (post as any)?.primary_tool_id as string | undefined;
+  const ctaLabel = (post as any)?.cta_label as string | undefined;
+  const verdictRating = (post as any)?.verdict_rating as number | undefined;
+  const verdictSummary = (post as any)?.verdict_summary as string | undefined;
+  const verdictPros = (post as any)?.verdict_pros as string[] | undefined;
+  const verdictCons = (post as any)?.verdict_cons as string[] | undefined;
+  const verdictBestFor = (post as any)?.verdict_best_for as string | undefined;
+  const listicleItems = useMemo<ListicleItemData[]>(
+    () => (((post as any)?.listicle_items as ListicleItemData[]) ?? []).slice().sort((a, b) => a.rank - b.rank),
+    [post]
+  );
+  const caseStudyStats = useMemo<CaseStudyStat[]>(() => ((post as any)?.case_study_stats as CaseStudyStat[]) ?? [], [post]);
+  const caseStudyToolsUsedRaw = useMemo<{ role?: string; tool_id: string }[]>(
+    () => ((post as any)?.case_study_tools_used as { role?: string; tool_id: string }[]) ?? [],
+    [post]
+  );
+
+  const articleType = useMemo(() => inferArticleType(post, listicleItems, caseStudyStats), [post, listicleItems, caseStudyStats]);
+
+  const hasAffiliateLinks = Boolean(
+    (post as any)?.has_affiliate_links || primaryToolId || listicleItems.length > 0 || caseStudyToolsUsedRaw.length > 0
+  );
+
+  // Union of every tool id referenced anywhere on this article so we only
+  // need one round-trip to Supabase.
+  const allToolIds = useMemo(() => {
+    const ids = new Set<string>(relatedToolIds);
+    if (primaryToolId) ids.add(primaryToolId);
+    listicleItems.forEach((item: any) => item.tool_id && ids.add(item.tool_id));
+    caseStudyToolsUsedRaw.forEach((entry) => entry.tool_id && ids.add(entry.tool_id));
+    return Array.from(ids);
+  }, [relatedToolIds, primaryToolId, listicleItems, caseStudyToolsUsedRaw]);
+
+  const { data: allTools = [] } = useQuery({
+    queryKey: ["blog-article-tools", allToolIds],
     queryFn: async () => {
-      if (!relatedToolIds.length) return [];
-      const { data } = await supabase.from("tools").select("*, categories(name)").in("id", relatedToolIds);
+      if (!allToolIds.length) return [];
+      const { data } = await supabase.from("tools").select("*, categories(name)").in("id", allToolIds);
       return data ?? [];
     },
-    enabled: relatedToolIds.length > 0,
+    enabled: allToolIds.length > 0,
   });
+
+  const toolsById = useMemo(() => {
+    const map = new Map<string, any>();
+    allTools.forEach((tool: any) => map.set(tool.id, tool));
+    return map;
+  }, [allTools]);
+
+  const relatedTools = useMemo(() => relatedToolIds.map((id) => toolsById.get(id)).filter(Boolean), [relatedToolIds, toolsById]);
+  const primaryTool = primaryToolId ? toolsById.get(primaryToolId) : undefined;
+  const caseStudyToolsUsed: ToolUsedEntry[] = useMemo(
+    () =>
+      caseStudyToolsUsedRaw
+        .map((entry) => {
+          const tool = toolsById.get(entry.tool_id);
+          return tool ? { role: entry.role, tool } : null;
+        })
+        .filter((x): x is ToolUsedEntry => x !== null),
+    [caseStudyToolsUsedRaw, toolsById]
+  );
 
   // Related posts by tags
   const currentTags = (post?.tags as string[]) ?? [];
@@ -153,7 +249,15 @@ export default function BlogDetail() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {articleType !== "howto" && (
+                  <Badge className="bg-primary/10 text-primary hover:bg-primary/10 text-[10px] uppercase tracking-wide">
+                    {t(`blog.filter${articleType === "case_study" ? "CaseStudy" : articleType.charAt(0).toUpperCase() + articleType.slice(1)}`, articleType)}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
                 <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   {displayTitle}
                 </h1>
@@ -192,6 +296,27 @@ export default function BlogDetail() {
                 <ShareButtons title={displayTitle} />
               </div>
 
+              {/* Case study: headline stats bar up top for proof-first hook */}
+              {articleType === "case_study" && caseStudyStats.length > 0 && (
+                <CaseStudyStats stats={caseStudyStats} className="mt-6" />
+              )}
+
+              {hasAffiliateLinks && <AffiliateDisclosure className="mt-6" />}
+
+              {/* Review: TL;DR verdict box before the full write-up */}
+              {articleType === "review" && primaryTool && verdictRating != null && (
+                <VerdictBox
+                  tool={primaryTool}
+                  rating={verdictRating}
+                  summary={verdictSummary}
+                  pros={verdictPros}
+                  cons={verdictCons}
+                  bestFor={verdictBestFor}
+                  ctaLabel={ctaLabel}
+                  className="mt-6"
+                />
+              )}
+
               <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
                 {contentWithIds.startsWith("<") ? (
                   <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds) }} />
@@ -199,6 +324,17 @@ export default function BlogDetail() {
                   <ReactMarkdown>{displayContent}</ReactMarkdown>
                 )}
               </div>
+
+              {/* Listicle: ranked cards, each with its own CTA */}
+              {articleType === "listicle" && listicleItems.length > 0 && (
+                <div className="mt-8 space-y-4">
+                  {listicleItems.map((item) => {
+                    const tool = toolsById.get((item as any).tool_id);
+                    if (!tool) return null;
+                    return <ListicleItem key={item.rank} item={item} tool={tool} />;
+                  })}
+                </div>
+              )}
 
               <AdUnit slotId="blog_mid" className="my-6" />
 
@@ -251,6 +387,11 @@ export default function BlogDetail() {
 
             {/* Sidebar - desktop only */}
             <aside className="hidden lg:block w-80 flex-shrink-0 space-y-6">
+              {/* Case study: tools used, with mini affiliate CTAs */}
+              {articleType === "case_study" && caseStudyToolsUsed.length > 0 && (
+                <ToolsUsedSidebar tools={caseStudyToolsUsed} />
+              )}
+
               {/* Table of Contents */}
               {headings.length > 0 && (
                 <div className="rounded-lg border bg-card p-4">

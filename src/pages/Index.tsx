@@ -42,12 +42,14 @@ const Index = () => {
     >
       <HeroSection />
       <AdUnit slotId="hero_below" className="container my-4" />
-      <CategoryGrid />
+      {/* Content-first: reviews & guides drive the affiliate traffic goal,
+          so they sit right under the hero instead of at the bottom. */}
+      <BlogPreview />
       <FeaturedTools />
       <StatsCounter />
       <RecentReviews />
       <TrendingDeals />
-      <BlogPreview />
+      <CategoryGrid />
       <NewsletterCTA />
       <AdUnit slotId="footer_above" className="container my-4" />
     </PageLayout>

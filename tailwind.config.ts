@@ -65,6 +65,21 @@ export default {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
+        rankGold: {
+          DEFAULT: "hsl(var(--rank-gold))",
+          foreground: "hsl(var(--rank-gold-foreground))",
+        },
+        hero: {
+          DEFAULT: "hsl(var(--hero-background))",
+          alt: "hsl(var(--hero-background-alt))",
+          foreground: "hsl(var(--hero-foreground))",
+          "muted-foreground": "hsl(var(--hero-muted-foreground))",
+          border: "hsl(var(--hero-border))",
+          card: "hsl(var(--hero-card))",
+          teal: "hsl(var(--hero-glow-teal))",
+          cyan: "hsl(var(--hero-glow-cyan))",
+          blue: "hsl(var(--hero-glow-blue))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -96,6 +111,10 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        "glow-pulse": {
+          "0%, 100%": { opacity: "0.5", transform: "scale(1)" },
+          "50%": { opacity: "0.8", transform: "scale(1.08)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -104,6 +123,7 @@ export default {
         "slide-up": "slide-up 0.35s ease-out",
         "slide-down": "slide-down 0.25s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
+        "glow-pulse": "glow-pulse 6s ease-in-out infinite",
       },
     },
   },

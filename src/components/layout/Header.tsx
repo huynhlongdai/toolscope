@@ -25,17 +25,21 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+// Content-first nav: Reviews & Guides hub leads, directory features
+// (Tools/Trending/Compare) follow, Deals last as a secondary monetization
+// surface. Tasks/Launches/Workflows/Leaderboard are hidden via the
+// `useModules` toggle system (see Admin > Settings > Modules) rather than
+// removed from code, so they can be re-enabled later without a redeploy.
 const defaultNavItems: MenuItem[] = [
-  { label: "Khám phá", url: "/tools" },
-  { label: "Trending", url: "/trending" },
-  { label: "Tasks", url: "/tasks" },
-  { label: "Launches", url: "/launches" },
-  { label: "Workflows", url: "/workflows" },
-  { label: "Ưu đãi", url: "/deals" },
-  { label: "Blog", url: "/blog" },
+  { label: "Reviews", url: "/blog" },
+  { label: "Best Tools", url: "/blog?type=listicle" },
+  { label: "Use Cases", url: "/blog?type=case_study" },
+  { label: "Compare", url: "/compare" },
+  { label: "Deals", url: "/deals" },
+  { label: "Explore", url: "/tools" },
 ];
 
-// URL prefix → module ID mapping for nav filtering
+// URL (prefix, ignoring query string) → module ID mapping for nav filtering
 const URL_MODULE_MAP: Record<string, string> = {
   "/tools": "",       // always on
   "/trending": "",    // always on
@@ -49,6 +53,8 @@ const URL_MODULE_MAP: Record<string, string> = {
   "/leaderboard": "leaderboard",
   "/submit": "submit_tool",
 };
+
+const urlPath = (url: string) => url.split("?")[0];
 
 export function Header() {
   const [theme, setTheme] = useState<Theme>(initTheme);
@@ -100,7 +106,7 @@ export function Header() {
   // Filter nav items by module enabled status
   const filterByModule = (items: MenuItem[]) =>
     items.filter((item) => {
-      const moduleId = URL_MODULE_MAP[item.url];
+      const moduleId = URL_MODULE_MAP[urlPath(item.url)];
       if (moduleId === undefined || moduleId === "") return true; // unknown or always-on
       return isEnabled(moduleId);
     });

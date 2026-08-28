@@ -62,7 +62,7 @@ const en: Record<string, string> = {
   "reviews.anonymous": "Anonymous",
 
   // Blog preview
-  "blog.title": "Latest Posts",
+  "blog.title": "Latest Reviews & Guides",
   "blog.viewAll": "View all",
 
   // Trending deals
@@ -192,12 +192,34 @@ const en: Record<string, string> = {
   "pricing.contact": "Contact",
 
   // Blog page
-  "blog.pageTitle": "Blog & News",
-  "blog.pageSubtitle": "Tool trends, tips & tricks, in-depth comparisons",
+  "blog.pageTitle": "Reviews & Guides",
+  "blog.pageSubtitle": "Honest AI tool reviews, best-of lists and real case studies to help you pick with confidence",
   "blog.noPosts": "No posts yet. Come back later!",
-  "blog.backToBlog": "Back to Blog",
+  "blog.backToBlog": "Back to Reviews & Guides",
   "blog.postNotFound": "Post not found",
   "blog.relatedTools": "🔗 Related Tools",
+  "blog.filterAll": "All",
+  "blog.filterReview": "Reviews",
+  "blog.filterListicle": "Best Of",
+  "blog.filterCaseStudy": "Case Studies",
+  "blog.filterComparison": "Comparisons",
+  "blog.filterHowto": "Guides",
+
+  // Affiliate disclosure
+  "affiliate.disclosure": "This article contains affiliate links. If you buy through them, we may earn a commission at no extra cost to you. This helps fund our independent testing and reviews.",
+
+  // Verdict box (review articles)
+  "verdict.badge": "Our Verdict",
+  "verdict.bestFor": "Best for",
+  "verdict.tryNow": "Try It Free",
+
+  // Listicle items
+  "listicle.rank": "Rank",
+  "listicle.tryNow": "Try It",
+
+  // Case study
+  "caseStudy.toolsUsed": "Tools Used in This Story",
+  "caseStudy.visitTool": "Visit",
 
   // Deals page
   "deals.pageTitle": "Deals & Coupons",

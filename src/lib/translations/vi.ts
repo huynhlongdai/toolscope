@@ -62,7 +62,7 @@ const vi: Record<string, string> = {
   "reviews.anonymous": "Ẩn danh",
 
   // Blog preview
-  "blog.title": "Bài viết mới",
+  "blog.title": "Reviews & Guides mới nhất",
   "blog.viewAll": "Xem tất cả",
 
   // Trending deals
@@ -192,12 +192,34 @@ const vi: Record<string, string> = {
   "pricing.contact": "Liên hệ",
 
   // Blog page
-  "blog.pageTitle": "Blog & Tin tức",
-  "blog.pageSubtitle": "Xu hướng công cụ, tips & tricks, so sánh chuyên sâu",
+  "blog.pageTitle": "Reviews & Guides",
+  "blog.pageSubtitle": "Đánh giá công cụ AI, danh sách tốt nhất và case study thực tế giúp bạn chọn đúng",
   "blog.noPosts": "Chưa có bài viết nào. Hãy quay lại sau!",
-  "blog.backToBlog": "Quay lại Blog",
+  "blog.backToBlog": "Quay lại Reviews & Guides",
   "blog.postNotFound": "Không tìm thấy bài viết",
   "blog.relatedTools": "🔗 Công cụ liên quan",
+  "blog.filterAll": "Tất cả",
+  "blog.filterReview": "Đánh giá",
+  "blog.filterListicle": "Top danh sách",
+  "blog.filterCaseStudy": "Case Study",
+  "blog.filterComparison": "So sánh",
+  "blog.filterHowto": "Hướng dẫn",
+
+  // Affiliate disclosure
+  "affiliate.disclosure": "Bài viết này chứa liên kết tiếp thị liên kết (affiliate). Nếu bạn mua qua các liên kết này, chúng tôi có thể nhận hoa hồng mà không phát sinh thêm chi phí cho bạn. Điều này giúp chúng tôi duy trì việc kiểm thử và đánh giá độc lập.",
+
+  // Verdict box (review articles)
+  "verdict.badge": "Kết luận của chúng tôi",
+  "verdict.bestFor": "Phù hợp cho",
+  "verdict.tryNow": "Dùng thử miễn phí",
+
+  // Listicle items
+  "listicle.rank": "Hạng",
+  "listicle.tryNow": "Dùng thử",
+
+  // Case study
+  "caseStudy.toolsUsed": "Công cụ được sử dụng",
+  "caseStudy.visitTool": "Xem",
 
   // Deals page
   "deals.pageTitle": "Ưu đãi & Coupon",

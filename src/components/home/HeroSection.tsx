@@ -70,35 +70,36 @@ export function HeroSection() {
   }, [clear]);
 
   return (
-    <section className="relative overflow-hidden py-12 md:py-24">
-      {/* Background glows */}
+    <section className="hero-surface hero-grid-bg relative overflow-hidden py-16 md:py-28">
+      {/* Teal/cyan/blue glow blobs — always-dark hero, per approved Mockup 4 */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-[300px] w-[500px] rounded-full bg-accent/5 blur-3xl" />
-        <div className="absolute -left-20 bottom-0 h-[300px] w-[400px] rounded-full bg-primary/3 blur-3xl" />
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-hero-teal/20 blur-3xl animate-glow-pulse" />
+        <div className="absolute right-0 top-1/3 h-[300px] w-[500px] rounded-full bg-hero-cyan/15 blur-3xl animate-glow-pulse" style={{ animationDelay: "2s" }} />
+        <div className="absolute -left-20 bottom-0 h-[300px] w-[400px] rounded-full bg-hero-blue/15 blur-3xl animate-glow-pulse" style={{ animationDelay: "4s" }} />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
       </div>
 
       <div className="container text-center">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-medium text-primary mb-6 animate-fade-in">
+        <div className="inline-flex items-center gap-2 rounded-full border border-hero-teal/30 bg-hero-teal/10 px-4 py-1.5 text-sm font-medium text-hero-teal mb-6 animate-fade-in">
           <Sparkles className="h-3.5 w-3.5" />
           {t("hero.badge")}
         </div>
 
         {/* Title with typewriter */}
         <h1
-          className="mx-auto max-w-3xl text-4xl font-bold tracking-tight md:text-6xl leading-tight animate-slide-up"
+          className="mx-auto max-w-3xl text-4xl font-bold tracking-tight text-hero-foreground md:text-6xl leading-tight animate-slide-up"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}
         >
           {t("hero.title")}{" "}
-          <span className="text-primary relative">
+          <span className="text-gradient-hero relative">
             {typeword}
-            <span className="ml-0.5 inline-block w-[2px] h-[1em] align-middle bg-primary animate-pulse" />
+            <span className="ml-0.5 inline-block w-[2px] h-[1em] align-middle bg-hero-teal animate-pulse" />
           </span>{" "}
           {t("hero.titleEnd")}
         </h1>
 
-        <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+        <p className="mx-auto mt-4 max-w-xl text-lg text-hero-muted-foreground">
           {t("hero.subtitle")}
         </p>
 
@@ -113,7 +114,7 @@ export function HeroSection() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t("hero.placeholder")}
-                  className="h-12 pl-10 text-base rounded-xl border-border/60 bg-card shadow-sm focus-visible:ring-primary/30"
+                  className="h-12 pl-10 text-base rounded-xl border-hero-border bg-card text-foreground shadow-lg focus-visible:ring-primary/40"
                 />
               </div>
               <Button type="submit" size="lg" className="h-12 rounded-xl px-6 gap-2" disabled={loading}>
@@ -127,7 +128,7 @@ export function HeroSection() {
           {showDropdown && (
             <div
               ref={dropdownRef}
-              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-border bg-card shadow-xl overflow-hidden"
+              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 rounded-xl border border-border bg-card shadow-xl overflow-hidden text-left"
             >
               {loading && (
                 <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
@@ -189,7 +190,7 @@ export function HeroSection() {
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-hero-muted-foreground">
             <span className="font-medium">{t("hero.trySearch")}</span>
             <span className="italic">"{t("hero.example1")}"</span>
             <span>•</span>
@@ -201,7 +202,7 @@ export function HeroSection() {
 
         {/* Popular tags */}
         {!results && (
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-hero-muted-foreground">
             <TrendingUp className="h-3.5 w-3.5" />
             <span>{t("hero.popular")}</span>
             {(popularKeywords && popularKeywords.length > 0
@@ -211,7 +212,7 @@ export function HeroSection() {
               <button
                 key={tag}
                 onClick={() => { setQuery(tag); search(tag); }}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+                className="rounded-full border border-hero-border px-3 py-1 text-xs font-medium text-hero-muted-foreground transition-colors hover:border-hero-teal/40 hover:bg-hero-teal/10 hover:text-hero-teal"
               >
                 {tag}
               </button>
