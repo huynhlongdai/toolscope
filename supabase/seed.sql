@@ -1,5 +1,24 @@
 -- Local development seed data for ToolScope
 -- Safe to re-run (idempotent via fixed UUIDs + ON CONFLICT)
+--
+-- NOTE on the author/admin user: this seed uses a fixed placeholder UUID
+-- ('11111111-1111-1111-1111-111111111111') as the author of the sample
+-- blog posts below. This works when run against a local Supabase Docker
+-- stack (pgcrypto is available for crypt()/gen_salt()).
+--
+-- On a HOSTED/remote Supabase project, prefer creating the real admin
+-- account through the Auth Admin API instead of inserting into auth.users
+-- directly (this avoids drift between auth.users and Supabase's internal
+-- auth bookkeeping):
+--   curl -X POST "https://<project-ref>.supabase.co/auth/v1/admin/users" \
+--     -H "apikey: <service_role_key>" -H "Authorization: Bearer <service_role_key>" \
+--     -H "Content-Type: application/json" \
+--     -d '{"email":"admin@yourdomain.com","password":"<strong password>","email_confirm":true,"user_metadata":{"display_name":"ToolScope Admin"}}'
+-- Then grant the admin role and re-point blog_posts.author_id at the
+-- returned user id:
+--   INSERT INTO public.user_roles (user_id, role) VALUES ('<new-user-id>', 'admin');
+--   UPDATE public.blog_posts SET author_id = '<new-user-id>' WHERE author_id = '11111111-1111-1111-1111-111111111111';
+--   DELETE FROM auth.users WHERE id = '11111111-1111-1111-1111-111111111111'; -- cascades to profiles/user_roles
 
 -- 1. Admin auth user + profile + role -----------------------------------
 INSERT INTO auth.users (
