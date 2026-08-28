@@ -137,14 +137,10 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
           )}
 
           {deal.deal_url && (
-            <Button
-              className="w-full gap-2"
-              onClick={() => {
-                onClickDeal?.();
-                window.open(deal.deal_url!, "_blank", "noopener,noreferrer");
-              }}
-            >
-              <ExternalLink className="h-4 w-4" /> Nhận ưu đãi
+            <Button asChild className="w-full gap-2" onClick={() => onClickDeal?.()}>
+              <a href={deal.deal_url} target="_blank" rel="noopener noreferrer sponsored">
+                <ExternalLink className="h-4 w-4" /> Nhận ưu đãi
+              </a>
             </Button>
           )}
         </div>

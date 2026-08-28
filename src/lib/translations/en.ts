@@ -212,6 +212,21 @@ const en: Record<string, string> = {
   "verdict.badge": "Our Verdict",
   "verdict.bestFor": "Best for",
   "verdict.tryNow": "Try It Free",
+  "verdict.quickBadge": "Quick Verdict",
+  "verdict.aiRecommended": "AI Recommended",
+
+  // Quick facts strip (tool detail page)
+  "quickFacts.pricing": "Pricing",
+  "quickFacts.trial": "Free trial",
+  "quickFacts.days": "days",
+  "quickFacts.yes": "Yes",
+  "quickFacts.no": "No",
+  "quickFacts.card": "Card required",
+  "quickFacts.platforms": "Platforms",
+
+  // E-E-A-T trust signals (tool detail page)
+  "tool.reviewedBy": "Reviewed by",
+  "tool.lastUpdated": "Last updated",
 
   // Listicle items
   "listicle.rank": "Rank",

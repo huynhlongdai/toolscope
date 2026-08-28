@@ -212,6 +212,21 @@ const vi: Record<string, string> = {
   "verdict.badge": "Kết luận của chúng tôi",
   "verdict.bestFor": "Phù hợp cho",
   "verdict.tryNow": "Dùng thử miễn phí",
+  "verdict.quickBadge": "Đánh giá nhanh",
+  "verdict.aiRecommended": "Được AI đề xuất",
+
+  // Quick facts strip (tool detail page)
+  "quickFacts.pricing": "Giá",
+  "quickFacts.trial": "Free trial",
+  "quickFacts.days": "ngày",
+  "quickFacts.yes": "Có",
+  "quickFacts.no": "Không",
+  "quickFacts.card": "Yêu cầu thẻ",
+  "quickFacts.platforms": "Nền tảng",
+
+  // E-E-A-T trust signals (tool detail page)
+  "tool.reviewedBy": "Đánh giá bởi",
+  "tool.lastUpdated": "Cập nhật lần cuối",
 
   // Listicle items
   "listicle.rank": "Hạng",

@@ -40,6 +40,9 @@ import { UpvoteButton } from "@/components/UpvoteButton";
 import { VendorClaimBadge, VendorClaimButton } from "@/components/tool-detail/VendorClaimButton";
 import { VendorResponse } from "@/components/tool-detail/VendorResponse";
 import { AdUnit } from "@/components/ads/AdUnit";
+import { QuickVerdictCard } from "@/components/tool-detail/QuickVerdictCard";
+import { QuickFactsStrip } from "@/components/tool-detail/QuickFactsStrip";
+import { StickyMobileCTA } from "@/components/tool-detail/StickyMobileCTA";
 
 export default function ToolDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -141,6 +144,48 @@ export default function ToolDetail() {
     return () => { document.getElementById("faq-schema")?.remove(); };
   }, [faqItems]);
 
+  // Product + AggregateRating JSON-LD — this is what Google Rich Results
+  // and AI answer engines (ChatGPT/Perplexity/AI Overviews) read to cite
+  // this page's rating when someone asks "is <tool> good?" or "<tool> review".
+  useEffect(() => {
+    if (!tool || !tool.rating_count || tool.rating_count === 0) return;
+    const aiScoreData = tool.ai_scores as any;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "product-schema";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: displayName,
+      description: displayShort || displayDesc || undefined,
+      applicationCategory: (tool.categories as any)?.name || "AI Tool",
+      url: tool.website_url || undefined,
+      image: tool.logo_url || undefined,
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: Number(tool.avg_rating).toFixed(1),
+        reviewCount: tool.rating_count,
+        bestRating: "5",
+        worstRating: "1",
+      },
+      ...(aiScoreData?.summary && {
+        review: {
+          "@type": "Review",
+          reviewBody: aiScoreData.summary,
+          reviewRating: {
+            "@type": "Rating",
+            ratingValue: Number(aiScoreData.overall_score).toFixed(1),
+            bestRating: "10",
+            worstRating: "0",
+          },
+          author: { "@type": "Organization", name: "ToolScope" },
+        },
+      }),
+    });
+    document.head.appendChild(script);
+    return () => { document.getElementById("product-schema")?.remove(); };
+  }, [tool, displayName, displayShort, displayDesc]);
+
   if (isLoading) {
     return (
       <PageLayout>
@@ -222,7 +267,7 @@ export default function ToolDetail() {
             <div className="flex flex-wrap gap-2">
               {(tool.affiliate_url || tool.website_url) && (
                 <Button asChild className="gap-2">
-                  <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer">
+                  <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer sponsored">
                     <Globe className="h-4 w-4" /> {t("tool.visitWebsite")}
                   </a>
                 </Button>
@@ -242,6 +287,43 @@ export default function ToolDetail() {
               <VendorClaimButton toolId={tool.id} toolName={displayName} />
             </div>
           </div>
+
+          {/* E-E-A-T trust signals */}
+          <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Shield className="h-3.5 w-3.5" />
+              {t("tool.reviewedBy", "Đánh giá bởi")} <span className="font-medium text-foreground">ToolScope Editorial</span>
+            </span>
+            {tool.updated_at && (
+              <span>
+                {t("tool.lastUpdated", "Cập nhật lần cuối")}: {new Date(tool.updated_at).toLocaleDateString(locale === "en" ? "en-US" : "vi-VN")}
+              </span>
+            )}
+          </div>
+
+          <QuickVerdictCard
+            toolName={displayName}
+            logoUrl={tool.logo_url}
+            websiteUrl={tool.website_url}
+            affiliateUrl={tool.affiliate_url}
+            rating={Number(tool.avg_rating) || 0}
+            ratingCount={tool.rating_count || 0}
+            bestFor={cat?.name}
+            pros={aiScore?.pros}
+            cons={aiScore?.cons}
+            summary={aiScore?.summary}
+            isRecommended={!!aiScore?.is_recommended}
+            className="mb-6"
+          />
+
+          <QuickFactsStrip
+            pricingType={tool.pricing_type}
+            hasFreeTrial={(tool as any).has_free_trial}
+            trialDays={(tool as any).trial_days}
+            requiresCard={(tool as any).requires_card}
+            platforms={(tool as any).platforms}
+            className="mb-8"
+          />
 
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Main Content */}
@@ -271,6 +353,10 @@ export default function ToolDetail() {
                 toolName={displayName}
                 detailedContent={displayDetailed}
                 isAdmin={!!user}
+                logoUrl={tool.logo_url}
+                websiteUrl={tool.website_url}
+                affiliateUrl={tool.affiliate_url}
+                rating={Number(tool.avg_rating) || 0}
               />
 
               {faqItems.length > 0 && (
@@ -475,6 +561,14 @@ export default function ToolDetail() {
             <ChevronUp className="h-5 w-5" />
           </button>
         )}
+
+        <StickyMobileCTA
+          toolName={displayName}
+          logoUrl={tool.logo_url}
+          websiteUrl={tool.website_url}
+          affiliateUrl={tool.affiliate_url}
+          rating={Number(tool.avg_rating) || 0}
+        />
     </PageLayout>
   );
 }

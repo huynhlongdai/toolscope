@@ -7,17 +7,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Sparkles, Loader2, BookOpen, Info, Layers, Award, CreditCard,
   Users, Rocket, ThumbsUp, CheckCircle, List, ChevronDown, ChevronUp, ArrowUp,
+  ExternalLink, Star,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { DealsWidget } from "@/components/deals/DealsWidget";
+import { getToolLogoUrl } from "@/lib/favicon";
 
 interface DetailedArticleProps {
   toolId: string;
   toolName: string;
   detailedContent?: string | null;
   isAdmin?: boolean;
+  logoUrl?: string | null;
+  websiteUrl?: string | null;
+  affiliateUrl?: string | null;
+  rating?: number | null;
 }
 
 /* ── Detect if content is HTML ──────────────────────────── */
@@ -256,8 +262,42 @@ function BackToTop() {
   );
 }
 
+/* ── Mid-article CTA card (breaks up long reading with a conversion point) ── */
+function MidArticleCTA({
+  toolName, logoUrl, websiteUrl, affiliateUrl, rating,
+}: { toolName: string; logoUrl?: string | null; websiteUrl?: string | null; affiliateUrl?: string | null; rating?: number | null }) {
+  const ctaUrl = affiliateUrl || websiteUrl;
+  if (!ctaUrl) return null;
+  const logo = getToolLogoUrl(logoUrl, websiteUrl);
+
+  return (
+    <div className="not-prose flex flex-col items-center gap-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-5 text-center sm:flex-row sm:justify-between sm:text-left">
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-base font-bold text-muted-foreground">
+          {logo ? <img src={logo} alt={toolName} className="h-full w-full object-cover" loading="lazy" /> : toolName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Sẵn sàng dùng thử {toolName}?
+          </p>
+          {rating != null && rating > 0 && (
+            <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground sm:justify-start">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {rating.toFixed(1)}/5
+            </p>
+          )}
+        </div>
+      </div>
+      <Button asChild className="w-full gap-1.5 sm:w-auto">
+        <a href={ctaUrl} target="_blank" rel="noopener noreferrer sponsored">
+          Dùng thử miễn phí <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </Button>
+    </div>
+  );
+}
+
 /* ── Main Component ──────────────────────────────────────── */
-export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: DetailedArticleProps) {
+export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin, logoUrl, websiteUrl, affiliateUrl, rating }: DetailedArticleProps) {
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [allExpanded, setAllExpanded] = useState(true);
@@ -393,22 +433,37 @@ export function DetailedArticle({ toolId, toolName, detailedContent, isAdmin }: 
       )}
 
       {/* Sections */}
-      {sections.map((section, idx) => {
-        if (!section.content && !section.title) return null;
+      {(() => {
+        // Insert one mid-article CTA roughly at the midpoint of long articles
+        // (only if there's a real affiliate/website link and enough content to
+        // justify breaking up the reading flow).
+        const ctaUrl = affiliateUrl || websiteUrl;
+        const midIdx = sections.length >= 4 && ctaUrl ? Math.floor(sections.length / 2) : -1;
 
-        // Intro text (no heading)
-        if (!section.title) {
-          return (
+        return sections.map((section, idx) => {
+          if (!section.content && !section.title) return null;
+
+          const node = !section.title ? (
             <Card key={idx}>
               <CardContent className="py-6">
                 <ContentRenderer content={section.content} isHtml={section.isHtml} toolId={toolId} />
               </CardContent>
             </Card>
+          ) : (
+            <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} toolId={toolId} />
           );
-        }
 
-        return <SectionCard key={`${section.id}-${allExpanded}`} section={section} defaultOpen={allExpanded} toolId={toolId} />;
-      })}
+          if (idx === midIdx) {
+            return (
+              <div key={`with-cta-${idx}`} className="space-y-4">
+                {node}
+                <MidArticleCTA toolName={toolName} logoUrl={logoUrl} websiteUrl={websiteUrl} affiliateUrl={affiliateUrl} rating={rating} />
+              </div>
+            );
+          }
+          return node;
+        });
+      })()}
 
       {/* Back to top */}
       <BackToTop />
