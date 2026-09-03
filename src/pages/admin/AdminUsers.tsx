@@ -15,15 +15,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle, Users, UserCheck, UserX, AlertTriangle, Bell, Send } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { useAuth } from "@/lib/auth";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Row shape returned by the admin_list_users(...) RPC (P2-1). Counts are
+// computed server-side; total_count is the total matching-filter count
+// (same value repeated on every row) used to derive totalPages below.
+interface AdminUserRow {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  website: string | null;
+  reputation_score: number;
+  is_banned: boolean;
+  created_at: string;
+  roles: string[];
+  review_count: number;
+  comment_count: number;
+  question_count: number;
+  warning_count: number;
+  total_count: number;
+}
+
+// Export cap: admin_list_users' LIMIT/OFFSET is server-clamped to 5000 rows
+// per call (see migration), so "export all filtered rows" reuses the same
+// RPC with a large page_size instead of a separate unbounded query.
+const EXPORT_PAGE_SIZE = 5000;
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
   const { user: adminUser } = useAuth();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [roleFilter, setRoleFilter] = useState("all");
   const [banFilter, setBanFilter] = useState("all");
   const [activityFilter, setActivityFilter] = useState("all");
@@ -39,38 +67,67 @@ export default function AdminUsers() {
   const [page, setPage] = useState(0);
   const pageSize = 50;
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["admin-users"],
+  // Reset to page 0 whenever a filter changes so the user isn't stranded on
+  // an out-of-range page for the new filtered set.
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, roleFilter, banFilter, activityFilter]);
+
+  // P2-1: server-side pagination + filtering + counting via the
+  // admin_list_users RPC (replaces the old full-table-scan +
+  // in-memory Array.filter() join). queryKey includes every filter/page
+  // value so changing any of them triggers a refetch of just that page.
+  const { data: rpcData, isLoading } = useQuery({
+    queryKey: ["admin-users", debouncedSearch, roleFilter, banFilter, activityFilter, page, pageSize],
     queryFn: async () => {
-      const { data: profiles, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc("admin_list_users" as any, {
+        _search: debouncedSearch || null,
+        _role: roleFilter,
+        _ban_filter: banFilter,
+        _activity_filter: activityFilter,
+        _page: page,
+        _page_size: pageSize,
+      });
       if (error) throw error;
-      const { data: roles } = await supabase.from("user_roles").select("*");
-      const { data: warnings } = await supabase.from("user_warnings").select("user_id");
-      const [reviewsRes, commentsRes, questionsRes] = await Promise.all([
-        supabase.from("reviews").select("author_id"),
-        supabase.from("comments").select("user_id"),
-        supabase.from("questions").select("user_id"),
-      ]);
-      return profiles.map((p: any) => ({
-        ...p,
-        roles: roles?.filter((r: any) => r.user_id === p.id).map((r: any) => r.role) ?? [],
-        reviewCount: reviewsRes.data?.filter((r: any) => r.author_id === p.id).length ?? 0,
-        commentCount: commentsRes.data?.filter((c: any) => c.user_id === p.id).length ?? 0,
-        questionCount: questionsRes.data?.filter((q: any) => q.user_id === p.id).length ?? 0,
-        warningCount: warnings?.filter((w: any) => w.user_id === p.id).length ?? 0,
-      }));
+      return (data ?? []) as AdminUserRow[];
     },
+    placeholderData: (prev) => prev,
   });
 
-  // Stats
-  const totalUsers = users.length;
-  const activeUsers = users.filter((u: any) => !u.is_banned).length;
-  const bannedUsers = users.filter((u: any) => u.is_banned).length;
-  const newThisMonth = users.filter((u: any) => {
-    const d = new Date(u.created_at);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
+  const paged = (rpcData ?? []).map((u) => ({
+    ...u,
+    reviewCount: u.review_count,
+    commentCount: u.comment_count,
+    questionCount: u.question_count,
+    warningCount: u.warning_count,
+  }));
+  const totalMatching = rpcData?.[0]?.total_count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalMatching / pageSize));
+
+  // Global stats cards: intentionally a separate lightweight query using
+  // head:true count-only requests (no rows transferred) rather than piggy-
+  // backing on the filtered/paginated admin_list_users result above, since
+  // these totals must reflect ALL users regardless of current filters/page.
+  const { data: stats } = useQuery({
+    queryKey: ["admin-users-stats"],
+    queryFn: async () => {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const [totalRes, bannedRes, newRes] = await Promise.all([
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_banned", true),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", startOfMonth.toISOString()),
+      ]);
+      const total = totalRes.count ?? 0;
+      const banned = bannedRes.count ?? 0;
+      return { total, banned, active: total - banned, newThisMonth: newRes.count ?? 0 };
+    },
+  });
+  const totalUsers = stats?.total ?? 0;
+  const activeUsers = stats?.active ?? 0;
+  const bannedUsers = stats?.banned ?? 0;
+  const newThisMonth = stats?.newThisMonth ?? 0;
 
   // Activity timeline for selected user
   const { data: userActivity = [], isLoading: activityLoading } = useQuery({
@@ -126,6 +183,7 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
       toast.success("Đã cập nhật profile");
       setEditUser(null);
     },
@@ -139,6 +197,7 @@ export default function AdminUsers() {
     },
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
       logAuditAction("user_delete", "user", userId);
       toast.success("Đã xóa user");
     },
@@ -151,6 +210,7 @@ export default function AdminUsers() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
       logAuditAction("user_ban_toggle", "user", vars.userId, { banned: vars.banned });
       toast.success("Đã cập nhật trạng thái");
     },
@@ -192,6 +252,7 @@ export default function AdminUsers() {
     }
     logAuditAction(`user_bulk_${banned ? "ban" : "unban"}`, "user", undefined, { count: selectedIds.length });
     queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
     setSelectedIds([]);
     toast.success(`Đã ${banned ? "ban" : "unban"} ${selectedIds.length} users`);
   };
@@ -211,21 +272,29 @@ export default function AdminUsers() {
     },
   });
 
-  const filtered = users.filter((u: any) => {
-    const matchSearch = (u.display_name ?? "").toLowerCase().includes(search.toLowerCase()) || (u.username ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
-    const matchBan = banFilter === "all" || (banFilter === "banned" ? u.is_banned : !u.is_banned);
-    const totalActivity = u.reviewCount + u.commentCount + u.questionCount;
-    const matchActivity = activityFilter === "all" || (activityFilter === "active" ? totalActivity > 0 : totalActivity === 0);
-    return matchSearch && matchRole && matchBan && matchActivity;
-  });
+  // Filtering, counting, and pagination are all done server-side by the
+  // admin_list_users RPC now (see query above) — `paged` already holds
+  // exactly the rows for the current page under the current filters.
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
-
-  const exportCSV = () => {
+  // CSV export must cover ALL rows matching the current filters, not just
+  // the current page. Since pagination moved server-side, `paged` no longer
+  // holds the full matching set — so this re-calls the same RPC with a much
+  // larger page_size (capped server-side at 5000) instead of relying on
+  // client-held state.
+  const exportCSV = async () => {
+    const { data, error } = await supabase.rpc("admin_list_users" as any, {
+      _search: debouncedSearch || null,
+      _role: roleFilter,
+      _ban_filter: banFilter,
+      _activity_filter: activityFilter,
+      _page: 0,
+      _page_size: EXPORT_PAGE_SIZE,
+    });
+    if (error) { toast.error(error.message); return; }
+    const all = (data ?? []) as AdminUserRow[];
+    if (all.length === 0) { toast.error("Không có user để xuất"); return; }
     const headers = ["Display Name", "Username", "Role", "Reputation", "Reviews", "Comments", "Warnings", "Banned", "Created"];
-    const rows = filtered.map((u: any) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.reviewCount, u.commentCount, u.warningCount, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
+    const rows = all.map((u) => [u.display_name || "", u.username || "", u.roles[0] || "user", u.reputation_score, u.review_count, u.comment_count, u.warning_count, u.is_banned ? "Yes" : "No", new Date(u.created_at).toLocaleDateString()]);
     exportToCSV(headers, rows, "users.csv");
   };
 
@@ -332,7 +401,7 @@ export default function AdminUsers() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8">Đang tải...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
+              ) : paged.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Không có user</TableCell></TableRow>
               ) : (
                 paged.map((user: any) => (
