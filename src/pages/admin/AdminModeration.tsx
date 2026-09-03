@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { useBulkSelection, type BulkSelectionState } from "@/hooks/useBulkSelection";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,16 +27,13 @@ function BulkActionBar({ count, total, onClear, children }: { count: number; tot
   );
 }
 
-function SelectAllCheckbox({ items, selected, setSelected }: { items: any[]; selected: Set<string>; setSelected: (s: Set<string>) => void }) {
-  const allSelected = items.length > 0 && items.every((i: any) => selected.has(i.id));
-  const someSelected = items.some((i: any) => selected.has(i.id));
+function SelectAllCheckbox({ items, selection }: { items: any[]; selection: BulkSelectionState }) {
+  const allSelected = items.length > 0 && items.every((i: any) => selection.isSelected(i.id));
+  const someSelected = items.some((i: any) => selection.isSelected(i.id));
   return (
     <Checkbox
       checked={allSelected ? true : someSelected ? "indeterminate" : false}
-      onCheckedChange={() => {
-        if (allSelected) setSelected(new Set());
-        else setSelected(new Set(items.map((i: any) => i.id)));
-      }}
+      onCheckedChange={() => selection.toggleAll(items)}
     />
   );
 }
@@ -44,12 +42,12 @@ export default function AdminModeration() {
   const queryClient = useQueryClient();
   const [showBlacklistDialog, setShowBlacklistDialog] = useState(false);
   const [newKeyword, setNewKeyword] = useState("");
-  const [selectedComments, setSelectedComments] = useState<Set<string>>(new Set());
-  const [selectedTools, setSelectedTools] = useState<Set<string>>(new Set());
-  const [selectedReviews, setSelectedReviews] = useState<Set<string>>(new Set());
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
-  const [selectedLaunchComments, setSelectedLaunchComments] = useState<Set<string>>(new Set());
-  const [selectedFlagged, setSelectedFlagged] = useState<Set<string>>(new Set());
+  const selectedComments = useBulkSelection();
+  const selectedTools = useBulkSelection();
+  const selectedReviews = useBulkSelection();
+  const selectedQuestions = useBulkSelection();
+  const selectedLaunchComments = useBulkSelection();
+  const selectedFlagged = useBulkSelection();
 
   const { data: pendingTools = [] } = useQuery({
     queryKey: ["mod-pending-tools"],
@@ -150,98 +148,93 @@ export default function AdminModeration() {
 
   // --- Bulk actions ---
   const bulkApproveTools = async () => {
-    const ids = Array.from(selectedTools);
+    const ids = Array.from(selectedTools.selected);
     if (!ids.length || !confirm(`Duyệt ${ids.length} tools?`)) return;
     for (const id of ids) await supabase.from("tools").update({ status: "published" as any }).eq("id", id);
     logAuditAction("tool_bulk_approve", "tool", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-pending-tools"] });
-    setSelectedTools(new Set());
+    selectedTools.clear();
     toast.success(`Đã duyệt ${ids.length} tools`);
   };
 
   const bulkRejectTools = async () => {
-    const ids = Array.from(selectedTools);
+    const ids = Array.from(selectedTools.selected);
     if (!ids.length || !confirm(`Từ chối ${ids.length} tools?`)) return;
     for (const id of ids) await supabase.from("tools").update({ status: "archived" as any }).eq("id", id);
     logAuditAction("tool_bulk_reject", "tool", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-pending-tools"] });
-    setSelectedTools(new Set());
+    selectedTools.clear();
     toast.success(`Đã từ chối ${ids.length} tools`);
   };
 
   const bulkApproveReviews = async () => {
-    const ids = Array.from(selectedReviews);
+    const ids = Array.from(selectedReviews.selected);
     if (!ids.length || !confirm(`Duyệt ${ids.length} reviews?`)) return;
     for (const id of ids) await supabase.from("reviews").update({ status: "published" as any }).eq("id", id);
     logAuditAction("review_bulk_approve", "review", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-pending-reviews"] });
-    setSelectedReviews(new Set());
+    selectedReviews.clear();
     toast.success(`Đã duyệt ${ids.length} reviews`);
   };
 
   const bulkRejectReviews = async () => {
-    const ids = Array.from(selectedReviews);
+    const ids = Array.from(selectedReviews.selected);
     if (!ids.length || !confirm(`Từ chối & xóa ${ids.length} reviews?`)) return;
     for (const id of ids) await supabase.from("reviews").delete().eq("id", id);
     logAuditAction("review_bulk_reject", "review", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-pending-reviews"] });
-    setSelectedReviews(new Set());
+    selectedReviews.clear();
     toast.success(`Đã xóa ${ids.length} reviews`);
   };
 
   const bulkDeleteComments = async () => {
-    const ids = Array.from(selectedComments);
+    const ids = Array.from(selectedComments.selected);
     if (!ids.length || !confirm(`Xóa ${ids.length} comments?`)) return;
     for (const id of ids) await supabase.from("comments").delete().eq("id", id);
     logAuditAction("comment_bulk_delete", "comment", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-recent-comments"] });
-    setSelectedComments(new Set());
+    selectedComments.clear();
     toast.success(`Đã xóa ${ids.length} comments`);
   };
 
   const bulkDeleteQuestions = async () => {
-    const ids = Array.from(selectedQuestions);
+    const ids = Array.from(selectedQuestions.selected);
     if (!ids.length || !confirm(`Xóa ${ids.length} câu hỏi?`)) return;
     for (const id of ids) await supabase.from("questions").delete().eq("id", id);
     logAuditAction("question_bulk_delete", "question", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-pending-questions"] });
-    setSelectedQuestions(new Set());
+    selectedQuestions.clear();
     toast.success(`Đã xóa ${ids.length} câu hỏi`);
   };
 
   const bulkDeleteLaunchComments = async () => {
-    const ids = Array.from(selectedLaunchComments);
+    const ids = Array.from(selectedLaunchComments.selected);
     if (!ids.length || !confirm(`Xóa ${ids.length} launch comments?`)) return;
     for (const id of ids) await supabase.from("launch_comments").delete().eq("id", id);
     logAuditAction("launch_comment_bulk_delete", "launch_comment", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-launch-comments"] });
-    setSelectedLaunchComments(new Set());
+    selectedLaunchComments.clear();
     toast.success(`Đã xóa ${ids.length} launch comments`);
   };
 
   const bulkDeleteFlagged = async () => {
-    const ids = Array.from(selectedFlagged);
+    const ids = Array.from(selectedFlagged.selected);
     if (!ids.length || !confirm(`Xóa ${ids.length} flagged comments?`)) return;
     for (const id of ids) await supabase.from("comments").delete().eq("id", id);
     logAuditAction("flagged_bulk_delete", "comment", undefined, { count: ids.length });
     queryClient.invalidateQueries({ queryKey: ["mod-recent-comments"] });
-    setSelectedFlagged(new Set());
+    selectedFlagged.clear();
     toast.success(`Đã xóa ${ids.length} flagged comments`);
   };
 
   const bulkBanFlaggedUsers = async () => {
     const userIds = new Set<string>();
-    flaggedComments.forEach((c: any) => { if (selectedFlagged.has(c.id) && c.user_id) userIds.add(c.user_id); });
+    flaggedComments.forEach((c: any) => { if (selectedFlagged.isSelected(c.id) && c.user_id) userIds.add(c.user_id); });
     const ids = Array.from(userIds);
     if (!ids.length || !confirm(`Ban ${ids.length} users từ flagged comments?`)) return;
     for (const uid of ids) await supabase.from("profiles").update({ is_banned: true } as any).eq("id", uid);
     logAuditAction("flagged_bulk_ban", "user", undefined, { count: ids.length });
     toast.success(`Đã ban ${ids.length} users`);
-  };
-
-  // --- Toggle helpers ---
-  const toggle = (set: Set<string>, id: string, setter: (s: Set<string>) => void) => {
-    const n = new Set(set); n.has(id) ? n.delete(id) : n.add(id); setter(n);
   };
 
   // --- Blacklist ---
@@ -311,7 +304,7 @@ export default function AdminModeration() {
 
           {/* Tools tab */}
           <TabsContent value="tools" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedTools.size} total={pendingTools.length} onClear={() => setSelectedTools(new Set())}>
+            <BulkActionBar count={selectedTools.size} total={pendingTools.length} onClear={selectedTools.clear}>
               <Button size="sm" onClick={bulkApproveTools}><Check className="mr-1 h-3.5 w-3.5" /> Duyệt</Button>
               <Button size="sm" variant="destructive" onClick={bulkRejectTools}><X className="mr-1 h-3.5 w-3.5" /> Từ chối</Button>
             </BulkActionBar>
@@ -320,7 +313,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={pendingTools} selected={selectedTools} setSelected={setSelectedTools} />
+                  <SelectAllCheckbox items={pendingTools} selection={selectedTools} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {pendingTools.map((tool: any) => (
@@ -328,7 +321,7 @@ export default function AdminModeration() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Checkbox checked={selectedTools.has(tool.id)} onCheckedChange={() => toggle(selectedTools, tool.id, setSelectedTools)} />
+                          <Checkbox checked={selectedTools.isSelected(tool.id)} onCheckedChange={() => selectedTools.toggle(tool.id)} />
                           <div>
                             <CardTitle className="text-lg">{tool.name}</CardTitle>
                             <CardDescription>{tool.short_description ?? tool.description?.slice(0, 100)}</CardDescription>
@@ -351,7 +344,7 @@ export default function AdminModeration() {
 
           {/* Reviews tab */}
           <TabsContent value="reviews" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedReviews.size} total={pendingReviews.length} onClear={() => setSelectedReviews(new Set())}>
+            <BulkActionBar count={selectedReviews.size} total={pendingReviews.length} onClear={selectedReviews.clear}>
               <Button size="sm" onClick={bulkApproveReviews}><Check className="mr-1 h-3.5 w-3.5" /> Duyệt</Button>
               <Button size="sm" variant="destructive" onClick={bulkRejectReviews}><Trash2 className="mr-1 h-3.5 w-3.5" /> Từ chối & xóa</Button>
             </BulkActionBar>
@@ -360,7 +353,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={pendingReviews} selected={selectedReviews} setSelected={setSelectedReviews} />
+                  <SelectAllCheckbox items={pendingReviews} selection={selectedReviews} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {pendingReviews.map((r: any) => (
@@ -368,7 +361,7 @@ export default function AdminModeration() {
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Checkbox checked={selectedReviews.has(r.id)} onCheckedChange={() => toggle(selectedReviews, r.id, setSelectedReviews)} />
+                          <Checkbox checked={selectedReviews.isSelected(r.id)} onCheckedChange={() => selectedReviews.toggle(r.id)} />
                           <div>
                             <CardTitle className="text-lg">{r.title}</CardTitle>
                             <CardDescription>Tool: {r.tools?.name} | Bởi: {r.profiles?.display_name}</CardDescription>
@@ -391,7 +384,7 @@ export default function AdminModeration() {
 
           {/* Comments tab */}
           <TabsContent value="comments" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedComments.size} total={recentComments.length} onClear={() => setSelectedComments(new Set())}>
+            <BulkActionBar count={selectedComments.size} total={recentComments.length} onClear={selectedComments.clear}>
               <Button size="sm" variant="destructive" onClick={bulkDeleteComments}><Trash2 className="mr-1 h-3.5 w-3.5" /> Xóa tất cả</Button>
             </BulkActionBar>
             {recentComments.length === 0 ? (
@@ -399,7 +392,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={recentComments} selected={selectedComments} setSelected={setSelectedComments} />
+                  <SelectAllCheckbox items={recentComments} selection={selectedComments} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {recentComments.map((c: any) => {
@@ -408,7 +401,7 @@ export default function AdminModeration() {
                     <Card key={c.id} className={isFlagged ? "border-orange-500/50" : ""}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center gap-2">
-                          <Checkbox checked={selectedComments.has(c.id)} onCheckedChange={() => toggle(selectedComments, c.id, setSelectedComments)} />
+                          <Checkbox checked={selectedComments.isSelected(c.id)} onCheckedChange={() => selectedComments.toggle(c.id)} />
                           <div className="flex-1 flex items-center justify-between">
                             <CardDescription>
                               {c.profiles?.display_name ?? "Ẩn danh"} trên {c.tools?.name ?? "—"} — {new Date(c.created_at).toLocaleDateString("vi-VN")}
@@ -437,7 +430,7 @@ export default function AdminModeration() {
 
           {/* Questions tab */}
           <TabsContent value="questions" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedQuestions.size} total={pendingQuestions.length} onClear={() => setSelectedQuestions(new Set())}>
+            <BulkActionBar count={selectedQuestions.size} total={pendingQuestions.length} onClear={selectedQuestions.clear}>
               <Button size="sm" variant="destructive" onClick={bulkDeleteQuestions}><Trash2 className="mr-1 h-3.5 w-3.5" /> Xóa tất cả</Button>
             </BulkActionBar>
             {pendingQuestions.length === 0 ? (
@@ -445,7 +438,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={pendingQuestions} selected={selectedQuestions} setSelected={setSelectedQuestions} />
+                  <SelectAllCheckbox items={pendingQuestions} selection={selectedQuestions} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {pendingQuestions.map((q: any) => (
@@ -453,7 +446,7 @@ export default function AdminModeration() {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Checkbox checked={selectedQuestions.has(q.id)} onCheckedChange={() => toggle(selectedQuestions, q.id, setSelectedQuestions)} />
+                          <Checkbox checked={selectedQuestions.isSelected(q.id)} onCheckedChange={() => selectedQuestions.toggle(q.id)} />
                           <div>
                             <CardTitle className="text-base">{q.title}</CardTitle>
                             <CardDescription>{q.profiles?.display_name ?? "Ẩn danh"} — {q.tools?.name ?? "—"} — {new Date(q.created_at).toLocaleDateString("vi-VN")}</CardDescription>
@@ -473,7 +466,7 @@ export default function AdminModeration() {
 
           {/* Launch comments tab */}
           <TabsContent value="launch-comments" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedLaunchComments.size} total={recentLaunchComments.length} onClear={() => setSelectedLaunchComments(new Set())}>
+            <BulkActionBar count={selectedLaunchComments.size} total={recentLaunchComments.length} onClear={selectedLaunchComments.clear}>
               <Button size="sm" variant="destructive" onClick={bulkDeleteLaunchComments}><Trash2 className="mr-1 h-3.5 w-3.5" /> Xóa tất cả</Button>
             </BulkActionBar>
             {recentLaunchComments.length === 0 ? (
@@ -481,7 +474,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={recentLaunchComments} selected={selectedLaunchComments} setSelected={setSelectedLaunchComments} />
+                  <SelectAllCheckbox items={recentLaunchComments} selection={selectedLaunchComments} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {recentLaunchComments.map((c: any) => (
@@ -489,7 +482,7 @@ export default function AdminModeration() {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Checkbox checked={selectedLaunchComments.has(c.id)} onCheckedChange={() => toggle(selectedLaunchComments, c.id, setSelectedLaunchComments)} />
+                          <Checkbox checked={selectedLaunchComments.isSelected(c.id)} onCheckedChange={() => selectedLaunchComments.toggle(c.id)} />
                           <CardDescription>
                             Launch: {c.launches?.product_name || c.launches?.tagline || "—"} — {new Date(c.created_at).toLocaleDateString("vi-VN")}
                           </CardDescription>
@@ -508,7 +501,7 @@ export default function AdminModeration() {
 
           {/* Flagged tab */}
           <TabsContent value="flagged" className="space-y-4 mt-4">
-            <BulkActionBar count={selectedFlagged.size} total={flaggedComments.length} onClear={() => setSelectedFlagged(new Set())}>
+            <BulkActionBar count={selectedFlagged.size} total={flaggedComments.length} onClear={selectedFlagged.clear}>
               <Button size="sm" variant="destructive" onClick={bulkDeleteFlagged}><Trash2 className="mr-1 h-3.5 w-3.5" /> Xóa tất cả</Button>
               <Button size="sm" variant="outline" className="border-destructive text-destructive" onClick={bulkBanFlaggedUsers}><Ban className="mr-1 h-3.5 w-3.5" /> Ban users</Button>
             </BulkActionBar>
@@ -517,7 +510,7 @@ export default function AdminModeration() {
             ) : (
               <>
                 <div className="flex items-center gap-2 px-1">
-                  <SelectAllCheckbox items={flaggedComments} selected={selectedFlagged} setSelected={setSelectedFlagged} />
+                  <SelectAllCheckbox items={flaggedComments} selection={selectedFlagged} />
                   <span className="text-sm text-muted-foreground">Chọn tất cả</span>
                 </div>
                 {flaggedComments.map((c: any) => (
@@ -525,7 +518,7 @@ export default function AdminModeration() {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <Checkbox checked={selectedFlagged.has(c.id)} onCheckedChange={() => toggle(selectedFlagged, c.id, setSelectedFlagged)} />
+                          <Checkbox checked={selectedFlagged.isSelected(c.id)} onCheckedChange={() => selectedFlagged.toggle(c.id)} />
                           <CardDescription>
                             <AlertTriangle className="inline h-3 w-3 mr-1 text-orange-500" />
                             {c.profiles?.display_name ?? "Ẩn danh"} trên {c.tools?.name ?? "—"} — {new Date(c.created_at).toLocaleDateString("vi-VN")}
