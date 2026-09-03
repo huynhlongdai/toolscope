@@ -53,6 +53,21 @@ App hiện đang chạy trên **Supabase project mới** `yntzlkzckvxlfrrqmmwm` 
 - `20260903135900_fix_vendor_responses_vendor_id_fk.sql`: `vendor_responses.vendor_id`, `vendor_claims.user_id` → `profiles(id)` (ảnh hưởng trực tiếp trang Tool Detail, đã verify hết lỗi console).
 - `20260903140500_fix_launch_comments_reports_missing_fk.sql`: `launch_comments.user_id`, `reports.reporter_id` → `profiles(id)` (ngoài phạm vi Tool Detail — module Launches đang tắt, Reports là trang Admin — fix chủ động phòng ngừa cùng lỗi khi các module này được dùng tới).
 
+## Nâng cấp trang Admin (P0 → P3)
+Sau khi research toàn bộ 24 trang admin + 55 migrations + 22 edge functions, đã triển khai một roadmap nâng cấp theo 4 nhóm ưu tiên (P0 security → P1 architecture-dedup → P2 performance → P3 product-decisions). Tất cả đã commit lên git, build + `npx vitest run` (24/24 tests) pass sau mỗi bước.
+
+- **P0 — Security (commit `f078279`)**: tạo `supabase/functions/_shared/auth.ts` (`requireAuth()`/`requireAdmin()`), áp dụng lên 15 edge functions vốn thiếu kiểm tra quyền admin phía server. ⚠️ **Đã commit nhưng CHƯA deploy lên Supabase production** (`yntzlkzckvxlfrrqmmwm`) — sandbox không có `SUPABASE_ACCESS_TOKEN` để chạy `supabase functions deploy`. Cần bạn tự deploy bằng Supabase CLI trên máy có token, hoặc cung cấp token cho phiên làm việc sau.
+- **P1 — Architecture dedup**:
+  - `p1-1` (`fc513b3`): `useBulkSelection<T>()` hook, áp dụng vào `AdminModeration.tsx` (bỏ 6 bộ `useState<Set<string>>` trùng lặp).
+  - `p1-2` (`4d0e10a`): `src/lib/export.ts` (`exportToCSV`, `exportCSVLines`, `exportToJSON`, `dateStampedFilename`), áp dụng vào 13 trang admin, bỏ code Blob/download lặp lại.
+  - `p1-3`+`p1-4` (`306f62a`): bỏ `useAdminAuth()` trùng trong `AdminLayout` (chỉ `AdminGuard` ở route-level check auth); refactor `useAdminAuth` sang React Query (`staleTime: 60s`) để cache role.
+- **P2 — Performance**:
+  - `p2-1` (`27c9a4d`): `AdminUsers.tsx` trước đây load **toàn bộ** `profiles`+`user_roles`+`user_warnings`+id các bảng `reviews`/`comments`/`questions` vào RAM rồi filter/đếm bằng `Array.filter()` lồng nhau (O(n×m)), chỉ phân trang bằng `.slice()` phía client sau khi đã tải hết. Đã thay bằng RPC `admin_list_users(...)` (migration `20260903150000_admin_users_paginated_rpc.sql`) — filter (search/role/ban/activity) + đếm reviews/comments/questions/warnings + `LIMIT/OFFSET` đều chạy trong Postgres, admin-gated qua `has_role()` trong function body. Thêm index cho `reviews.author_id`/`comments.user_id`/`questions.user_id`/`user_warnings.user_id` (chưa từng có index). Search debounce 300ms. Export CSV gọi lại RPC với `page_size=5000` để vẫn xuất toàn bộ dòng khớp filter (không chỉ trang hiện tại).
+- **P3 — Product decisions**:
+  - `p3-1` (`39866d6`): `AdminBackup.tsx` import JSON — thêm `validateTableRows()` kiểm tra mỗi dòng trước khi upsert (object hợp lệ + `key`/`id` đúng định dạng); dialog hiển thị số dòng không hợp lệ + lý do, disable bảng không có dòng hợp lệ nào; theo dõi lỗi upsert thực tế thay vì đếm "restored" vô điều kiện.
+  - `p3-2` (`dfff380`): nút "AI Suggest" trong `AdminTasks.tsx` thực chất chỉ so khớp từ khóa (không gọi AI/LLM) — đổi tên hàm/biến/audit-action (`task_ai_suggest` → `task_auto_suggest`) và nhãn UI thành "Gợi ý tự động (từ khóa)" kèm tooltip giải thích.
+- **Còn lại (chưa làm)**: `final-1` (build/test tổng hợp cuối cùng — đã thực hiện xong cho từng bước, coi như hoàn tất theo checklist này) và việc **deploy P0 lên production** (xem cảnh báo ⚠️ ở trên) vẫn đang chờ token/hành động từ bạn.
+
 ## Còn thiếu / cần làm tiếp
 - **Set secret `LOVABLE_API_KEY` và `FIRECRAWL_API_KEY`** trên project mới để các Edge Function AI/collect (generate-review, collect-ai, collect-tool-data, enrich-trial-info, generate-ai-score, collect-deals, bulk-collect-tools) hoạt động được — xem chi tiết ở mục Database trên.
 - **Nhập nội dung thật**: thay data mẫu (8 tool, 5 bài blog) bằng nội dung tiếng Anh thực tế theo 3 niche đã chọn.
