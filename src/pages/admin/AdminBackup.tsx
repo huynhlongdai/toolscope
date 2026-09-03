@@ -35,6 +35,44 @@ const BACKUP_TABLES = [
 
 const SETTINGS_TABLES = ["site_settings", "menus", "pages"];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface RowValidation {
+  valid: any[];
+  invalidCount: number;
+  reasons: string[]; // sample of distinct reasons, for display
+}
+
+// P3-1: validate rows BEFORE upsert, instead of blindly upserting whatever
+// the JSON file contains. Each row must be a plain object and carry a
+// correctly-typed identifying key (`key` for site_settings, a UUID-shaped
+// `id` for every other table) — rows failing this are excluded from the
+// import and surfaced to the admin instead of silently hitting the DB and
+// (in the previous version) being counted as "restored" regardless of the
+// upsert's actual result.
+function validateTableRows(tableKey: string, rows: unknown[]): RowValidation {
+  const valid: any[] = [];
+  const reasonSet = new Set<string>();
+  let invalidCount = 0;
+  for (const row of rows) {
+    if (typeof row !== "object" || row === null || Array.isArray(row)) {
+      invalidCount++; reasonSet.add("Dòng không phải object hợp lệ"); continue;
+    }
+    if (tableKey === "site_settings") {
+      if (typeof (row as any).key !== "string" || !(row as any).key.trim()) {
+        invalidCount++; reasonSet.add("Thiếu trường 'key' hợp lệ"); continue;
+      }
+    } else {
+      const id = (row as any).id;
+      if (typeof id !== "string" || !UUID_RE.test(id)) {
+        invalidCount++; reasonSet.add("Thiếu hoặc sai định dạng 'id' (UUID)"); continue;
+      }
+    }
+    valid.push(row);
+  }
+  return { valid, invalidCount, reasons: Array.from(reasonSet) };
+}
+
 export default function AdminBackup() {
   const queryClient = useQueryClient();
   const [exporting, setExporting] = useState<string | null>(null);
@@ -42,6 +80,7 @@ export default function AdminBackup() {
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<Record<string, any> | null>(null);
+  const [importValidation, setImportValidation] = useState<Record<string, RowValidation>>({});
   const [selectedTables, setSelectedTables] = useState<Set<string>>(new Set());
   const [currentCounts, setCurrentCounts] = useState<Record<string, number>>({});
 
@@ -127,8 +166,20 @@ export default function AdminBackup() {
 
       // Find which tables exist in the file
       const availableTables = BACKUP_TABLES.filter(t => data[t.key] && Array.isArray(data[t.key]));
+      if (availableTables.length === 0) throw new Error("File không chứa bảng nào hợp lệ để import");
       setImportData(data);
-      setSelectedTables(new Set(availableTables.map(t => t.key)));
+
+      // Validate every row up front so the confirmation dialog shows exactly
+      // what will (and will not) be imported, instead of finding out after
+      // hitting the database.
+      const validation: Record<string, RowValidation> = {};
+      for (const t of availableTables) {
+        validation[t.key] = validateTableRows(t.key, data[t.key]);
+      }
+      setImportValidation(validation);
+
+      // Only pre-select tables that have at least one valid row.
+      setSelectedTables(new Set(availableTables.filter(t => validation[t.key].valid.length > 0).map(t => t.key)));
 
       // Fetch current counts for comparison
       const counts: Record<string, number> = {};
@@ -148,24 +199,48 @@ export default function AdminBackup() {
     if (!importData) return;
     setImporting(true);
     try {
-      let restored = 0;
+      let tablesRestored = 0;
+      let rowsImported = 0;
+      let rowsSkippedInvalid = 0;
+      let rowsFailedUpsert = 0;
+      const failedTables: string[] = [];
+
       for (const tableKey of selectedTables) {
-        const rows = importData[tableKey];
-        if (!rows || !Array.isArray(rows)) continue;
-        for (const row of rows) {
-          if (tableKey === "site_settings") {
-            await supabase.from("site_settings").upsert(row as any, { onConflict: "key" });
-          } else {
-            await supabase.from(tableKey as any).upsert(row as any);
-          }
+        const validation = importValidation[tableKey];
+        if (!validation) continue;
+        rowsSkippedInvalid += validation.invalidCount;
+        if (validation.valid.length === 0) continue;
+
+        let tableHadError = false;
+        for (const row of validation.valid) {
+          const { error } = tableKey === "site_settings"
+            ? await supabase.from("site_settings").upsert(row as any, { onConflict: "key" })
+            : await supabase.from(tableKey as any).upsert(row as any);
+          if (error) { tableHadError = true; rowsFailedUpsert++; } else { rowsImported++; }
         }
-        restored++;
+        if (tableHadError) failedTables.push(tableKey);
+        tablesRestored++;
       }
-      await saveBackupHistory({ type: "import", tables: restored, timestamp: new Date().toISOString() });
-      await logAuditAction("backup_import", "system", undefined, { tables_restored: restored });
-      toast.success(`Đã import ${restored} bảng thành công!`);
+
+      await saveBackupHistory({
+        type: "import", tables: tablesRestored, timestamp: new Date().toISOString(),
+        rows_imported: rowsImported, rows_skipped_invalid: rowsSkippedInvalid, rows_failed: rowsFailedUpsert,
+      });
+      await logAuditAction("backup_import", "system", undefined, {
+        tables_restored: tablesRestored, rows_imported: rowsImported,
+        rows_skipped_invalid: rowsSkippedInvalid, rows_failed_upsert: rowsFailedUpsert, failed_tables: failedTables,
+      });
+
+      if (rowsFailedUpsert > 0) {
+        toast.error(`Import xong nhưng ${rowsFailedUpsert} dòng lỗi ở bảng: ${failedTables.join(", ")}`);
+      } else if (rowsSkippedInvalid > 0) {
+        toast.success(`Đã import ${rowsImported} dòng (${tablesRestored} bảng). Bỏ qua ${rowsSkippedInvalid} dòng không hợp lệ.`);
+      } else {
+        toast.success(`Đã import ${rowsImported} dòng thành công (${tablesRestored} bảng)!`);
+      }
       setImportDialogOpen(false);
       setImportData(null);
+      setImportValidation({});
     } catch (err: any) {
       toast.error(err.message || "Lỗi import");
     } finally {
@@ -266,10 +341,15 @@ export default function AdminBackup() {
             {importData && BACKUP_TABLES.filter(t => importData[t.key] && Array.isArray(importData[t.key])).map(table => {
               const fileCount = importData[table.key].length;
               const dbCount = currentCounts[table.key] || 0;
+              const validation = importValidation[table.key];
+              const validCount = validation?.valid.length ?? fileCount;
+              const invalidCount = validation?.invalidCount ?? 0;
+              const noValidRows = validCount === 0;
               return (
-                <div key={table.key} className="flex items-center gap-3 p-2 rounded border">
+                <div key={table.key} className={`flex items-center gap-3 p-2 rounded border ${noValidRows ? "opacity-60" : ""}`}>
                   <Checkbox
                     checked={selectedTables.has(table.key)}
+                    disabled={noValidRows}
                     onCheckedChange={(v) => {
                       setSelectedTables(prev => {
                         const n = new Set(prev);
@@ -281,7 +361,7 @@ export default function AdminBackup() {
                   <span className="text-lg">{table.icon}</span>
                   <div className="flex-1">
                     <Label className="font-medium text-sm">{table.label}</Label>
-                    <div className="flex gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <span>File: {fileCount} rows</span>
                       <span>DB: {dbCount} rows</span>
                       {fileCount !== dbCount && (
@@ -290,7 +370,19 @@ export default function AdminBackup() {
                           {fileCount > dbCount ? `+${fileCount - dbCount}` : `${fileCount - dbCount}`}
                         </Badge>
                       )}
+                      {invalidCount > 0 && (
+                        <Badge variant="destructive" className="text-[10px]" title={validation?.reasons.join("; ")}>
+                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                          {invalidCount} dòng không hợp lệ
+                        </Badge>
+                      )}
                     </div>
+                    {invalidCount > 0 && validation?.reasons.length > 0 && (
+                      <p className="text-[11px] text-destructive mt-0.5">{validation.reasons.join("; ")}</p>
+                    )}
+                    {noValidRows && (
+                      <p className="text-[11px] text-destructive mt-0.5">Không có dòng hợp lệ nào — không thể import bảng này</p>
+                    )}
                   </div>
                 </div>
               );
