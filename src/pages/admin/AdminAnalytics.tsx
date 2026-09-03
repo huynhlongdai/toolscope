@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToJSON, dateStampedFilename } from "@/lib/export";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { TrendingUp, Users, FileText, Eye, Download, BarChart3, Tag, MousePointerClick } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -132,11 +133,7 @@ export default function AdminAnalytics() {
 
   const exportReport = () => {
     const report = { stats, toolsData, usersData, reviewsData, categoryData, topTools, dealsStats, exportedAt: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `analytics-report-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-    URL.revokeObjectURL(url);
+    exportToJSON(report, dateStampedFilename("analytics-report", "json"));
   };
 
   return (

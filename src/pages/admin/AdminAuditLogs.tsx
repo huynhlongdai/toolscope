@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV, dateStampedFilename } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -105,15 +106,12 @@ export default function AdminAuditLogs() {
   };
 
   const exportCSV = () => {
-    const csv = ["Thời gian,Action,Entity Type,Entity ID,User,Chi tiết",
-      ...filtered.map((l: any) =>
-        `"${new Date(l.created_at).toISOString()}","${l.action}","${l.entity_type || ""}","${l.entity_id || ""}","${profileMap[l.user_id] || l.user_id || ""}","${JSON.stringify(l.details || {}).replace(/"/g, '""')}"`
-      )
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    const headers = ["Thời gian", "Action", "Entity Type", "Entity ID", "User", "Chi tiết"];
+    const rows = filtered.map((l: any) => [
+      new Date(l.created_at).toISOString(), l.action, l.entity_type || "", l.entity_id || "",
+      profileMap[l.user_id] || l.user_id || "", JSON.stringify(l.details || {}),
+    ]);
+    exportToCSV(headers, rows, dateStampedFilename("audit-logs", "csv"));
     toast.success(`Đã export ${filtered.length} logs`);
   };
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -139,11 +140,7 @@ export default function AdminReviews() {
       r.upvotes, r.downvotes, r.ease_of_use ?? "", r.value_for_money ?? "", r.customer_support ?? "",
       new Date(r.created_at).toLocaleDateString()
     ]);
-    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "reviews.csv"; a.click();
-    URL.revokeObjectURL(url);
+    exportToCSV(headers, rows, "reviews.csv");
   };
 
   const RatingBar = ({ label, value }: { label: string; value: number | null }) => {

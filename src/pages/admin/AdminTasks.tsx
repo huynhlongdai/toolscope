@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,16 +274,9 @@ export default function AdminTasks() {
   };
 
   const exportCSV = () => {
-    const rows = [["Name", "Slug", "Icon", "Description", "Tool Count", "Featured"]];
-    tasks.forEach((t: any) => {
-      rows.push([t.name, t.slug, t.icon || "", t.description || "", String((toolCounts as any)[t.id] || 0), t.is_featured ? "Yes" : "No"]);
-    });
-    const csv = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "tasks.csv"; a.click();
-    URL.revokeObjectURL(url);
+    const headers = ["Name", "Slug", "Icon", "Description", "Tool Count", "Featured"];
+    const rows = tasks.map((t: any) => [t.name, t.slug, t.icon || "", t.description || "", String((toolCounts as any)[t.id] || 0), t.is_featured ? "Yes" : "No"]);
+    exportToCSV(headers, rows, "tasks.csv");
   };
 
   const toggleToolSelect = (id: string) => setSelectedToolIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });

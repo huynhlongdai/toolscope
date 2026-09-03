@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToJSON, exportCSVLines, dateStampedFilename } from "@/lib/export";
 import { Download, Upload, Database, Settings, FileText, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 
@@ -33,14 +34,6 @@ const BACKUP_TABLES = [
 ];
 
 const SETTINGS_TABLES = ["site_settings", "menus", "pages"];
-
-function downloadJSON(data: any, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function AdminBackup() {
   const queryClient = useQueryClient();
@@ -75,8 +68,8 @@ export default function AdminBackup() {
         if (error) console.warn(`Skip ${table.key}:`, error.message);
         bundle[table.key] = data ?? [];
       }
-      const filename = `toolscope-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      downloadJSON(bundle, filename);
+      const filename = dateStampedFilename("toolscope-backup", "json");
+      exportToJSON(bundle, filename);
       setLastBackup(new Date().toISOString());
       await saveBackupHistory({ type: "full", tables: BACKUP_TABLES.length, timestamp: new Date().toISOString() });
       await logAuditAction("backup_export", "system", undefined, { type: "full", tables: BACKUP_TABLES.map(t => t.key) });
@@ -96,7 +89,7 @@ export default function AdminBackup() {
         const { data } = await supabase.from(table as any).select("*");
         bundle[table] = data ?? [];
       }
-      downloadJSON(bundle, `toolscope-settings-${new Date().toISOString().slice(0, 10)}.json`);
+      exportToJSON(bundle, dateStampedFilename("toolscope-settings", "json"));
       await logAuditAction("backup_export", "system", undefined, { type: "settings" });
       toast.success("Đã export settings!");
     } catch (e: any) {
@@ -114,12 +107,8 @@ export default function AdminBackup() {
       if (!data || data.length === 0) { toast.info("Không có dữ liệu"); setExporting(null); return; }
       const headers = Object.keys(data[0]);
       const rows = data.map((row: any) => headers.map(h => `"${String(row[h] ?? "").replace(/"/g, '""')}"`).join(","));
-      const csv = [headers.join(","), ...rows].join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = `${tableKey}-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-      URL.revokeObjectURL(url);
+      const csv = [headers.join(","), ...rows];
+      exportCSVLines(csv, dateStampedFilename(tableKey, "csv"));
       toast.success(`Đã export ${tableKey}.csv`);
     } catch (e: any) {
       toast.error(e.message || "Lỗi export CSV");

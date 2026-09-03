@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToJSON, dateStampedFilename } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,11 +274,7 @@ export default function AdminMenus() {
             <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reset
           </Button>
           <Button size="sm" variant="ghost" onClick={() => {
-            const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; a.download = `menu-${location}-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-            URL.revokeObjectURL(url);
+            exportToJSON(items, dateStampedFilename(`menu-${location}`, "json"));
             toast.success("Đã export menu JSON");
           }}>
             <Download className="mr-1 h-3.5 w-3.5" /> Export

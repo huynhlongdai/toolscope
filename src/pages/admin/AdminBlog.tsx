@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -72,11 +73,7 @@ export default function AdminBlog() {
   const exportCSV = () => {
     const headers = ["Title", "Slug", "Author", "Status", "Views", "Created"];
     const rows = filtered.map((p: any) => [p.title, p.slug, p.profiles?.display_name ?? "", p.status, p.view_count, new Date(p.created_at).toLocaleDateString()]);
-    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "blog-posts.csv"; a.click();
-    URL.revokeObjectURL(url);
+    exportToCSV(headers, rows, "blog-posts.csv");
   };
 
   return (

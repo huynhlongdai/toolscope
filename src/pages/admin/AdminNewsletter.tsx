@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV, dateStampedFilename } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -126,13 +127,9 @@ export default function AdminNewsletter() {
   const last30d = subscribers.filter((s: any) => s.is_active && new Date(s.subscribed_at) > new Date(Date.now() - 30 * 86400000)).length;
 
   const exportCSV = () => {
-    const csv = ["Email,Active,Subscribed At", ...filtered.map((s: any) =>
-      `${s.email},${s.is_active ? "Yes" : "No"},${new Date(s.subscribed_at).toISOString()}`
-    )].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `newsletter-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    const headers = ["Email", "Active", "Subscribed At"];
+    const rows = filtered.map((s: any) => [s.email, s.is_active ? "Yes" : "No", new Date(s.subscribed_at).toISOString()]);
+    exportToCSV(headers, rows, dateStampedFilename("newsletter", "csv"));
     toast.success(`Đã xuất ${filtered.length} subscribers`);
   };
 

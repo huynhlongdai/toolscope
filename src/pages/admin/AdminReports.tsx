@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -111,11 +112,7 @@ export default function AdminReports() {
   const exportCSV = () => {
     const headers = ["Type", "Reason", "Details", "Reporter", "Status", "Admin Note", "Created"];
     const rows = filtered.map((r: any) => [r.target_type, r.reason, r.details || "", (r.profiles as any)?.display_name || "", r.status, r.admin_note || "", new Date(r.created_at).toLocaleDateString()]);
-    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "reports.csv"; a.click();
-    URL.revokeObjectURL(url);
+    exportToCSV(headers, rows, "reports.csv");
   };
 
   const statusBadge = (s: string) => {

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,11 +191,7 @@ export default function AdminTools() {
   const exportCSV = () => {
     const headers = ["Name", "Slug", "Status", "Pricing", "Rating", "Views", "Category", "Website"];
     const rows = filtered.map((t: any) => [t.name, t.slug, t.status, t.pricing_type, t.avg_rating || "", t.view_count, (t as any).categories?.name || "", t.website_url || ""]);
-    const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "tools.csv"; a.click();
-    URL.revokeObjectURL(url);
+    exportToCSV(headers, rows, "tools.csv");
   };
 
   const statusColor = (s: string) => {

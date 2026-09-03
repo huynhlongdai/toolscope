@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { exportCSVLines, dateStampedFilename } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -475,14 +476,6 @@ function RulesManager() {
   );
 }
 
-function downloadCSV(rows: string[], filename: string) {
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function AdminSearchAnalytics() {
   const { data: logs = [], isLoading } = useSearchLogs();
   const { data: rules = [] } = useSearchRules();
@@ -503,7 +496,7 @@ export default function AdminSearchAnalytics() {
     const csv = ["Query,Normalized,Results,Source,Created At", ...filteredLogs.map(l =>
       `"${l.query}","${l.normalized_query}",${l.results_count},"${l.source || ""}","${l.created_at}"`
     )];
-    downloadCSV(csv, `search-logs-${new Date().toISOString().slice(0, 10)}.csv`);
+    exportCSVLines(csv, dateStampedFilename("search-logs", "csv"));
     toast.success(`Đã export ${filteredLogs.length} logs`);
   };
 
