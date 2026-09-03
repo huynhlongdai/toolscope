@@ -1,9 +1,8 @@
-import { ReactNode, useEffect, useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { ReactNode, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   LayoutDashboard, Wrench, Users, MessageSquare, Shield, FileText, Tags, ChevronLeft,
 } from "lucide-react";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,7 +11,6 @@ import {
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 
 import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3 } from "lucide-react";
 
@@ -167,25 +165,16 @@ function getPersistedSidebarState(): boolean {
   } catch { return false; }
 }
 
+/**
+ * NOTE: Auth/role checking is intentionally NOT done here anymore.
+ * Every admin page that renders <AdminLayout> is already wrapped by
+ * <AdminGuard> in App.tsx's adminRoute() helper, which performs the
+ * loading/redirect/role check exactly once before this component ever
+ * mounts. Re-checking here (as before) caused a duplicate useAdminAuth()
+ * fetch on every admin page load. See src/components/AdminGuard.tsx.
+ */
 export function AdminLayout({ children }: { children: ReactNode }) {
-  const { isAdminOrEditor, loading, user } = useAdminAuth();
-  const navigate = useNavigate();
   const [defaultOpen] = useState(() => !getPersistedSidebarState());
-
-  useEffect(() => {
-    if (!loading && !user) navigate("/auth");
-    if (!loading && user && !isAdminOrEditor) navigate("/");
-  }, [loading, user, isAdminOrEditor, navigate]);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Skeleton className="h-8 w-48" />
-      </div>
-    );
-  }
-
-  if (!isAdminOrEditor) return null;
 
   return (
     <SidebarProvider defaultOpen={defaultOpen} onOpenChange={(open) => {
