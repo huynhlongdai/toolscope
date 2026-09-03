@@ -31,7 +31,10 @@ export default function AdminTasks() {
   const [selectedToolIds, setSelectedToolIds] = useState<Set<string>>(new Set());
   const [selectedToolId, setSelectedToolId] = useState("");
   const [bulkTaskId, setBulkTaskId] = useState("");
-  const [aiSuggesting, setAiSuggesting] = useState(false);
+  // Note (P3-2): despite the historical name, this is a plain keyword-matching
+  // heuristic (see autoSuggestTaskAssignments below), not a real AI/LLM call.
+  // Renamed/relabeled here to stop implying otherwise in the UI.
+  const [autoSuggesting, setAutoSuggesting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterFeatured, setFilterFeatured] = useState<string>("all");
   const [mergeOpen, setMergeOpen] = useState(false);
@@ -231,8 +234,13 @@ export default function AdminTasks() {
     queryClient.invalidateQueries({ queryKey: ["task-tool-counts"] });
   };
 
-  const aiSuggestTasks = async () => {
-    setAiSuggesting(true);
+  // P3-2: this is a plain keyword-matching heuristic — it checks whether any
+  // word (>3 chars) from a task's name literally appears in a tool's
+  // description/name — NOT an AI/LLM call. Renamed from aiSuggestTasks to
+  // avoid mislabeling this as AI-powered; the button/audit-log text was
+  // updated to match (see JSX below and "task_auto_suggest" action name).
+  const autoSuggestTaskAssignments = async () => {
+    setAutoSuggesting(true);
     try {
       const { data: allToolTasks } = await supabase.from("tool_tasks").select("tool_id");
       const assignedIds = new Set(allToolTasks?.map((t: any) => t.tool_id) ?? []);
@@ -251,10 +259,10 @@ export default function AdminTasks() {
           }
         }
       }
-      logAuditAction("task_ai_suggest", "task", undefined, { suggestions });
-      toast.success(`AI đã gợi ý gán ${suggestions} tools`);
+      logAuditAction("task_auto_suggest", "task", undefined, { suggestions });
+      toast.success(`Đã tự động gợi ý gán ${suggestions} tools (dựa trên từ khóa trùng khớp)`);
       queryClient.invalidateQueries({ queryKey: ["task-tool-counts"] });
-    } catch (e: any) { toast.error(e.message); } finally { setAiSuggesting(false); }
+    } catch (e: any) { toast.error(e.message); } finally { setAutoSuggesting(false); }
   };
 
   const approveSuggestion = async (s: any) => {
@@ -288,14 +296,17 @@ export default function AdminTasks() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><ListChecks className="h-5 w-5 md:h-6 md:w-6" /> Quản lý Tasks</h1>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1">CRUD, gán tools, gợi ý AI, suggestions</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">CRUD, gán tools, gợi ý tự động (từ khóa), suggestions</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> Export</Button>
             <Button size="sm" variant="outline" onClick={() => setMergeOpen(true)}><Merge className="mr-1 h-3.5 w-3.5" /> Merge</Button>
             <Button size="sm" variant="outline" onClick={() => setBulkAssignOpen(true)}><Link2 className="mr-1 h-3.5 w-3.5" /> Bulk Assign</Button>
-            <Button size="sm" variant="outline" onClick={aiSuggestTasks} disabled={aiSuggesting}>
-              {aiSuggesting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />} AI Suggest
+            <Button
+              size="sm" variant="outline" onClick={autoSuggestTaskAssignments} disabled={autoSuggesting}
+              title="Gợi ý dựa trên khớp từ khóa giữa tên task và mô tả tool — không dùng AI/LLM"
+            >
+              {autoSuggesting ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />} Gợi ý tự động (từ khóa)
             </Button>
             <Button size="sm" onClick={openCreate}><Plus className="mr-1 h-3.5 w-3.5" /> Thêm Task</Button>
           </div>
