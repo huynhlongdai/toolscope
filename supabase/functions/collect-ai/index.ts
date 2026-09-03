@@ -1,10 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
 
 function formatUrl(url: string): string {
   let f = url.trim();
@@ -251,23 +246,15 @@ async function readFileFromStorage(supabase: any, filePath: string, fileType: st
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const auth = await requireAdmin(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const body = await req.json();
     const { action, query, search_type, category_id, category_name, session_id, item_ids, item_id, target_category_id, content_text, file_path, file_type } = body;
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Get user from auth header
-    const authHeader = req.headers.get("Authorization");
-    const token = authHeader?.replace("Bearer ", "");
-    let userId: string | null = null;
-    if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    }
+    const supabase = auth.supabase;
+    const userId: string = auth.user.id;
 
     if (action === "search") {
       if (!query) throw new Error("query is required");

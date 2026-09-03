@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
 
 const WORD_COUNTS: Record<string, string> = {
   listicle: "1500-2500", comparison: "1800-3000", guide: "2000-3500", review: "1500-2500", news: "1000-1800",
@@ -12,6 +8,9 @@ const WORD_COUNTS: Record<string, string> = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const auth = await requireAdmin(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const body = await req.json();

@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAI } from "../_shared/ai-provider.ts";
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders, requireAuth } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  // Must be logged in (any authenticated user may generate an AI draft for
+  // their own review), but does NOT require the admin role.
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
 
   try {
     const { tool_id } = await req.json();
@@ -18,10 +19,7 @@ serve(async (req) => {
     }
 
     // LOVABLE_API_KEY checked by callAI as fallback
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = auth.supabase;
 
     const { data: tool, error: toolErr } = await supabase
       .from("tools")
