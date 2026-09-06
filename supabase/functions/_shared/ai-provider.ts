@@ -20,6 +20,17 @@ export interface FeatureConfig {
 
 export type AIProviderConfig = Record<AIFeature, string | FeatureConfig>;
 
+// A user-defined OpenAI-compatible provider (unlimited, added via Admin UI).
+// Its API key lives in AIKeys under `${id}_api_key` / `${id}_api_key_2`,
+// following the same naming convention as built-in providers.
+export interface CustomProvider {
+  id: string; // slug, e.g. "custom_tokenrouter"
+  name: string;
+  base_url: string; // e.g. "https://api.tokenrouter.com/v1" (no trailing /chat/completions)
+  default_model?: string;
+  models?: string[]; // cached from the last "fetch models" call
+}
+
 export interface AIKeys {
   openai_api_key?: string;
   openai_api_key_2?: string;
@@ -39,6 +50,8 @@ export interface AIKeys {
   cerebras_api_key_2?: string;
   tokenrouter_api_key?: string;
   tokenrouter_api_key_2?: string;
+  // Custom providers use dynamic keys: `${id}_api_key`, `${id}_api_key_2`
+  [key: string]: string | undefined;
 }
 
 const PROVIDER_ENDPOINTS: Record<string, string> = {
@@ -102,7 +115,7 @@ function parseFeatureConfig(raw: any): { provider: string; model?: string; tempe
   };
 }
 
-export async function getProviderConfig(): Promise<{ config: AIProviderConfig; keys: AIKeys }> {
+export async function getProviderConfig(): Promise<{ config: AIProviderConfig; keys: AIKeys; customProviders: CustomProvider[] }> {
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -111,7 +124,7 @@ export async function getProviderConfig(): Promise<{ config: AIProviderConfig; k
   const { data } = await supabase
     .from("site_settings")
     .select("key, value")
-    .in("key", ["ai_provider_config", "ai_keys"]);
+    .in("key", ["ai_provider_config", "ai_keys", "custom_ai_providers"]);
 
   const settings: Record<string, any> = {};
   data?.forEach((row: any) => {
@@ -131,7 +144,8 @@ export async function getProviderConfig(): Promise<{ config: AIProviderConfig; k
   };
 
   const keys: AIKeys = settings.ai_keys || {};
-  return { config, keys };
+  const customProviders: CustomProvider[] = Array.isArray(settings.custom_ai_providers) ? settings.custom_ai_providers : [];
+  return { config, keys, customProviders };
 }
 
 const KEY_FIELDS: Record<string, string> = {
@@ -146,13 +160,17 @@ const KEY_FIELDS: Record<string, string> = {
   tokenrouter: "tokenrouter_api_key",
 };
 
+// Custom providers use a dynamic key field: `${provider.id}_api_key`
+function keyFieldFor(provider: string): string {
+  return KEY_FIELDS[provider] || `${provider}_api_key`;
+}
+
 function getApiKeys(provider: string, keys: AIKeys): string[] {
   if (provider === "lovable") {
     const k = Deno.env.get("LOVABLE_API_KEY");
     return k ? [k] : [];
   }
-  const field = KEY_FIELDS[provider];
-  if (!field) return [];
+  const field = keyFieldFor(provider);
   const primary = (keys as any)[field];
   const backup = (keys as any)[field + "_2"];
   const result: string[] = [];
@@ -200,21 +218,22 @@ export async function callAI(opts: {
   max_tokens?: number;
 }): Promise<Response> {
   const startTime = Date.now();
-  const { config, keys } = await getProviderConfig();
+  const { config, keys, customProviders } = await getProviderConfig();
   const featureRaw = config[opts.feature] || config.content_generation || "lovable";
   const fc = parseFeatureConfig(featureRaw);
   const provider = fc.provider || "lovable";
+  const custom = customProviders.find((p) => p.id === provider);
   const model = opts.model || fc.model;
   const temperature = opts.temperature ?? fc.temperature;
   const max_tokens = opts.max_tokens ?? fc.max_tokens;
-  const resolvedModel = model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
+  const resolvedModel = model || custom?.default_model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
 
   const apiKeys = getApiKeys(provider, keys);
 
   // Try each key for the selected provider
   for (const apiKey of apiKeys) {
     try {
-      const response = await callProvider(provider, apiKey, { ...opts, model, temperature, max_tokens });
+      const response = await callProvider(provider, apiKey, { ...opts, model, temperature, max_tokens }, custom);
       if (response.ok) {
         const duration = Date.now() - startTime;
         // Clone to read usage without consuming body
@@ -253,14 +272,18 @@ export async function callAI(opts: {
 async function callProvider(
   provider: string,
   apiKey: string,
-  opts: { messages: any[]; model?: string; stream?: boolean; tools?: any[]; tool_choice?: any; temperature?: number; max_tokens?: number }
+  opts: { messages: any[]; model?: string; stream?: boolean; tools?: any[]; tool_choice?: any; temperature?: number; max_tokens?: number },
+  custom?: CustomProvider
 ): Promise<Response> {
   if (provider === "anthropic") {
     return callAnthropicProvider(apiKey, opts);
   }
 
-  const endpoint = PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.lovable;
-  const model = opts.model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
+  // Custom (user-added) OpenAI-compatible provider: base_url + "/chat/completions"
+  const endpoint = custom
+    ? `${custom.base_url.replace(/\/+$/, "")}/chat/completions`
+    : (PROVIDER_ENDPOINTS[provider] || PROVIDER_ENDPOINTS.lovable);
+  const model = opts.model || custom?.default_model || DEFAULT_MODELS[provider] || DEFAULT_MODELS.lovable;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

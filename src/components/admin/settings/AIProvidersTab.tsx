@@ -13,12 +13,12 @@ import { toast } from "sonner";
 import {
   Save, Brain, Key, Eye, EyeOff, CheckCircle2, XCircle, Loader2,
   RotateCcw, Plus, Trash2, Download, Upload, Zap, BarChart3,
-  Activity, Clock, AlertTriangle
+  Activity, Clock, AlertTriangle, RefreshCw, Globe
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import {
   AI_PROVIDERS, PROVIDER_OPTIONS, FEATURES, CHART_COLORS,
-  parseFeatureConfig, type FeatureConfig, type DeepTestResult,
+  parseFeatureConfig, type FeatureConfig, type DeepTestResult, type CustomProvider,
 } from "./constants";
 
 export function AIProvidersTab() {
@@ -34,6 +34,14 @@ export function AIProvidersTab() {
 
   const [featureConfigs, setFeatureConfigs] = useState<Record<string, FeatureConfig>>({});
   const [modelCatalog, setModelCatalog] = useState<Record<string, string[]>>({});
+
+  // Custom (user-added) providers
+  const [customProviders, setCustomProviders] = useState<CustomProvider[]>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustom, setNewCustom] = useState({ name: "", base_url: "", api_key: "", default_model: "" });
+  const [newCustomModels, setNewCustomModels] = useState<string[]>([]);
+  const [fetchingModelsFor, setFetchingModelsFor] = useState<string | null>(null);
+  const [savingCustom, setSavingCustom] = useState(false);
 
   const { data: aiKeyData } = useQuery({
     queryKey: ["admin-ai-keys"],
@@ -62,6 +70,7 @@ export function AIProvidersTab() {
     if (aiKeyData) {
       setKeyConfigured(aiKeyData.ai_keys_configured || {});
       if (aiKeyData.model_catalog) setModelCatalog(aiKeyData.model_catalog);
+      if (aiKeyData.custom_ai_providers) setCustomProviders(aiKeyData.custom_ai_providers);
       if (aiKeyData.ai_provider_config) {
         const configs: Record<string, FeatureConfig> = {};
         for (const f of FEATURES) {
@@ -115,8 +124,110 @@ export function AIProvidersTab() {
     onError: () => toast.error("Lỗi khi xóa key"),
   });
 
-  const testConnection = async (providerId: string, keyFieldOverride?: string) => {
-    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || "";
+  const saveCustomProviderMutation = useMutation({
+    mutationFn: async (provider: { name: string; base_url: string; default_model?: string; models?: string[] }) => {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "save_custom_provider", provider },
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const deleteCustomProviderMutation = useMutation({
+    mutationFn: async (providerId: string) => {
+      const { error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "delete_custom_provider", provider_id: providerId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ai-keys"] });
+      toast.success("Đã xóa provider");
+    },
+    onError: () => toast.error("Lỗi khi xóa provider"),
+  });
+
+  // Fetch /models from a base_url (new, unsaved provider form)
+  const fetchModelsForNew = async () => {
+    if (!newCustom.base_url) {
+      toast.error("Nhập Base URL trước");
+      return;
+    }
+    setFetchingModelsFor("__new__");
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "fetch_models", base_url: newCustom.base_url, test_key: newCustom.api_key },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setNewCustomModels(data.models || []);
+        toast.success(`Lấy được ${data.models?.length || 0} model`);
+      } else {
+        toast.error(`Không lấy được model: ${data?.error?.slice(0, 150) || data?.status}`);
+      }
+    } catch {
+      toast.error("Lỗi khi lấy danh sách model");
+    } finally {
+      setFetchingModelsFor(null);
+    }
+  };
+
+  // Re-fetch /models for an already-saved custom provider (uses its saved key)
+  const refetchModelsForSaved = async (providerId: string) => {
+    setFetchingModelsFor(providerId);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
+        body: { action: "fetch_models", provider_id: providerId },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        setCustomProviders(prev => prev.map(p => p.id === providerId ? { ...p, models: data.models || [] } : p));
+        toast.success(`Lấy được ${data.models?.length || 0} model`);
+      } else {
+        toast.error(`Không lấy được model: ${data?.error?.slice(0, 150) || data?.status}`);
+      }
+    } catch {
+      toast.error("Lỗi khi lấy danh sách model");
+    } finally {
+      setFetchingModelsFor(null);
+    }
+  };
+
+  const addCustomProvider = async () => {
+    if (!newCustom.name || !newCustom.base_url) {
+      toast.error("Nhập tên và Base URL");
+      return;
+    }
+    setSavingCustom(true);
+    try {
+      const result = await saveCustomProviderMutation.mutateAsync({
+        name: newCustom.name,
+        base_url: newCustom.base_url,
+        default_model: newCustom.default_model || undefined,
+        models: newCustomModels,
+      });
+      const savedProvider = result?.provider as CustomProvider;
+      // Save the API key under the new provider's dynamic key field, if given
+      if (newCustom.api_key && savedProvider) {
+        await supabase.functions.invoke("manage-ai-keys", {
+          body: { action: "save_keys", keys: { [`${savedProvider.id}_api_key`]: newCustom.api_key } },
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-ai-keys"] });
+      setNewCustom({ name: "", base_url: "", api_key: "", default_model: "" });
+      setNewCustomModels([]);
+      setShowAddCustom(false);
+      toast.success("Đã thêm provider tùy chỉnh");
+    } catch {
+      toast.error("Lỗi khi thêm provider");
+    } finally {
+      setSavingCustom(false);
+    }
+  };
+
+  const testConnection = async (providerId: string, keyFieldOverride?: string, customBaseUrl?: string) => {
+    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || `${providerId}_api_key`;
     const key = aiKeys[keyField] || "";
     if (!key || key.includes("...")) {
       toast.error("Nhập API key trước khi test");
@@ -125,7 +236,7 @@ export function AIProvidersTab() {
     setTestingProvider(providerId + (keyFieldOverride?.includes("_2") ? "_2" : ""));
     try {
       const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
-        body: { action: "test", test_provider: providerId, test_key: key },
+        body: { action: "test", test_provider: providerId, test_key: key, custom_base_url: customBaseUrl },
       });
       if (error) throw error;
       if (data?.success) toast.success(`${providerId}: Kết nối thành công!`);
@@ -137,8 +248,8 @@ export function AIProvidersTab() {
     }
   };
 
-  const deepTest = async (providerId: string, keyFieldOverride?: string) => {
-    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || "";
+  const deepTest = async (providerId: string, keyFieldOverride?: string, customBaseUrl?: string, testModel?: string) => {
+    const keyField = keyFieldOverride || AI_PROVIDERS.find(p => p.id === providerId)?.keyField || `${providerId}_api_key`;
     const key = aiKeys[keyField] || "";
     if (!key || key.includes("...")) {
       toast.error("Nhập API key trước khi test");
@@ -148,7 +259,7 @@ export function AIProvidersTab() {
     setTestingProvider(testId);
     try {
       const { data, error } = await supabase.functions.invoke("manage-ai-keys", {
-        body: { action: "deep_test", test_provider: providerId, test_key: key },
+        body: { action: "deep_test", test_provider: providerId, test_key: key, custom_base_url: customBaseUrl, test_model: testModel },
       });
       if (error) throw error;
       setDeepTestResults(prev => ({ ...prev, [testId]: data }));
@@ -230,13 +341,21 @@ export function AIProvidersTab() {
     }));
   };
 
-  const getModelsForProvider = (provider: string) => modelCatalog[provider] || [];
+  // Custom providers appear alongside built-in ones in every provider selector
+  const allProviderOptions = [...PROVIDER_OPTIONS, ...customProviders.map(p => ({ id: p.id, name: `🔧 ${p.name}` }))];
+
+  const getModelsForProvider = (provider: string) => {
+    const custom = customProviders.find(p => p.id === provider);
+    if (custom) return custom.models || [];
+    return modelCatalog[provider] || [];
+  };
 
   // Build provider overview data
-  const providerOverview = PROVIDER_OPTIONS.map(p => {
+  const providerOverview = allProviderOptions.map(p => {
     const featuresUsing = FEATURES.filter(f => (featureConfigs[f.id]?.provider || "lovable") === p.id);
     const isLovable = p.id === "lovable";
-    const keyField = AI_PROVIDERS.find(ap => ap.id === p.id)?.keyField;
+    const custom = customProviders.find(cp => cp.id === p.id);
+    const keyField = custom ? `${custom.id}_api_key` : AI_PROVIDERS.find(ap => ap.id === p.id)?.keyField;
     const hasKey = isLovable || (keyField ? keyConfigured[keyField] : false);
     return { ...p, featuresUsing, hasKey, isLovable };
   }).filter(p => p.featuresUsing.length > 0 || p.hasKey);
@@ -544,6 +663,187 @@ export function AIProvidersTab() {
         </CardContent>
       </Card>
 
+      {/* Custom Providers Card — unlimited OpenAI-compatible providers */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Custom Providers</CardTitle>
+              <CardDescription>Thêm bất kỳ provider tương thích OpenAI API (base_url + api_key), tự động lấy danh sách model.</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowAddCustom(v => !v)}>
+              <Plus className="h-4 w-4 mr-1" /> Thêm Provider
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add-new form */}
+          {showAddCustom && (
+            <div className="p-3 rounded-lg border border-dashed border-primary/40 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Tên Provider</Label>
+                  <Input
+                    value={newCustom.name}
+                    onChange={(e) => setNewCustom(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="VD: TokenRouter"
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Base URL</Label>
+                  <Input
+                    value={newCustom.base_url}
+                    onChange={(e) => setNewCustom(prev => ({ ...prev, base_url: e.target.value }))}
+                    placeholder="https://api.example.com/v1"
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">API Key</Label>
+                  <Input
+                    type="password"
+                    value={newCustom.api_key}
+                    onChange={(e) => setNewCustom(prev => ({ ...prev, api_key: e.target.value }))}
+                    placeholder="sk-..."
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Model mặc định</Label>
+                  {newCustomModels.length > 0 ? (
+                    <Select value={newCustom.default_model || undefined} onValueChange={(v) => setNewCustom(prev => ({ ...prev, default_model: v }))}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Chọn model" /></SelectTrigger>
+                      <SelectContent>
+                        {newCustomModels.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={newCustom.default_model}
+                      onChange={(e) => setNewCustom(prev => ({ ...prev, default_model: e.target.value }))}
+                      placeholder="VD: z-ai/glm-5.3-free (hoặc bấm 'Lấy model')"
+                      className="h-9 text-sm font-mono"
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant="outline" size="sm"
+                  disabled={!newCustom.base_url || fetchingModelsFor === "__new__"}
+                  onClick={fetchModelsForNew}
+                >
+                  {fetchingModelsFor === "__new__" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                  Lấy model
+                </Button>
+                {newCustomModels.length > 0 && (
+                  <span className="text-xs text-muted-foreground">Tìm thấy {newCustomModels.length} model</span>
+                )}
+                <div className="flex-1" />
+                <Button variant="ghost" size="sm" onClick={() => { setShowAddCustom(false); setNewCustom({ name: "", base_url: "", api_key: "", default_model: "" }); setNewCustomModels([]); }}>
+                  Hủy
+                </Button>
+                <Button size="sm" onClick={addCustomProvider} disabled={savingCustom || !newCustom.name || !newCustom.base_url}>
+                  {savingCustom ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                  Lưu Provider
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Existing custom providers */}
+          {customProviders.length === 0 && !showAddCustom ? (
+            <div className="text-sm text-muted-foreground text-center py-4">
+              Chưa có custom provider nào. Bấm "Thêm Provider" để thêm provider tương thích OpenAI API bất kỳ (TokenRouter, Groq, Together AI, vLLM tự host, v.v.)
+            </div>
+          ) : customProviders.map((provider) => {
+            const keyField = `${provider.id}_api_key`;
+            const testId = provider.id;
+            const deepResult = deepTestResults[testId];
+            return (
+              <div key={provider.id} className="p-3 rounded-lg border border-border space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Label className="font-medium">{provider.name}</Label>
+                      {keyConfigured[keyField] ? (
+                        <Badge variant="default" className="text-xs gap-1"><CheckCircle2 className="h-3 w-3" /> Configured</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs gap-1"><XCircle className="h-3 w-3" /> Chưa có key</Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs font-mono">{provider.base_url}</Badge>
+                    </div>
+                    <div className="relative max-w-md">
+                      <Input
+                        type={showKeys[provider.id] ? "text" : "password"}
+                        placeholder={keyConfigured[keyField] ? aiKeyData?.ai_keys_masked?.[keyField] || "••••••••" : "sk-..."}
+                        value={aiKeys[keyField] || ""}
+                        onChange={(e) => setAiKeys(prev => ({ ...prev, [keyField]: e.target.value }))}
+                        className="pr-10 font-mono text-sm"
+                      />
+                      <Button
+                        variant="ghost" size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                        onClick={() => setShowKeys(prev => ({ ...prev, [provider.id]: !prev[provider.id] }))}
+                      >
+                        {showKeys[provider.id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 flex-wrap">
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={!!testingProvider || !aiKeys[keyField]}
+                      onClick={() => testConnection(provider.id, keyField, provider.base_url)}
+                    >
+                      {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Test"}
+                    </Button>
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={!!testingProvider || !aiKeys[keyField]}
+                      onClick={() => deepTest(provider.id, keyField, provider.base_url, provider.default_model)}
+                      title="Deep test: gửi prompt thực tế"
+                    >
+                      {testingProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={fetchingModelsFor === provider.id}
+                      onClick={() => refetchModelsForSaved(provider.id)}
+                      title="Lấy lại danh sách model"
+                    >
+                      {fetchingModelsFor === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost" size="sm"
+                      onClick={() => { if (confirm(`Xóa provider ${provider.name}? (sẽ xóa cả key đã lưu)`)) deleteCustomProviderMutation.mutate(provider.id); }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                {provider.models && provider.models.length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {provider.models.length} model khả dụng · mặc định: <span className="font-mono">{provider.default_model || provider.models[0]}</span>
+                  </div>
+                )}
+                {deepResult && (
+                  <div className={`text-xs p-2 rounded border ${deepResult.success ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}`}>
+                    {deepResult.success ? (
+                      <span>✅ Model: <strong>{deepResult.model}</strong> — Reply: "{deepResult.reply}" — {deepResult.duration_ms}ms</span>
+                    ) : (
+                      <span>❌ {deepResult.error?.slice(0, 150)}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Per-feature AI Config */}
       <Card>
         <CardHeader>
@@ -584,7 +884,7 @@ export function AIProvidersTab() {
                     <Select value={fc.provider} onValueChange={(v) => updateFeatureConfig(feature.id, { provider: v, model: undefined })}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {PROVIDER_OPTIONS.map(p => (
+                        {allProviderOptions.map(p => (
                           <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                         ))}
                       </SelectContent>

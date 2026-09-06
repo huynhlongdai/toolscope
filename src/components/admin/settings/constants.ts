@@ -24,6 +24,17 @@ export const PROVIDER_OPTIONS = [
   { id: "perplexity", name: "Perplexity" },
 ];
 
+// User-defined OpenAI-compatible providers, added via the Admin UI.
+// Unlimited count — stored in site_settings.custom_ai_providers.
+// Its API key is stored under `${id}_api_key` / `${id}_api_key_2`.
+export interface CustomProvider {
+  id: string;
+  name: string;
+  base_url: string;
+  default_model?: string;
+  models?: string[];
+}
+
 export const FEATURES = [
   { id: "ai_chat", label: "AI Chat", desc: "Chatbot tư vấn" },
   { id: "ai_search", label: "AI Search", desc: "Tìm kiếm thông minh" },

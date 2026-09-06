@@ -1,10 +1,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { MODEL_CATALOG } from "../_shared/ai-provider.ts";
+import { MODEL_CATALOG, type CustomProvider } from "../_shared/ai-provider.ts";
 import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
 
 function maskKey(key: string): string {
   if (!key || key.length < 8) return "****";
   return key.slice(0, 4) + "..." + key.slice(-4);
+}
+
+// Slugify a display name into a stable provider id, prefixed so it can
+// never collide with a built-in provider id (openai, gemini, etc.)
+function slugifyCustomId(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return `custom_${slug || "provider"}`;
+}
+
+async function getCustomProviders(supabase: any): Promise<CustomProvider[]> {
+  const { data } = await supabase.from("site_settings").select("value").eq("key", "custom_ai_providers").maybeSingle();
+  const val = data?.value ? (typeof data.value === "string" ? JSON.parse(data.value) : data.value) : [];
+  return Array.isArray(val) ? val : [];
+}
+
+async function saveCustomProviders(supabase: any, providers: CustomProvider[]) {
+  await supabase.from("site_settings").upsert(
+    { key: "custom_ai_providers", value: providers, updated_at: new Date().toISOString() },
+    { onConflict: "key" }
+  );
 }
 
 serve(async (req) => {
@@ -20,7 +44,7 @@ serve(async (req) => {
     const { action } = body;
 
     if (action === "get") {
-      const { data } = await supabase.from("site_settings").select("key, value").in("key", ["ai_keys", "ai_provider_config", "site_info"]);
+      const { data } = await supabase.from("site_settings").select("key, value").in("key", ["ai_keys", "ai_provider_config", "site_info", "custom_ai_providers"]);
       const result: Record<string, any> = {};
       data?.forEach((row: any) => {
         const val = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
@@ -38,9 +62,131 @@ serve(async (req) => {
         }
       });
       result.model_catalog = MODEL_CATALOG;
+      result.custom_ai_providers = result.custom_ai_providers || [];
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (action === "save_custom_provider") {
+      const { provider } = body as { provider: Partial<CustomProvider> & { name: string; base_url: string } };
+      if (!provider?.name || !provider?.base_url) {
+        return new Response(JSON.stringify({ error: "name và base_url là bắt buộc" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const providers = await getCustomProviders(supabase);
+      const id = provider.id || slugifyCustomId(provider.name);
+      const existingIdx = providers.findIndex((p) => p.id === id);
+      const next: CustomProvider = {
+        id,
+        name: provider.name,
+        base_url: provider.base_url.replace(/\/+$/, ""),
+        default_model: provider.default_model,
+        models: provider.models || (existingIdx >= 0 ? providers[existingIdx].models : []),
+      };
+      if (existingIdx >= 0) providers[existingIdx] = next;
+      else providers.push(next);
+      await saveCustomProviders(supabase, providers);
+      return new Response(JSON.stringify({ success: true, provider: next }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete_custom_provider") {
+      const { provider_id } = body;
+      if (!provider_id) {
+        return new Response(JSON.stringify({ error: "provider_id required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const providers = (await getCustomProviders(supabase)).filter((p) => p.id !== provider_id);
+      await saveCustomProviders(supabase, providers);
+      // Also clean up its stored API key
+      const { data: existing } = await supabase.from("site_settings").select("value").eq("key", "ai_keys").maybeSingle();
+      const currentKeys = existing?.value ? (typeof existing.value === "string" ? JSON.parse(existing.value) : existing.value) : {};
+      delete currentKeys[`${provider_id}_api_key`];
+      delete currentKeys[`${provider_id}_api_key_2`];
+      await supabase.from("site_settings").upsert(
+        { key: "ai_keys", value: currentKeys, updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Fetch the /models list from a custom (or built-in OpenAI-compatible)
+    // provider's base_url so the admin can pick a model from a dropdown
+    // instead of typing it in by hand.
+    // Two modes:
+    //  - New/unsaved provider: pass base_url + test_key directly.
+    //  - Already-saved provider: pass provider_id; base_url + the real
+    //    (unmasked) API key are resolved server-side, so the admin doesn't
+    //    have to re-type a key they already saved.
+    if (action === "fetch_models") {
+      let { base_url, test_key } = body;
+      const { provider_id } = body;
+
+      if (provider_id) {
+        const providers = await getCustomProviders(supabase);
+        const p = providers.find((pr) => pr.id === provider_id);
+        if (!p) {
+          return new Response(JSON.stringify({ success: false, error: "Provider not found" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        base_url = p.base_url;
+        const { data: existing } = await supabase.from("site_settings").select("value").eq("key", "ai_keys").maybeSingle();
+        const currentKeys = existing?.value ? (typeof existing.value === "string" ? JSON.parse(existing.value) : existing.value) : {};
+        test_key = currentKeys[`${provider_id}_api_key`] || currentKeys[`${provider_id}_api_key_2`];
+      }
+
+      if (!base_url) {
+        return new Response(JSON.stringify({ success: false, error: "base_url required" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      try {
+        const url = `${(base_url as string).replace(/\/+$/, "")}/models`;
+        const resp = await fetch(url, {
+          method: "GET",
+          headers: test_key ? { Authorization: `Bearer ${test_key}` } : {},
+        });
+        if (!resp.ok) {
+          const errText = await resp.text();
+          return new Response(JSON.stringify({ success: false, status: resp.status, error: errText.slice(0, 300) }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const data = await resp.json();
+        // OpenAI-compatible: { data: [{ id: "model-name" }, ...] }
+        const list: string[] = Array.isArray(data?.data)
+          ? data.data.map((m: any) => m.id).filter(Boolean)
+          : Array.isArray(data?.models)
+          ? data.models.map((m: any) => m.id || m.name).filter(Boolean)
+          : [];
+        list.sort();
+
+        // If this was for an already-saved provider, cache the list so it
+        // shows up immediately next time without re-fetching.
+        if (provider_id) {
+          const providers = await getCustomProviders(supabase);
+          const idx = providers.findIndex((pr) => pr.id === provider_id);
+          if (idx >= 0) {
+            providers[idx] = { ...providers[idx], models: list };
+            await saveCustomProviders(supabase, providers);
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true, models: list }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ success: false, error: (e as Error).message }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (action === "save_keys") {
@@ -95,7 +241,7 @@ serve(async (req) => {
     }
 
     if (action === "test") {
-      const { test_provider, test_key } = body;
+      const { test_provider, test_key, custom_base_url } = body;
       const endpoints: Record<string, string> = {
         openai: "https://api.openai.com/v1/models",
         gemini: "https://generativelanguage.googleapis.com/v1beta/models?key=" + (test_key || ""),
@@ -109,7 +255,11 @@ serve(async (req) => {
         tokenrouter: "https://api.tokenrouter.com/v1/models",
       };
 
-      const endpoint = endpoints[test_provider];
+      // Custom (unlimited, user-added) providers: caller passes custom_base_url
+      // directly (e.g. from the "add provider" form or a saved custom provider's base_url)
+      const endpoint = custom_base_url
+        ? `${(custom_base_url as string).replace(/\/+$/, "")}/models`
+        : endpoints[test_provider];
       if (!endpoint || !test_key) {
         return new Response(JSON.stringify({ success: false, error: "Invalid provider or key" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,15 +268,15 @@ serve(async (req) => {
 
       try {
         let resp: Response;
-        if (test_provider === "gemini") {
+        if (test_provider === "gemini" && !custom_base_url) {
           resp = await fetch(endpoint);
-        } else if (test_provider === "perplexity") {
+        } else if (test_provider === "perplexity" && !custom_base_url) {
           resp = await fetch(endpoint, {
             method: "POST",
             headers: { Authorization: `Bearer ${test_key}`, "Content-Type": "application/json" },
             body: JSON.stringify({ model: "sonar", messages: [{ role: "user", content: "test" }], max_tokens: 5 }),
           });
-        } else if (test_provider === "anthropic") {
+        } else if (test_provider === "anthropic" && !custom_base_url) {
           resp = await fetch(endpoint, {
             method: "GET",
             headers: { "x-api-key": test_key, "anthropic-version": "2023-06-01" },
@@ -150,9 +300,9 @@ serve(async (req) => {
     }
 
     if (action === "deep_test") {
-      const { test_provider, test_key, test_model } = body;
-      if (!test_provider || !test_key) {
-        return new Response(JSON.stringify({ success: false, error: "Provider and key required" }), {
+      const { test_provider, test_key, test_model, custom_base_url } = body;
+      if (!test_key || (!test_provider && !custom_base_url)) {
+        return new Response(JSON.stringify({ success: false, error: "Provider/base_url and key required" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -164,17 +314,22 @@ serve(async (req) => {
           openrouter: "google/gemini-2.5-flash", xai: "grok-3-mini", cerebras: "llama-4-scout-17b-16e-instruct",
           perplexity: "sonar", cometapi: "gpt-4o-mini", tokenrouter: "z-ai/glm-5.3-free",
         };
+        if (custom_base_url && !test_model) {
+          return new Response(JSON.stringify({ success: false, error: "Chọn model trước khi deep test (bấm 'Lấy model' để tải danh sách)" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const model = test_model || defaultModels[test_provider] || "gpt-4o-mini";
         const messages = [{ role: "user", content: "Say hello in one word." }];
 
         let resp: Response;
-        if (test_provider === "anthropic") {
+        if (test_provider === "anthropic" && !custom_base_url) {
           resp = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-api-key": test_key, "anthropic-version": "2023-06-01" },
             body: JSON.stringify({ model, messages, max_tokens: 20 }),
           });
-        } else if (test_provider === "gemini") {
+        } else if (test_provider === "gemini" && !custom_base_url) {
           resp = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-goog-api-key": test_key },
@@ -190,12 +345,16 @@ serve(async (req) => {
             cometapi: "https://api.cometapi.com/v1/chat/completions",
             tokenrouter: "https://api.tokenrouter.com/v1/chat/completions",
           };
-          // Reasoning models (e.g. TokenRouter's glm-5.3) burn tokens on
-          // hidden <reasoning_content> before emitting the visible reply -
-          // a tiny budget like 20 gets fully consumed by reasoning and
-          // returns empty content. Give those providers more headroom.
-          const maxTokens = test_provider === "tokenrouter" ? 300 : 20;
-          resp = await fetch(endpoints[test_provider] || endpoints.openai, {
+          const endpoint = custom_base_url
+            ? `${(custom_base_url as string).replace(/\/+$/, "")}/chat/completions`
+            : (endpoints[test_provider] || endpoints.openai);
+          // Reasoning models (e.g. TokenRouter's glm-5.3, or any unknown
+          // custom provider) can burn tokens on hidden reasoning_content
+          // before emitting the visible reply - a tiny budget like 20 gets
+          // fully consumed by reasoning and returns empty content. Give
+          // known-reasoning and all custom providers more headroom.
+          const maxTokens = (test_provider === "tokenrouter" || custom_base_url) ? 300 : 20;
+          resp = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${test_key}` },
             body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
@@ -211,7 +370,7 @@ serve(async (req) => {
         }
 
         const data = await resp.json();
-        const reply = test_provider === "anthropic"
+        const reply = test_provider === "anthropic" && !custom_base_url
           ? data.content?.[0]?.text || ""
           : data.choices?.[0]?.message?.content || "";
         const modelUsed = data.model || model;
