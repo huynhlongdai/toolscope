@@ -23,6 +23,20 @@ import {
 } from "recharts";
 import { format } from "date-fns";
 
+/**
+ * Returns static Tailwind grid-cols classes for a given tool count (2-4).
+ * Used instead of inline `gridTemplateColumns` so the compare cards stack
+ * to 1 column on mobile instead of squeezing 3-4 columns into a narrow
+ * viewport. Class names are written out literally so Tailwind's JIT
+ * scanner picks them up.
+ */
+function compareGridCols(n: number): string {
+  if (n <= 1) return "grid-cols-1";
+  if (n === 2) return "grid-cols-1 sm:grid-cols-2";
+  if (n === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+}
+
 const CHART_COLORS = [
   "hsl(var(--primary))",
   "hsl(var(--accent))",
@@ -244,7 +258,7 @@ function ROICalculator({ tools, t }: { tools: ToolWithScores[]; t: (key: string)
             <span className="text-xs text-muted-foreground">{t("compare.timeLabel")}</span>
           </div>
         </div>
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
+        <div className={`grid gap-3 ${compareGridCols(tools.length)}`}>
           {tools.map((tool, i) => {
             const pricing = tool.pricing_details as any;
             const monthlyPerUser = pricing?.monthly_price || (tool.pricing_type === "free" ? 0 : null);
@@ -380,7 +394,7 @@ function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: str
         <CardDescription>{t("compare.productivityDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tools.length, 4)}, 1fr)` }}>
+        <div className={`grid gap-3 ${compareGridCols(tools.length)}`}>
           {data.map((d, i) => (
             <div key={d.name} className={`rounded-lg border p-4 text-center ${d.name === best.name ? "border-primary/40 bg-primary/5" : "border-border"}`}>
               {d.name === best.name && (
@@ -615,7 +629,7 @@ export default function ComparePage() {
                 </Card>
 
                 {/* Pros / Cons */}
-                <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+                <div className={`grid gap-4 ${compareGridCols(colCount)}`}>
                   {tools.map((tool) => (
                     <Card key={tool.id}>
                       <CardHeader className="pb-2">

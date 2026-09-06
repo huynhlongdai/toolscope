@@ -159,7 +159,10 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} className="hidden md:flex" aria-label="Tìm kiếm">
+          {/* Visible on all breakpoints (previously `hidden md:flex`, meaning
+              mobile users had no quick way to reach search from the header
+              and had to open the hamburger menu first). */}
+          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
             <Search className="h-4 w-4" />
           </Button>
           {user && <NotificationDropdown />}

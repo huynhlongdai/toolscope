@@ -70,7 +70,7 @@ export default function SubmitToolPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">{t("submit.toolName")}</Label>
                     <Input id="name" value={form.name} onChange={(e) => updateField("name", e.target.value)} placeholder="VD: ChatGPT" required maxLength={100} />
@@ -88,7 +88,7 @@ export default function SubmitToolPage() {
                   <Label htmlFor="desc">{t("submit.detailedDesc")}</Label>
                   <Textarea id="desc" value={form.description} onChange={(e) => updateField("description", e.target.value)} placeholder={t("submit.detailedDescPlaceholder")} rows={4} maxLength={2000} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>{t("submit.pricingType")}</Label>
                     <Select value={form.pricing_type} onValueChange={(v) => updateField("pricing_type", v)}>

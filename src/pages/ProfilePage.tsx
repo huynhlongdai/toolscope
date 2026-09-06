@@ -89,7 +89,7 @@ function ProfileHeader({ profile, badges, isOwnProfile, editing, onStartEdit, ed
 
         {editing && isOwnProfile && (
           <div className="mt-4 border-t pt-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs">{t("profile.displayName")}</Label>
                 <Input value={editForm.display_name} onChange={(e) => setEditForm((p: any) => ({ ...p, display_name: e.target.value }))} />
@@ -350,7 +350,7 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-3">
                 {[
                   { icon: BookOpen, label: t("profile.statReviews"), value: stats?.reviews || 0 },
                   { icon: MessageSquare, label: t("profile.statComments"), value: stats?.comments || 0 },
