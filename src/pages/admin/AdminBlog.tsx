@@ -20,6 +20,7 @@ import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
@@ -587,13 +588,15 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
         <DialogHeader><DialogTitle>{isNew ? "Tạo bài viết mới" : "Chỉnh sửa bài viết"}</DialogTitle></DialogHeader>
         
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="content">Nội dung</TabsTrigger>
-            <TabsTrigger value="seo">SEO & Tools</TabsTrigger>
-            <TabsTrigger value="translations" className="flex items-center gap-1.5" disabled={isNew}>
-              <Languages className="h-3.5 w-3.5" /> Dịch thuật
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3">
+              <TabsTrigger value="content" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">Nội dung</TabsTrigger>
+              <TabsTrigger value="seo" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">SEO & Tools</TabsTrigger>
+              <TabsTrigger value="translations" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3" disabled={isNew}>
+                <Languages className="h-3.5 w-3.5" /> Dịch thuật
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
 
           <TabsContent value="content" className="space-y-4 mt-4">
             {/* Basic fields */}

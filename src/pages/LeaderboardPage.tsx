@@ -102,14 +102,14 @@ export default function LeaderboardPage() {
 
           <Tabs defaultValue="reputation" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="reputation" className="gap-1.5">
-                <TrendingUp className="h-4 w-4" /> {t("leaderboard.tabReputation")}
+              <TabsTrigger value="reputation" className="gap-1 sm:gap-1.5 px-1.5 sm:px-3 text-xs sm:text-sm">
+                <TrendingUp className="h-4 w-4 shrink-0" /> <span className="truncate">{t("leaderboard.tabReputation")}</span>
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="gap-1.5">
-                <FileText className="h-4 w-4" /> {t("leaderboard.tabReviews")}
+              <TabsTrigger value="reviews" className="gap-1 sm:gap-1.5 px-1.5 sm:px-3 text-xs sm:text-sm">
+                <FileText className="h-4 w-4 shrink-0" /> <span className="truncate">{t("leaderboard.tabReviews")}</span>
               </TabsTrigger>
-              <TabsTrigger value="comments" className="gap-1.5">
-                <MessageCircle className="h-4 w-4" /> {t("leaderboard.tabComments")}
+              <TabsTrigger value="comments" className="gap-1 sm:gap-1.5 px-1.5 sm:px-3 text-xs sm:text-sm">
+                <MessageCircle className="h-4 w-4 shrink-0" /> <span className="truncate">{t("leaderboard.tabComments")}</span>
               </TabsTrigger>
             </TabsList>
 

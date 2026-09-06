@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Languages, Globe, FileText, Menu, Download, Upload, BarChart3 } from "lucide-react";
 import { ContentTranslationsTab } from "@/components/admin/translations/ContentTranslationsTab";
 import { SystemTranslationsTab } from "@/components/admin/translations/SystemTranslationsTab";
@@ -156,20 +157,22 @@ export default function AdminTranslations() {
         </Card>
 
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="content" className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4" />
-              Dịch nội dung
-            </TabsTrigger>
-            <TabsTrigger value="menu" className="flex items-center gap-1.5">
-              <Menu className="h-4 w-4" />
-              Dịch menu
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-1.5">
-              <Globe className="h-4 w-4" />
-              Dịch hệ thống
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:max-w-lg sm:grid-cols-3">
+              <TabsTrigger value="content" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">
+                <FileText className="h-4 w-4" />
+                Dịch nội dung
+              </TabsTrigger>
+              <TabsTrigger value="menu" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">
+                <Menu className="h-4 w-4" />
+                Dịch menu
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">
+                <Globe className="h-4 w-4" />
+                Dịch hệ thống
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
 
           <TabsContent value="content" className="mt-4">
             <ContentTranslationsTab />

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages, CheckCircle2 } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
@@ -393,15 +394,17 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
         </Card>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="basic">Cơ bản</TabsTrigger>
-            <TabsTrigger value="steps">Steps & Tools</TabsTrigger>
-            <TabsTrigger value="seo-content">Nội dung SEO</TabsTrigger>
-            <TabsTrigger value="seo-meta">SEO & Media</TabsTrigger>
-            <TabsTrigger value="translations" className="flex items-center gap-1" disabled={isNew}>
-              <Languages className="h-3.5 w-3.5" /> Dịch
-            </TabsTrigger>
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-5">
+              <TabsTrigger value="basic" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">Cơ bản</TabsTrigger>
+              <TabsTrigger value="steps" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">Steps & Tools</TabsTrigger>
+              <TabsTrigger value="seo-content" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">Nội dung SEO</TabsTrigger>
+              <TabsTrigger value="seo-meta" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">SEO & Media</TabsTrigger>
+              <TabsTrigger value="translations" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3" disabled={isNew}>
+                <Languages className="h-3.5 w-3.5" /> Dịch
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
 
           {/* Tab: Basic */}
           <TabsContent value="basic" className="space-y-4 mt-4">

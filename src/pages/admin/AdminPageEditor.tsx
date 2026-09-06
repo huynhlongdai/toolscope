@@ -216,7 +216,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
   switch (block.type) {
     case "hero":
       return (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input placeholder="Title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           <Input placeholder="Subtitle" value={d.subtitle} onChange={(e) => update("subtitle", e.target.value)} />
           <Input placeholder="Button text" value={d.buttonText} onChange={(e) => update("buttonText", e.target.value)} />
@@ -227,7 +227,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
       return <RichTextEditor content={d.content} onChange={(v) => update("content", v)} />;
     case "image":
       return (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input placeholder="Image URL" value={d.src} onChange={(e) => update("src", e.target.value)} />
           <Input placeholder="Alt text" value={d.alt} onChange={(e) => update("alt", e.target.value)} />
           <Input placeholder="Caption" value={d.caption} onChange={(e) => update("caption", e.target.value)} />
@@ -235,7 +235,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
       );
     case "cta":
       return (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input placeholder="Title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           <Input placeholder="Description" value={d.description} onChange={(e) => update("description", e.target.value)} />
           <Input placeholder="Button text" value={d.buttonText} onChange={(e) => update("buttonText", e.target.value)} />
@@ -244,7 +244,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
       );
     case "video":
       return (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input placeholder="Video URL (YouTube)" value={d.url} onChange={(e) => update("url", e.target.value)} />
           <Input placeholder="Title" value={d.title} onChange={(e) => update("title", e.target.value)} />
         </div>
@@ -256,7 +256,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         <div className="space-y-2">
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="flex gap-2 items-center">
+            <div key={i} className="flex flex-wrap gap-2 items-center">
               <Input className="w-16" placeholder="Icon" value={item.icon} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], icon: e.target.value }; update("items", items); }} />
               <Input placeholder="Title" value={item.title} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], title: e.target.value }; update("items", items); }} />
               <Input placeholder="Description" value={item.description} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], description: e.target.value }; update("items", items); }} />
@@ -273,7 +273,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         <div className="space-y-2">
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={i} className="flex flex-wrap gap-2 items-start">
               <Input placeholder="Question" value={item.question} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], question: e.target.value }; update("items", items); }} />
               <Textarea placeholder="Answer" value={item.answer} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], answer: e.target.value }; update("items", items); }} rows={1} />
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -292,12 +292,12 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
             <div key={i} className="border rounded-lg p-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Input placeholder="Tên" value={item.name} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], name: e.target.value }; update("items", items); }} />
                 <Input placeholder="Vai trò" value={item.role} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], role: e.target.value }; update("items", items); }} />
               </div>
               <Textarea placeholder="Trích dẫn" value={item.quote} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], quote: e.target.value }; update("items", items); }} rows={2} />
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-wrap gap-2 items-center">
                 <Input placeholder="Avatar URL" value={item.avatar || ""} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], avatar: e.target.value }; update("items", items); }} />
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
               </div>
@@ -315,7 +315,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.plans ?? []).map((plan: any, i: number) => (
             <div key={i} className="border rounded-lg p-3 space-y-2">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <Input placeholder="Tên gói" value={plan.name} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], name: e.target.value }; update("plans", plans); }} />
                 <Input placeholder="Giá" value={plan.price} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], price: e.target.value }; update("plans", plans); }} />
                 <Input placeholder="Chu kỳ" value={plan.period} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], period: e.target.value }; update("plans", plans); }} />
@@ -327,7 +327,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
                 </div>
               </div>
               <Textarea placeholder="Tính năng (mỗi dòng 1 tính năng)" value={(plan.features ?? []).join("\n")} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], features: e.target.value.split("\n") }; update("plans", plans); }} rows={3} />
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-wrap gap-2 items-center">
                 <Input placeholder="Button text" value={plan.buttonText} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], buttonText: e.target.value }; update("plans", plans); }} />
                 <Input placeholder="Button URL" value={plan.buttonUrl} onChange={(e) => { const plans = [...d.plans]; plans[i] = { ...plans[i], buttonUrl: e.target.value }; update("plans", plans); }} />
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const plans = d.plans.filter((_: any, j: number) => j !== i); update("plans", plans); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -345,7 +345,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         <div className="space-y-2">
           <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={i} className="flex flex-wrap gap-2 items-start">
               <Input placeholder="Tiêu đề" value={item.title} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], title: e.target.value }; update("items", items); }} />
               <Textarea placeholder="Nội dung" value={item.content} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], content: e.target.value }; update("items", items); }} rows={1} />
               <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => { const items = d.items.filter((_: any, j: number) => j !== i); update("items", items); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
@@ -359,7 +359,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
 
     case "button":
       return (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Input placeholder="Text" value={d.text} onChange={(e) => update("text", e.target.value)} />
           <Input placeholder="URL" value={d.url} onChange={(e) => update("url", e.target.value)} />
           <Select value={d.variant || "primary"} onValueChange={(v) => update("variant", v)}>
@@ -383,7 +383,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
 
     case "countdown":
       return (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input placeholder="Tiêu đề" value={d.title} onChange={(e) => update("title", e.target.value)} />
           <Input type="datetime-local" value={d.targetDate || ""} onChange={(e) => update("targetDate", e.target.value)} />
           <Input type="color" value={d.bgColor || "#6366f1"} onChange={(e) => update("bgColor", e.target.value)} title="Màu nền" />
@@ -393,7 +393,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
     case "gallery":
       return (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input placeholder="Section title" value={d.title} onChange={(e) => update("title", e.target.value)} />
             <Select value={d.columns || "3"} onValueChange={(v) => update("columns", v)}>
               <SelectTrigger><SelectValue placeholder="Số cột" /></SelectTrigger>
@@ -405,7 +405,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
             </Select>
           </div>
           {(d.items ?? []).map((item: any, i: number) => (
-            <div key={i} className="flex gap-2 items-center">
+            <div key={i} className="flex flex-wrap gap-2 items-center">
               <Input placeholder="Image URL" value={item.src} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], src: e.target.value }; update("items", items); }} />
               <Input className="w-32" placeholder="Alt" value={item.alt} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], alt: e.target.value }; update("items", items); }} />
               <Input className="w-32" placeholder="Caption" value={item.caption || ""} onChange={(e) => { const items = [...d.items]; items[i] = { ...items[i], caption: e.target.value }; update("items", items); }} />
