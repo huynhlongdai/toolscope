@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle, Users, UserCheck, UserX, AlertTriangle, Bell, Send } from "lucide-react";
+import { Search, Pencil, Trash2, Ban, Eye, ShieldCheck, Download, ChevronLeft, ChevronRight, Clock, MessageSquare, Star, HelpCircle, Users, UserCheck, UserX, AlertTriangle, Bell, Send, UserPlus, Mail, Loader2 } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { useAuth } from "@/lib/auth";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -63,6 +63,9 @@ export default function AdminUsers() {
   const [notifyUser, setNotifyUser] = useState<any>(null);
   const [notifyTitle, setNotifyTitle] = useState("");
   const [notifyMessage, setNotifyMessage] = useState("");
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(0);
   const pageSize = 50;
@@ -245,6 +248,44 @@ export default function AdminUsers() {
     setNotifyUser(null); setNotifyTitle(""); setNotifyMessage("");
   };
 
+  // P0-5: invite a new editor account by email. Calls the invite-editor
+  // edge function (admin-only, uses the Auth Admin API + service-role
+  // client) rather than doing this from the browser, since creating an
+  // auth user and reassigning its role both require privileges a
+  // regular RLS-scoped client does not have.
+  const submitInvite = async () => {
+    const email = inviteEmail.trim().toLowerCase();
+    if (!email) return;
+    setInviteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("invite-editor", {
+        body: { email },
+      });
+      if (error) {
+        // supabase-js only surfaces the raw error here for non-2xx
+        // responses; the function's JSON `{ error: "..." }` body is on
+        // error.context in some SDK versions, so fall back gracefully.
+        const serverMsg = (data as any)?.error;
+        toast.error(serverMsg || error.message || "Không thể gửi lời mời");
+        return;
+      }
+      if ((data as any)?.error) {
+        toast.error((data as any).error);
+        return;
+      }
+      logAuditAction("user_invite_editor", "user", (data as any)?.user_id, { email });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-stats"] });
+      toast.success(`Đã gửi lời mời editor tới ${email}`);
+      setInviteOpen(false);
+      setInviteEmail("");
+    } catch (e: any) {
+      toast.error(e?.message || "Không thể gửi lời mời");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const bulkBan = async (banned: boolean) => {
     if (!confirm(`${banned ? "Ban" : "Unban"} ${selectedIds.length} users?`)) return;
     for (const userId of selectedIds) {
@@ -309,7 +350,10 @@ export default function AdminUsers() {
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Users</h1>
-          <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => setInviteOpen(true)}><UserPlus className="mr-1 h-3.5 w-3.5" /> Mời Editor</Button>
+            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
+          </div>
         </div>
 
         {/* Stats cards */}
@@ -515,6 +559,38 @@ export default function AdminUsers() {
               )}
             </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Editor Dialog (P0-5) */}
+      <Dialog open={inviteOpen} onOpenChange={(v) => { if (!inviteLoading) { setInviteOpen(v); if (!v) setInviteEmail(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Mời Editor mới</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Hệ thống sẽ gửi email mời tới địa chỉ này. Người nhận tự đặt mật khẩu qua link trong email.
+              Tài khoản sẽ có role <Badge variant="secondary" className="mx-0.5">editor</Badge> ngay khi kích hoạt —
+              có thể dùng tất cả công cụ tạo nội dung nhưng <span className="font-medium">không thể publish</span> mà
+              không có admin duyệt.
+            </p>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="email"
+                placeholder="editor@example.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !inviteLoading) submitInvite(); }}
+                className="pl-9"
+                disabled={inviteLoading}
+                autoFocus
+              />
+            </div>
+            <Button className="w-full" onClick={submitInvite} disabled={inviteLoading || !inviteEmail.trim()}>
+              {inviteLoading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <UserPlus className="mr-1 h-4 w-4" />}
+              {inviteLoading ? "Đang gửi..." : "Gửi lời mời"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
