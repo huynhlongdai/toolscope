@@ -86,4 +86,27 @@ curl http://localhost:3000
 ```
 
 ## Deploy
-- Chưa deploy production (Lovable/Vite project, không dùng Cloudflare Pages). `.env` (project Supabase cũ) và `.env.local` (project Supabase mới đang dùng, override) đều đã có trong `.gitignore`, không commit lên git. Khi deploy thật cần set biến môi trường `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` trên nền tảng hosting theo giá trị trong `.env.local`.
+- **Production LIVE**: `https://astute.tools` — VPS `57.155.90.49` (nginx + Let's Encrypt SSL), SSH qua `azureuser` + `~/.ssh/astute_tools_key.pem` + sudo. `.env` (project Supabase cũ) và `.env.local` (project Supabase mới đang dùng, override) đều đã có trong `.gitignore`, không commit lên git.
+
+## Phân quyền Admin/Editor/Viewer (P0-1 → P0-5)
+Xây dựng hệ thống 3 role (`admin`/`editor`/`user`) để giao 1 tài khoản editor an toàn cho AI agent hỗ trợ tạo nội dung — editor dùng được mọi tool tạo nội dung nhưng **không bao giờ tự publish được**, và bị khoá khỏi Settings/Users/Backup/Danger-Zone/API-keys.
+- **P0-1/P0-2**: model phân quyền editor content-approval — editor tạo/sửa content luôn bị ép về `pending_review`, chỉ admin publish được.
+- **P0-3**: RPC `publish_content(_table, _id, _publish)` (SECURITY DEFINER, admin-gated) — đường duy nhất để publish; áp dụng vào AdminTools/Blog/Workflows/Deals.
+- **P0-4**: `AdminGuard` thêm `adminOnly` prop, khoá route `/admin/users`, `/admin/settings`, `/admin/audit-logs`, `/admin/backup`, `/admin/sync` chỉ admin truy cập được.
+- **P0-5**: mời editor bằng email — edge function `invite-editor` (admin-gated, `supabase.auth.admin.inviteUserByEmail`) + nút "Mời Editor" trong `AdminUsers.tsx`. Deploy live lên Supabase, verify qua curl.
+
+## Mobile UX audit (7 việc)
+Audit toàn bộ site trên breakpoint mobile, phát hiện + fix 7 vấn đề: bảng admin bị tràn ngang (AdminNewsletter/AdminSync), form 2 cột bị bóp trên mobile (SubmitToolPage/ProfilePage), icon search header bị ẩn dưới `md:`, `ComparePage` bảng so sánh chuyển sang Accordion card-view trên mobile thay vì cuộn ngang, `TabsList` 4 tab bọc `overflow-x-auto` tránh vỡ layout, sidebar `ToolDetail` (`ScreenshotGallery`/`AlternativesSection`) thu gọn mặc định trên mobile (Radix `Collapsible` + `useIsMobile`) để giảm mỏi cuộn.
+
+## Fix bug SEO production: sitemap.xml
+Phát hiện `nginx.conf` (cả bản trong repo lẫn bản sống trên VPS) proxy `/sitemap.xml` về project Supabase **cũ đã ngừng dùng** (`pzwtcburehrbxfangtzc`) — request rơi qua SPA fallback, trả về HTML thay vì XML, khiến Google Search Console thấy sitemap rỗng/hỏng. Đã sửa cả 2 nơi trỏ về project đúng (`yntzlkzckvxlfrrqmmwm`), apply trực tiếp trên VPS qua SSH (backup config cũ → patch → `nginx -t` → reload), verify live trả về XML hợp lệ 27 `<url>`. Đồng thời sửa luôn `supabase/config.toml` `project_id` bị lệch (bug đã biết từ trước, chưa fix).
+
+## Tối ưu ảnh (P2.5 OptimizedImage)
+Component `OptimizedImage` (IntersectionObserver lazy-load + skeleton + fade-in + fallback khi lỗi) đã được viết sẵn nhưng chưa dùng ở đâu — đã tích hợp vào `ToolCard.tsx` (logo, lặp lại nhiều nhất toàn site), `BlogPage.tsx`/`WorkflowsPage.tsx` (ảnh cover dạng grid), và related-posts thumbnail trong `BlogDetail.tsx`. Cố tình **không** áp dụng cho ảnh cover chính của bài blog (khả năng là LCP element) để tránh làm chậm lần vẽ đầu tiên.
+
+## Backlog còn lại (`IMPROVEMENT_PLAN.md`)
+- **P1.1** Hero typewriter/floating-search, **P1.2** ToolCard hover-preview/logo-skeleton, **P1.4** Google/GitHub OAuth (cần user tạo OAuth app credentials trước).
+- **P2.1** ToolsPage multi-select filter, **P2.2** search debounce/autocomplete/history, **P2.3** ComparePage tách `services/compare.ts` + export PDF.
+- **P3.1** bundle splitting vendor-icons, **P3.2** virtual list ToolsPage, **P3.4** skeleton components thống nhất.
+- **P4** micro-animations, illustrated empty states, dark-mode polish.
+- Lưu ý: đây là backlog UI/UX riêng biệt, khác với backlog "P0→P3 admin upgrade" đã hoàn thành ở trên (cùng tên số nhưng 2 track khác nhau).
