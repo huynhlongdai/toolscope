@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
+import { callAI } from "../_shared/ai-provider.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -16,9 +17,6 @@ serve(async (req) => {
     const { tool_id } = await req.json();
     if (!tool_id) throw new Error("tool_id is required");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
     const supabase = auth.supabase;
 
     // Get tool info
@@ -32,49 +30,42 @@ serve(async (req) => {
 
     const prompt = `Analyze this AI tool and provide a detailed evaluation. Tool: "${tool.name}". Description: "${tool.description || tool.short_description || 'N/A'}". Pricing: ${tool.pricing_type}. Website: ${tool.website_url || 'N/A'}. Features: ${JSON.stringify(tool.features || [])}.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: "You are an AI tool analyst. Evaluate tools on a 0-10 scale. Be fair, balanced and honest.",
-          },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "submit_ai_score",
-              description: "Submit the AI evaluation score for a tool",
-              parameters: {
-                type: "object",
-                properties: {
-                  overall_score: { type: "number", description: "Overall score 0-10" },
-                  ease_of_use: { type: "number", description: "Ease of use score 0-10" },
-                  features: { type: "number", description: "Features score 0-10" },
-                  value_for_money: { type: "number", description: "Value for money score 0-10" },
-                  support: { type: "number", description: "Support score 0-10" },
-                  performance: { type: "number", description: "Performance score 0-10" },
-                  pros: { type: "array", items: { type: "string" }, description: "List of 3-5 pros" },
-                  cons: { type: "array", items: { type: "string" }, description: "List of 2-4 cons" },
-                  summary: { type: "string", description: "Brief summary in Vietnamese, 2-3 sentences" },
-                  is_recommended: { type: "boolean", description: "Whether to recommend this tool" },
-                },
-                required: ["overall_score", "ease_of_use", "features", "value_for_money", "support", "performance", "pros", "cons", "summary", "is_recommended"],
-                additionalProperties: false,
+    const response = await callAI({
+      feature: "tool_article",
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI tool analyst. Evaluate tools on a 0-10 scale. Be fair, balanced and honest.",
+        },
+        { role: "user", content: prompt },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "submit_ai_score",
+            description: "Submit the AI evaluation score for a tool",
+            parameters: {
+              type: "object",
+              properties: {
+                overall_score: { type: "number", description: "Overall score 0-10" },
+                ease_of_use: { type: "number", description: "Ease of use score 0-10" },
+                features: { type: "number", description: "Features score 0-10" },
+                value_for_money: { type: "number", description: "Value for money score 0-10" },
+                support: { type: "number", description: "Support score 0-10" },
+                performance: { type: "number", description: "Performance score 0-10" },
+                pros: { type: "array", items: { type: "string" }, description: "List of 3-5 pros" },
+                cons: { type: "array", items: { type: "string" }, description: "List of 2-4 cons" },
+                summary: { type: "string", description: "Brief summary in Vietnamese, 2-3 sentences" },
+                is_recommended: { type: "boolean", description: "Whether to recommend this tool" },
               },
+              required: ["overall_score", "ease_of_use", "features", "value_for_money", "support", "performance", "pros", "cons", "summary", "is_recommended"],
+              additionalProperties: false,
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "submit_ai_score" } },
-      }),
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "submit_ai_score" } },
     });
 
     if (!response.ok) {

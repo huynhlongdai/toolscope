@@ -37,6 +37,8 @@ export interface AIKeys {
   xai_api_key_2?: string;
   cerebras_api_key?: string;
   cerebras_api_key_2?: string;
+  tokenrouter_api_key?: string;
+  tokenrouter_api_key_2?: string;
 }
 
 const PROVIDER_ENDPOINTS: Record<string, string> = {
@@ -49,6 +51,7 @@ const PROVIDER_ENDPOINTS: Record<string, string> = {
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
   xai: "https://api.x.ai/v1/chat/completions",
   cerebras: "https://api.cerebras.ai/v1/chat/completions",
+  tokenrouter: "https://api.tokenrouter.com/v1/chat/completions",
 };
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -61,6 +64,7 @@ const DEFAULT_MODELS: Record<string, string> = {
   openrouter: "google/gemini-2.5-flash",
   xai: "grok-3-mini",
   cerebras: "llama-4-scout-17b-16e-instruct",
+  tokenrouter: "z-ai/glm-5.3-free",
 };
 
 export const MODEL_CATALOG: Record<string, string[]> = {
@@ -77,6 +81,14 @@ export const MODEL_CATALOG: Record<string, string[]> = {
   cerebras: ["llama-4-scout-17b-16e-instruct", "llama3.3-70b", "llama3.1-8b"],
   perplexity: ["sonar", "sonar-pro", "sonar-reasoning", "sonar-reasoning-pro"],
   cometapi: ["gpt-4o", "gpt-4o-mini", "claude-3-5-sonnet-20241022"],
+  tokenrouter: [
+    "z-ai/glm-5.3-free", "z-ai/glm-5.3", "z-ai/glm-5.2", "z-ai/glm-5.1", "z-ai/glm-5-turbo",
+    "z-ai/glm-4.6", "z-ai/glm-4.5-air", "openai/gpt-5.2", "openai/gpt-5.4-mini", "openai/gpt-5.4-nano",
+    "openai/gpt-oss-120b", "openai/gpt-4o-mini", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v3.2",
+    "deepseek/deepseek-v4-flash", "qwen/qwen3.7-max", "qwen/qwen3.8-flash", "qwen/qwen3-coder-next",
+    "x-ai/grok-4.6", "x-ai/grok-4.5", "x-ai/grok-4.1-fast", "moonshotai/kimi-k3",
+    "minimax/minimax-m2.7", "mistralai/mistral-medium-3-5",
+  ],
 };
 
 function parseFeatureConfig(raw: any): { provider: string; model?: string; temperature?: number; max_tokens?: number } {
@@ -131,6 +143,7 @@ const KEY_FIELDS: Record<string, string> = {
   openrouter: "openrouter_api_key",
   xai: "xai_api_key",
   cerebras: "cerebras_api_key",
+  tokenrouter: "tokenrouter_api_key",
 };
 
 function getApiKeys(provider: string, keys: AIKeys): string[] {

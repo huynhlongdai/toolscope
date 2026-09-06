@@ -106,6 +106,7 @@ serve(async (req) => {
         openrouter: "https://openrouter.ai/api/v1/models",
         xai: "https://api.x.ai/v1/models",
         cerebras: "https://api.cerebras.ai/v1/models",
+        tokenrouter: "https://api.tokenrouter.com/v1/models",
       };
 
       const endpoint = endpoints[test_provider];
@@ -161,7 +162,7 @@ serve(async (req) => {
         const defaultModels: Record<string, string> = {
           openai: "gpt-4o-mini", gemini: "gemini-2.5-flash", anthropic: "claude-sonnet-4-20250514",
           openrouter: "google/gemini-2.5-flash", xai: "grok-3-mini", cerebras: "llama-4-scout-17b-16e-instruct",
-          perplexity: "sonar", cometapi: "gpt-4o-mini",
+          perplexity: "sonar", cometapi: "gpt-4o-mini", tokenrouter: "z-ai/glm-5.3-free",
         };
         const model = test_model || defaultModels[test_provider] || "gpt-4o-mini";
         const messages = [{ role: "user", content: "Say hello in one word." }];
@@ -187,11 +188,17 @@ serve(async (req) => {
             cerebras: "https://api.cerebras.ai/v1/chat/completions",
             perplexity: "https://api.perplexity.ai/chat/completions",
             cometapi: "https://api.cometapi.com/v1/chat/completions",
+            tokenrouter: "https://api.tokenrouter.com/v1/chat/completions",
           };
+          // Reasoning models (e.g. TokenRouter's glm-5.3) burn tokens on
+          // hidden <reasoning_content> before emitting the visible reply -
+          // a tiny budget like 20 gets fully consumed by reasoning and
+          // returns empty content. Give those providers more headroom.
+          const maxTokens = test_provider === "tokenrouter" ? 300 : 20;
           resp = await fetch(endpoints[test_provider] || endpoints.openai, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${test_key}` },
-            body: JSON.stringify({ model, messages, max_tokens: 20 }),
+            body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
           });
         }
 

@@ -6,6 +6,7 @@ export const AI_PROVIDERS = [
   { id: "xai", name: "xAI (Grok)", keyField: "xai_api_key", placeholder: "xai-..." },
   { id: "cerebras", name: "Cerebras", keyField: "cerebras_api_key", placeholder: "csk-..." },
   { id: "cometapi", name: "CometAPI", keyField: "cometapi_api_key", placeholder: "sk-..." },
+  { id: "tokenrouter", name: "TokenRouter", keyField: "tokenrouter_api_key", placeholder: "sk-..." },
   { id: "perplexity", name: "Perplexity", keyField: "perplexity_api_key", placeholder: "pplx-..." },
   { id: "firecrawl", name: "Firecrawl", keyField: "firecrawl_api_key", placeholder: "fc-..." },
 ];
@@ -19,6 +20,7 @@ export const PROVIDER_OPTIONS = [
   { id: "xai", name: "xAI (Grok)" },
   { id: "cerebras", name: "Cerebras" },
   { id: "cometapi", name: "CometAPI" },
+  { id: "tokenrouter", name: "TokenRouter" },
   { id: "perplexity", name: "Perplexity" },
 ];
 
