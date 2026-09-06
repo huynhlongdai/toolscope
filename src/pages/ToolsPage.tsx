@@ -9,7 +9,10 @@ import { ToolCardSkeletonGrid } from "@/components/ui/ToolCardSkeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Search, Grid3X3, List, SlidersHorizontal, X, Sparkles, Bot, Loader2, ChevronLeft, ChevronRight, Wrench, ChevronDown } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { useAISearch } from "@/hooks/useAISearch";
@@ -23,9 +26,12 @@ const PAGE_SIZE = 24;
 export default function ToolsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQ = searchParams.get("q") || "";
-  const initialCategory = searchParams.get("category") || "all";
+  // "category" URL param supports comma-separated ids for multi-select
+  const initialCategories = (searchParams.get("category") || "").split(",").filter(Boolean);
   const initialPricing = searchParams.get("pricing") || "all";
   const initialSort = (searchParams.get("sort") as SortOption) || "popular";
+  const initialFreeTrial = searchParams.get("trial") === "1";
+  const initialMinAiScore = Number(searchParams.get("aiScore")) || 0;
   const isSimilarQuery = initialQ.toLowerCase().startsWith("similar to ");
   const { t } = useI18n();
 
@@ -33,7 +39,9 @@ export default function ToolsPage() {
   const [sortBy, setSortBy] = useState<SortOption>(initialSort);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [pricingFilter, setPricingFilter] = useState(initialPricing);
-  const [categoryFilter, setCategoryFilter] = useState(initialCategory);
+  const [categoryFilters, setCategoryFilters] = useState<string[]>(initialCategories);
+  const [freeTrialOnly, setFreeTrialOnly] = useState(initialFreeTrial);
+  const [minAiScore, setMinAiScore] = useState(initialMinAiScore);
   const [showFilters, setShowFilters] = useState(false);
   const [aiMode, setAiMode] = useState(isSimilarQuery);
   const [page, setPage] = useState(0);
@@ -52,9 +60,11 @@ export default function ToolsPage() {
     if (debouncedQuery && !aiMode) params.q = debouncedQuery;
     if (sortBy !== "popular") params.sort = sortBy;
     if (pricingFilter !== "all") params.pricing = pricingFilter;
-    if (categoryFilter !== "all") params.category = categoryFilter;
+    if (categoryFilters.length > 0) params.category = categoryFilters.join(",");
+    if (freeTrialOnly) params.trial = "1";
+    if (minAiScore > 0) params.aiScore = String(minAiScore);
     setSearchParams({ ...params, ...overrides }, { replace: true });
-  }, [debouncedQuery, sortBy, pricingFilter, categoryFilter, aiMode, setSearchParams]);
+  }, [debouncedQuery, sortBy, pricingFilter, categoryFilters, freeTrialOnly, minAiScore, aiMode, setSearchParams]);
 
   // Auto-search and URL update on debounced query change
   useEffect(() => {
@@ -68,12 +78,14 @@ export default function ToolsPage() {
   });
 
   const { data: toolsResult, isLoading } = useQuery({
-    queryKey: ["tools-list", debouncedQuery, sortBy, pricingFilter, categoryFilter, page],
+    queryKey: ["tools-list", debouncedQuery, sortBy, pricingFilter, categoryFilters, freeTrialOnly, minAiScore, page],
     queryFn: () => fetchToolsList({
       search: debouncedQuery && !aiMode ? debouncedQuery : undefined,
       sortBy,
       pricingFilter,
-      categoryFilter,
+      categoryFilters,
+      freeTrialOnly,
+      minAiScore,
       page,
       pageSize: PAGE_SIZE,
     }),
@@ -92,13 +104,46 @@ export default function ToolsPage() {
 
   const handleSortChange = (v: SortOption) => { setSortBy(v); setPage(0); syncParams({ sort: v !== "popular" ? v : "" }); };
   const handlePricingChange = (v: string) => { setPricingFilter(v); setPage(0); syncParams({ pricing: v !== "all" ? v : "" }); };
-  const handleCategoryChange = (v: string) => { setCategoryFilter(v); setPage(0); syncParams({ category: v !== "all" ? v : "" }); };
+  const toggleCategory = (id: string) => {
+    const next = categoryFilters.includes(id) ? categoryFilters.filter((c) => c !== id) : [...categoryFilters, id];
+    setCategoryFilters(next);
+    setPage(0);
+    syncParams({ category: next.length > 0 ? next.join(",") : "" });
+  };
+  const clearCategories = () => { setCategoryFilters([]); setPage(0); syncParams({ category: "" }); };
+  const toggleFreeTrial = () => {
+    const next = !freeTrialOnly;
+    setFreeTrialOnly(next);
+    setPage(0);
+    syncParams({ trial: next ? "1" : "" });
+  };
+  const handleMinAiScoreChange = (v: number) => {
+    setMinAiScore(v);
+    setPage(0);
+    syncParams({ aiScore: v > 0 ? String(v) : "" });
+  };
   const toggleAiMode = () => { setAiMode(!aiMode); aiSearch.clear(); };
 
   const activeFilters = [
-    pricingFilter !== "all" && pricingFilter,
-    categoryFilter !== "all" && categories?.find((c) => c.id === categoryFilter)?.name,
-  ].filter(Boolean);
+    pricingFilter !== "all" && { key: "pricing", label: pricingFilter },
+    ...categoryFilters.map((id) => ({ key: `category:${id}`, label: categories?.find((c) => c.id === id)?.name || id })),
+    freeTrialOnly && { key: "trial", label: t("tools.filter.freeTrial") },
+    minAiScore > 0 && { key: "aiScore", label: `AI ≥ ${minAiScore}` },
+  ].filter(Boolean) as { key: string; label: string }[];
+
+  const clearAllFilters = () => {
+    handlePricingChange("all");
+    clearCategories();
+    if (freeTrialOnly) toggleFreeTrial();
+    if (minAiScore > 0) handleMinAiScoreChange(0);
+  };
+
+  const removeActiveFilter = (key: string) => {
+    if (key === "pricing") handlePricingChange("all");
+    else if (key.startsWith("category:")) toggleCategory(key.slice("category:".length));
+    else if (key === "trial") toggleFreeTrial();
+    else if (key === "aiScore") handleMinAiScoreChange(0);
+  };
 
   const showAiResults = aiMode && aiSearch.results && aiSearch.results.length > 0;
 
@@ -151,16 +196,36 @@ export default function ToolsPage() {
 
           {showFilters && !aiMode && (
             <div className="mb-6 rounded-xl border border-border bg-card p-4">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label className="mb-2 block text-sm font-medium">{t("tools.filter.category")}</label>
-                  <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-                    <SelectTrigger><SelectValue placeholder={t("tools.filter.all")} /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("tools.filter.allCategories")}</SelectItem>
-                      {categories?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between font-normal">
+                        <span className="truncate">
+                          {categoryFilters.length > 0
+                            ? `${categoryFilters.length} ${t("tools.filter.categoryCount")}`
+                            : t("tools.filter.allCategories")}
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" align="start">
+                      <div className="max-h-64 space-y-0.5 overflow-y-auto">
+                        {categories?.map((c) => (
+                          <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                            <Checkbox checked={categoryFilters.includes(c.id)} onCheckedChange={() => toggleCategory(c.id)} />
+                            {c.name}
+                          </label>
+                        ))}
+                      </div>
+                      {categoryFilters.length > 0 && (
+                        <button className="mt-1 w-full rounded-md px-2 py-1 text-left text-xs text-muted-foreground hover:text-foreground" onClick={clearCategories}>
+                          {t("tools.clearFilters")}
+                        </button>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium">{t("tools.filter.price")}</label>
@@ -171,6 +236,27 @@ export default function ToolsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-medium">
+                    <Checkbox checked={freeTrialOnly} onCheckedChange={toggleFreeTrial} />
+                    {t("tools.filter.freeTrial")}
+                  </label>
+                </div>
+                <div>
+                  <label className="mb-2 flex items-center justify-between text-sm font-medium">
+                    <span>{t("tools.filter.aiScore")}</span>
+                    <span className="text-xs text-muted-foreground">{minAiScore > 0 ? `≥ ${minAiScore}` : t("tools.filter.all")}</span>
+                  </label>
+                  <Slider
+                    value={[minAiScore]}
+                    onValueChange={([v]) => setMinAiScore(v)}
+                    onValueCommit={([v]) => handleMinAiScoreChange(v)}
+                    min={0}
+                    max={10}
+                    step={0.5}
+                    className="mt-3"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -178,12 +264,12 @@ export default function ToolsPage() {
           {activeFilters.length > 0 && !aiMode && (
             <div className="mb-4 flex flex-wrap gap-2">
               {activeFilters.map((f) => (
-                <Badge key={f as string} variant="secondary" className="gap-1 px-3 py-1">
-                  {f as string}
-                  <X className="h-3 w-3 cursor-pointer" onClick={() => { if (pricingFilter === f) handlePricingChange("all"); else handleCategoryChange("all"); }} />
+                <Badge key={f.key} variant="secondary" className="gap-1 px-3 py-1">
+                  {f.label}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => removeActiveFilter(f.key)} />
                 </Badge>
               ))}
-              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => { handlePricingChange("all"); handleCategoryChange("all"); }}>{t("tools.clearFilters")}</button>
+              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={clearAllFilters}>{t("tools.clearFilters")}</button>
             </div>
           )}
 
@@ -251,7 +337,7 @@ export default function ToolsPage() {
                   description={t("tools.noResultsHint")}
                   action={activeFilters.length > 0 ? {
                     label: t("tools.clearFilters"),
-                    onClick: () => { handlePricingChange("all"); handleCategoryChange("all"); },
+                    onClick: clearAllFilters,
                     variant: "outline",
                   } : undefined}
                 />

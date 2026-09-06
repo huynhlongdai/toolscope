@@ -4,7 +4,11 @@ export interface ToolListParams {
   search?: string;
   sortBy?: "popular" | "newest" | "rating" | "name";
   pricingFilter?: string;
+  /** @deprecated use categoryFilters (multi-select) instead */
   categoryFilter?: string;
+  categoryFilters?: string[];
+  freeTrialOnly?: boolean;
+  minAiScore?: number;
   page?: number;
   pageSize?: number;
 }
@@ -26,18 +30,38 @@ export async function fetchToolsList(params: ToolListParams = {}) {
     sortBy = "popular",
     pricingFilter = "all",
     categoryFilter = "all",
+    categoryFilters,
+    freeTrialOnly = false,
+    minAiScore = 0,
     page = 0,
     pageSize = 24,
   } = params;
 
+  // Filtering by a joined table's column (ai_scores.overall_score) requires
+  // an inner join in supabase-js (`ai_scores!inner(...)`) — but that would
+  // silently exclude tools that have no ai_scores row at all when the
+  // filter is inactive (minAiScore = 0). So only switch to !inner when the
+  // user actually set a minimum score.
+  const aiScoresSelect = minAiScore > 0 ? "ai_scores!inner(overall_score, is_recommended)" : "ai_scores(overall_score, is_recommended)";
+
   let q = supabase
     .from("tools")
-    .select("*, categories(name), ai_scores(overall_score, is_recommended)", { count: "exact" })
+    .select(`*, categories(name), ${aiScoresSelect}`, { count: "exact" })
     .eq("status", "published");
 
   if (search) q = q.or(`name.ilike.%${search}%,short_description.ilike.%${search}%`);
   if (pricingFilter !== "all") q = q.eq("pricing_type", pricingFilter as any);
-  if (categoryFilter !== "all") q = q.eq("category_id", categoryFilter);
+
+  // Multi-select category takes precedence; fall back to legacy single-value
+  // categoryFilter for any older callers.
+  if (categoryFilters && categoryFilters.length > 0) {
+    q = q.in("category_id", categoryFilters);
+  } else if (categoryFilter !== "all") {
+    q = q.eq("category_id", categoryFilter);
+  }
+
+  if (freeTrialOnly) q = q.eq("has_free_trial", true);
+  if (minAiScore > 0) q = q.gte("ai_scores.overall_score", minAiScore);
 
   if (sortBy === "popular") q = q.order("view_count", { ascending: false });
   else if (sortBy === "newest") q = q.order("created_at", { ascending: false });

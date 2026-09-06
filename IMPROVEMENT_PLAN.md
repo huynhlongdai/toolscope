@@ -21,7 +21,15 @@
 
 ## Priority 2 — Functionality
 
-- [ ] 2.1 ToolsPage: multi-select categories, free-trial filter, AI score range, URL-persisted filters
+- [x] 2.1 ToolsPage: multi-select categories, free-trial filter, AI score range, URL-persisted filters
+      — category filter upgraded from single Select to a Popover+Checkbox
+      multi-select (`category=id1,id2` in URL); added free-trial-only
+      checkbox (`trial=1`) and an AI-score-range Slider (`aiScore=N`, uses
+      `ai_scores!inner(...)` join filter so it doesn't accidentally hide
+      tools that have no AI score row when the filter is off); all wired
+      into `fetchToolsList()`'s query params + URL sync. Verified via
+      Playwright (page loads clean, no console errors, with and without
+      the new filter query params).
 - [ ] 2.2 Search: 300ms debounce, autocomplete dropdown, localStorage history
 - [ ] 2.3 ComparePage: extract services/compare.ts, URL sharing, export PDF
       (mobile card/accordion view for the comparison table already done as
