@@ -145,7 +145,7 @@ export function AIChatWidget() {
           <div className="flex items-center justify-between border-b border-border bg-primary px-4 py-3">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary-foreground" />
-              <span className="font-semibold text-primary-foreground">ToolScope AI</span>
+              <span className="font-semibold text-primary-foreground">Astute Tools AI</span>
             </div>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20" onClick={() => setOpen(false)}>
               <X className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function AIChatWidget() {
             {messages.length === 0 && (
               <div className="space-y-3">
                 <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-sm font-medium">👋 Xin chào! Tôi là ToolScope AI</p>
+                  <p className="text-sm font-medium">👋 Xin chào! Tôi là Astute Tools AI</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Hỏi tôi bất cứ điều gì về công cụ — tìm kiếm, so sánh, tư vấn!
                   </p>

@@ -134,10 +134,8 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <span className="text-xs font-bold text-primary-foreground">T</span>
-              </div>
-              <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ToolScope</span>
+              <img src="/logo-icon.png" alt="Astute Tools" className="h-7 w-7" />
+              <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Astute Tools</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">{t("footer.description")}</p>
             <NewsletterForm />
@@ -149,7 +147,7 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">© 2026 ToolScope. All rights reserved.</div>
+        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
       </div>
     </footer>
   );

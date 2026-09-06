@@ -102,7 +102,7 @@ const vi: Record<string, string> = {
   "auth.login": "Đăng nhập",
   "auth.signup": "Tạo tài khoản",
   "auth.forgotPassword": "Quên mật khẩu",
-  "auth.loginSubtitle": "Đăng nhập để tiếp tục sử dụng ToolScope",
+  "auth.loginSubtitle": "Đăng nhập để tiếp tục sử dụng Astute Tools",
   "auth.signupSubtitle": "Tạo tài khoản mới để bắt đầu",
   "auth.forgotSubtitle": "Nhập email để nhận link đặt lại mật khẩu",
   "auth.emailPlaceholder": "Email",
@@ -346,14 +346,14 @@ const vi: Record<string, string> = {
 
   // Categories listing page
   "categories.pageTitle": "Danh mục công cụ AI",
-  "categories.pageSeoTitle": "Danh mục công cụ AI | ToolScope",
-  "categories.pageSeoDesc": "Khám phá tất cả danh mục công cụ AI trên ToolScope — từ thiết kế, lập trình, marketing đến phân tích dữ liệu.",
+  "categories.pageSeoTitle": "Danh mục công cụ AI | Astute Tools",
+  "categories.pageSeoDesc": "Khám phá tất cả danh mục công cụ AI trên Astute Tools — từ thiết kế, lập trình, marketing đến phân tích dữ liệu.",
   "categories.pageSubtitle": "Khám phá {count}+ danh mục công cụ AI được phân loại chi tiết, giúp bạn tìm đúng công cụ cho nhu cầu của mình.",
 
   // Tasks page
   "tasks.title": "Bạn muốn làm gì?",
   "tasks.subtitle": "Chọn task và tìm ngay công cụ phù hợp nhất",
-  "tasks.seoTitle": "Tìm tool theo công việc - ToolScope",
+  "tasks.seoTitle": "Tìm tool theo công việc - Astute Tools",
   "tasks.seoDesc": "Chọn task bạn cần làm và tìm ngay công cụ phù hợp nhất.",
   "tasks.back": "Quay lại",
   "tasks.toolCount": "{count} công cụ",
@@ -368,13 +368,13 @@ const vi: Record<string, string> = {
 
   // Bookmarks page
   "bookmarks.title": "Đã lưu",
-  "bookmarks.seoTitle": "Đã lưu - ToolScope",
+  "bookmarks.seoTitle": "Đã lưu - Astute Tools",
   "bookmarks.empty": "Chưa lưu tool nào",
   "bookmarks.emptyHint": "Bookmark các tool yêu thích để xem lại nhanh.",
 
   // Leaderboard page
   "leaderboard.title": "Bảng xếp hạng",
-  "leaderboard.seoTitle": "Bảng xếp hạng Contributors - ToolScope",
+  "leaderboard.seoTitle": "Bảng xếp hạng Contributors - Astute Tools",
   "leaderboard.seoDesc": "Top contributors được xếp hạng theo điểm reputation, reviews và hoạt động cộng đồng.",
   "leaderboard.subtitle": "Top contributors theo reputation, reviews và hoạt động.",
   "leaderboard.tabReputation": "Reputation",
@@ -436,8 +436,8 @@ const vi: Record<string, string> = {
   "profile.notFound": "Không tìm thấy hồ sơ.",
 
   // Submit tool page
-  "submit.seoTitle": "Gửi công cụ - ToolScope",
-  "submit.seoDesc": "Gửi công cụ mới để được đánh giá trên ToolScope",
+  "submit.seoTitle": "Gửi công cụ - Astute Tools",
+  "submit.seoDesc": "Gửi công cụ mới để được đánh giá trên Astute Tools",
   "submit.title": "Gửi công cụ mới",
   "submit.subtitle": "Giới thiệu công cụ bạn yêu thích để cộng đồng cùng đánh giá",
   "submit.toolName": "Tên công cụ *",
@@ -659,7 +659,7 @@ const vi: Record<string, string> = {
   "upvote.error": "Lỗi khi vote",
 
   // AI Chat widget
-  "chat.greeting": "Xin chào! Tôi là ToolScope AI",
+  "chat.greeting": "Xin chào! Tôi là Astute Tools AI",
   "chat.greetingDesc": "Hỏi tôi bất cứ điều gì về công cụ — tìm kiếm, so sánh, tư vấn!",
   "chat.suggestions": "Gợi ý:",
   "chat.suggestion1": "Tool thiết kế miễn phí nào tốt nhất?",

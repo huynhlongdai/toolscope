@@ -41,7 +41,7 @@ export function SiteInfoTab({ siteInfo, setSiteInfo, defaultCategoryId, setDefau
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Tên website</Label>
-              <Input value={siteInfo.site_name} onChange={(e) => setSiteInfo(p => ({ ...p, site_name: e.target.value }))} placeholder="ToolScope" />
+              <Input value={siteInfo.site_name} onChange={(e) => setSiteInfo(p => ({ ...p, site_name: e.target.value }))} placeholder="Astute Tools" />
             </div>
             <div className="space-y-2">
               <Label>Contact Email</Label>
@@ -70,7 +70,7 @@ export function SiteInfoTab({ siteInfo, setSiteInfo, defaultCategoryId, setDefau
           </div>
           <div className="space-y-2">
             <Label>Footer Copyright</Label>
-            <Input value={siteInfo.footer_copyright} onChange={(e) => setSiteInfo(p => ({ ...p, footer_copyright: e.target.value }))} placeholder="© 2025 ToolScope. All rights reserved." />
+            <Input value={siteInfo.footer_copyright} onChange={(e) => setSiteInfo(p => ({ ...p, footer_copyright: e.target.value }))} placeholder="© 2025 Astute Tools. All rights reserved." />
           </div>
           <div className="flex items-center gap-3">
             <Switch checked={siteInfo.maintenance_mode} onCheckedChange={(v) => setSiteInfo(p => ({ ...p, maintenance_mode: v }))} />

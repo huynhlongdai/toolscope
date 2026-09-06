@@ -1,4 +1,4 @@
-const THEME_KEY = "toolscope-theme";
+const THEME_KEY = "astute-tools-theme";
 
 export type Theme = "light" | "dark";
 

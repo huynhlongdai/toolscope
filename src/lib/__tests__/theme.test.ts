@@ -13,12 +13,12 @@ describe("theme utilities", () => {
 
   it("persists theme to localStorage", () => {
     setStoredTheme("dark");
-    expect(localStorage.getItem("toolscope-theme")).toBe("dark");
+    expect(localStorage.getItem("astute-tools-theme")).toBe("dark");
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
   it("reads stored theme", () => {
-    localStorage.setItem("toolscope-theme", "dark");
+    localStorage.setItem("astute-tools-theme", "dark");
     expect(getStoredTheme()).toBe("dark");
   });
 
@@ -30,7 +30,7 @@ describe("theme utilities", () => {
   });
 
   it("initTheme applies stored theme and returns it", () => {
-    localStorage.setItem("toolscope-theme", "dark");
+    localStorage.setItem("astute-tools-theme", "dark");
     const theme = initTheme();
     expect(theme).toBe("dark");
     expect(document.documentElement.classList.contains("dark")).toBe(true);

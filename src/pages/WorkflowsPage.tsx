@@ -32,7 +32,7 @@ const WorkflowsPage = () => {
   const { translationsMap } = useTranslatedList("workflow", workflowIds, ["title", "description"], fallbacks);
 
   return (
-    <PageLayout title={`${t("workflows.title")} - ToolScope`} description={t("workflows.subtitle")}>
+    <PageLayout title={`${t("workflows.title")} - Astute Tools`} description={t("workflows.subtitle")}>
         <div className="container py-8">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">

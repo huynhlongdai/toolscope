@@ -178,7 +178,7 @@ export default function ToolDetail() {
             bestRating: "10",
             worstRating: "0",
           },
-          author: { "@type": "Organization", name: "ToolScope" },
+          author: { "@type": "Organization", name: "Astute Tools" },
         },
       }),
     });
@@ -292,7 +292,7 @@ export default function ToolDetail() {
           <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
               <Shield className="h-3.5 w-3.5" />
-              {t("tool.reviewedBy", "Đánh giá bởi")} <span className="font-medium text-foreground">ToolScope Editorial</span>
+              {t("tool.reviewedBy", "Đánh giá bởi")} <span className="font-medium text-foreground">Astute Tools Editorial</span>
             </span>
             {tool.updated_at && (
               <span>

@@ -105,7 +105,7 @@ export default function WorkflowDetail() {
   const displayTargetAudience = translated.seo_content_target_audience || seo.target_audience;
 
   return (
-    <PageLayout title={`${seoTitle} - ToolScope`} description={seoDesc}>
+    <PageLayout title={`${seoTitle} - Astute Tools`} description={seoDesc}>
         <article className="container max-w-4xl py-8">
           <Link to="/workflows" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> {t("workflow.backToList")}

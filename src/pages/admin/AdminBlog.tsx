@@ -678,7 +678,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
                     <p className="text-blue-700 text-sm font-medium truncate hover:underline cursor-default">
                       {(form.seo_title || form.title).slice(0, 60)}
                     </p>
-                    <p className="text-green-700 text-xs">toolscope.com/blog/{form.slug || "..."}</p>
+                    <p className="text-green-700 text-xs">astute.tools/blog/{form.slug || "..."}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {(form.seo_description || form.excerpt || "Chưa có mô tả...").slice(0, 160)}
                     </p>

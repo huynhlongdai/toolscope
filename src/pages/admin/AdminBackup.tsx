@@ -107,7 +107,7 @@ export default function AdminBackup() {
         if (error) console.warn(`Skip ${table.key}:`, error.message);
         bundle[table.key] = data ?? [];
       }
-      const filename = dateStampedFilename("toolscope-backup", "json");
+      const filename = dateStampedFilename("astute-tools-backup", "json");
       exportToJSON(bundle, filename);
       setLastBackup(new Date().toISOString());
       await saveBackupHistory({ type: "full", tables: BACKUP_TABLES.length, timestamp: new Date().toISOString() });
@@ -128,7 +128,7 @@ export default function AdminBackup() {
         const { data } = await supabase.from(table as any).select("*");
         bundle[table] = data ?? [];
       }
-      exportToJSON(bundle, dateStampedFilename("toolscope-settings", "json"));
+      exportToJSON(bundle, dateStampedFilename("astute-tools-settings", "json"));
       await logAuditAction("backup_export", "system", undefined, { type: "settings" });
       toast.success("Đã export settings!");
     } catch (e: any) {

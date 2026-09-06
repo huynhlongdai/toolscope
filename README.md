@@ -1,7 +1,9 @@
-# ToolScope
+# Astute Tools
+
+> ⚠️ **Đổi thương hiệu (2026-09-06)**: Site đã đổi tên từ **ToolScope** sang **Astute Tools**, domain chính thức **`astute.tools`**. Logo mới (gear + wrench mark, màu indigo `#6366f1`) tại `public/logo-icon.png` (icon đơn) và `public/og-image.png` (banner social-share); bản gốc/độ phân giải cao lưu ở `public/brand/`. Đã cập nhật: `Header`/`Footer`/`AdminLayout`/`AIChatWidget` (UI), toàn bộ `meta`/`og`/`twitter` tag trong `index.html`, `manifest.json`, `favicon.ico`/`apple-touch-icon.png`, `BASE_URL` trong edge function `sitemap` (→ `https://astute.tools`), các key `localStorage` (`astute-tools-theme`) và tên file export backup/settings (`astute-tools-backup.json`, `astute-tools-settings.json`). Các đoạn ghi chú lịch sử bên dưới nói về "ToolScope"/`admin@toolscope.com`/`toolscope.app` là nhật ký công việc tại thời điểm thực hiện, giữ nguyên để tránh sai lệch dữ liệu thật (email tài khoản admin vẫn là `admin@toolscope.com`, chưa đổi vì đây là tài khoản Supabase Auth thật đang dùng — muốn đổi email cần thao tác riêng qua Supabase Dashboard).
 
 ## Tổng quan
-- **Mục tiêu**: Chuyển ToolScope từ "AI tools directory" thành **content-first affiliate site** — bài viết (review, listicle, case study, comparison) là nguồn traffic/SEO chính, thư mục công cụ là phần hỗ trợ phía sau. Kiếm tiền qua affiliate link.
+- **Mục tiêu**: Chuyển Astute Tools từ "AI tools directory" thành **content-first affiliate site** — bài viết (review, listicle, case study, comparison) là nguồn traffic/SEO chính, thư mục công cụ là phần hỗ trợ phía sau. Kiếm tiền qua affiliate link.
 - **Định hướng thiết kế đã chốt**: Teal/Cyan làm màu chủ đạo (`--primary`), Hero/Listicle-header/Case-study-stats dùng nền tối "hero-surface" theo Mockup 4/5/6 đã duyệt.
 - **Stack**: React + Vite + TypeScript + shadcn-ui + Tailwind, Supabase (Postgres + RLS, Auth, Edge Functions).
 

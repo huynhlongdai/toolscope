@@ -102,7 +102,7 @@ const en: Record<string, string> = {
   "auth.login": "Sign In",
   "auth.signup": "Create Account",
   "auth.forgotPassword": "Forgot Password",
-  "auth.loginSubtitle": "Sign in to continue using ToolScope",
+  "auth.loginSubtitle": "Sign in to continue using Astute Tools",
   "auth.signupSubtitle": "Create a new account to get started",
   "auth.forgotSubtitle": "Enter your email to receive a reset link",
   "auth.emailPlaceholder": "Email",
@@ -346,14 +346,14 @@ const en: Record<string, string> = {
 
   // Categories listing page
   "categories.pageTitle": "AI Tool Categories",
-  "categories.pageSeoTitle": "AI Tool Categories | ToolScope",
-  "categories.pageSeoDesc": "Explore all AI tool categories on ToolScope — from design, coding, marketing to data analytics.",
+  "categories.pageSeoTitle": "AI Tool Categories | Astute Tools",
+  "categories.pageSeoDesc": "Explore all AI tool categories on Astute Tools — from design, coding, marketing to data analytics.",
   "categories.pageSubtitle": "Explore {count}+ AI tool categories, carefully organized to help you find the right tools.",
 
   // Tasks page
   "tasks.title": "What do you want to do?",
   "tasks.subtitle": "Pick a task and find the best tools instantly",
-  "tasks.seoTitle": "Find Tools by Task - ToolScope",
+  "tasks.seoTitle": "Find Tools by Task - Astute Tools",
   "tasks.seoDesc": "Pick the task you need and find the best matching tools instantly.",
   "tasks.back": "Back",
   "tasks.toolCount": "{count} tools",
@@ -368,13 +368,13 @@ const en: Record<string, string> = {
 
   // Bookmarks page
   "bookmarks.title": "Saved",
-  "bookmarks.seoTitle": "Saved - ToolScope",
+  "bookmarks.seoTitle": "Saved - Astute Tools",
   "bookmarks.empty": "No saved tools yet",
   "bookmarks.emptyHint": "Bookmark your favorite tools for quick access.",
 
   // Leaderboard page
   "leaderboard.title": "Leaderboard",
-  "leaderboard.seoTitle": "Contributor Leaderboard - ToolScope",
+  "leaderboard.seoTitle": "Contributor Leaderboard - Astute Tools",
   "leaderboard.seoDesc": "Top contributors ranked by reputation score, reviews and community activity.",
   "leaderboard.subtitle": "Top contributors by reputation, reviews and activity.",
   "leaderboard.tabReputation": "Reputation",
@@ -436,8 +436,8 @@ const en: Record<string, string> = {
   "profile.notFound": "Profile not found.",
 
   // Submit tool page
-  "submit.seoTitle": "Submit Tool - ToolScope",
-  "submit.seoDesc": "Submit a new tool to be reviewed on ToolScope",
+  "submit.seoTitle": "Submit Tool - Astute Tools",
+  "submit.seoDesc": "Submit a new tool to be reviewed on Astute Tools",
   "submit.title": "Submit New Tool",
   "submit.subtitle": "Share your favorite tool for the community to review",
   "submit.toolName": "Tool Name *",
@@ -659,7 +659,7 @@ const en: Record<string, string> = {
   "upvote.error": "Error voting",
 
   // AI Chat widget
-  "chat.greeting": "Hi! I'm ToolScope AI",
+  "chat.greeting": "Hi! I'm Astute Tools AI",
   "chat.greetingDesc": "Ask me anything about tools — search, compare, get advice!",
   "chat.suggestions": "Suggestions:",
   "chat.suggestion1": "What's the best free design tool?",

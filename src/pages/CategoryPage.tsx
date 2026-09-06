@@ -159,7 +159,7 @@ export default function CategoryPage() {
 
   return (
     <PageLayout
-      title={category ? `${category.name} — ${t("tools.title")} | ToolScope` : undefined}
+      title={category ? `${category.name} — ${t("tools.title")} | Astute Tools` : undefined}
       description={category ? (category.description || `${t("categories.title")} ${category.name}`) : undefined}
     >
       {breadcrumbJsonLd && (

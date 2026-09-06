@@ -320,7 +320,7 @@ const ProfilePage = () => {
   const dateLocale = LOCALE_MAP[locale] || "vi-VN";
 
   return (
-    <PageLayout title={`${profile?.display_name || "Profile"} - ToolScope`}>
+    <PageLayout title={`${profile?.display_name || "Profile"} - Astute Tools`}>
         <div className="container py-8 max-w-4xl">
           {isLoading ? (
             <Skeleton className="h-48 rounded-xl" />

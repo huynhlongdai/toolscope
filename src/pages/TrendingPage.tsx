@@ -89,7 +89,7 @@ const TrendingPage = () => {
   };
 
   return (
-    <PageLayout title={`${t("trending.title")} - ToolScope`} description={t("trending.subtitle")}>
+    <PageLayout title={`${t("trending.title")} - Astute Tools`} description={t("trending.subtitle")}>
         <div className="container py-8">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">

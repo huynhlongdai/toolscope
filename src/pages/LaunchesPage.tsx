@@ -165,7 +165,7 @@ export default function LaunchesPage() {
   };
 
   return (
-    <PageLayout title={`${t("launches.title")} - ToolScope`} description={t("launches.seoDesc")}>
+    <PageLayout title={`${t("launches.title")} - Astute Tools`} description={t("launches.seoDesc")}>
         <div className="container py-8">
           <div className="mb-8 flex items-start justify-between">
             <div>

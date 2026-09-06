@@ -148,11 +148,9 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">T</span>
-            </div>
+            <img src="/logo-icon.png" alt="Astute Tools" className="h-8 w-8" />
             <span className="text-xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              ToolScope
+              Astute Tools
             </span>
           </Link>
           <nav aria-label="Main navigation" className="hidden items-center gap-6 md:flex">

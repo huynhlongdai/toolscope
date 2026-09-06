@@ -14,7 +14,7 @@ const Index = () => {
 
   return (
     <PageLayout
-      title="ToolScope - Khám phá & Review công cụ tốt nhất"
+      title="Astute Tools - Khám phá & Review công cụ tốt nhất"
       description="Nền tảng tổng hợp & review công cụ hàng đầu. Tìm tool phù hợp nhất cho bạn với AI. So sánh, đánh giá và khám phá hàng ngàn công cụ."
       canonical={origin}
       ogImage={`${origin}/og-image.png`}
@@ -23,7 +23,7 @@ const Index = () => {
         "@graph": [
           {
             "@type": "WebSite",
-            name: "ToolScope",
+            name: "Astute Tools",
             url: origin,
             potentialAction: {
               "@type": "SearchAction",
@@ -33,7 +33,7 @@ const Index = () => {
           },
           {
             "@type": "Organization",
-            name: "ToolScope",
+            name: "Astute Tools",
             url: origin,
             logo: `${origin}/favicon.ico`,
           },
