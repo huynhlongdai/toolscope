@@ -1,11 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may collect/import deals. The
+  // "import" action below forces is_active=false for editors so a new
+  // deal never goes live without an admin flipping it on via
+  // publish_content(). "search"/"reject"/"generate-description" only
+  // touch the deal_collect_items staging table.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
@@ -147,7 +152,12 @@ Only include real, verifiable deals. Max 20 items. If no deals found, return [].
           deal_price: item.deal_price,
           currency: item.currency || "USD",
           expires_at: item.expires_at,
-          is_active: true,
+          // Editors can never publish a deal directly - only admins can,
+          // via publish_content(). This is also enforced by the deals RLS
+          // WITH CHECK for the 'editor' role, but the function uses the
+          // service-role client (bypasses RLS), so this check is the real
+          // enforcement point.
+          is_active: auth.role === "admin",
           is_verified: false,
           is_exclusive: false,
           created_by: userId,

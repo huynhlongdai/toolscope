@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 const KEYWORDS = [
   "project management tool",
@@ -32,7 +32,10 @@ const KEYWORDS = [
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may run bulk tool-collection; every
+  // write here only touches the collect_* staging tables with status
+  // "pending" - never mutates a published tool.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {

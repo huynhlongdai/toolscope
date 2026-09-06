@@ -89,3 +89,68 @@ export async function requireAdmin(req: Request): Promise<AuthResult | Response>
 
   return { user, supabase };
 }
+
+/**
+ * Same as requireAuth, but accepts either 'admin' OR 'editor'. Used by the
+ * content-generation functions (generate-blog-post, generate-review,
+ * generate-tool-article, generate-workflow, generate-ai-score, collect-ai,
+ * bulk-collect-tools, translate-*) so an "editor" account - e.g. one handed
+ * to an AI content agent per the P0 content-approval workflow - can invoke
+ * them. Callers that write rows as a result MUST still force
+ * status/is_active to a non-published/inactive value when the resolved
+ * `role` here is 'editor' (the DB RLS policies from the
+ * 20260906040000_editor_content_workflow_permissions migration enforce
+ * this too, but functions use the service-role client which bypasses RLS -
+ * so the function itself is the only enforcement point and must not skip
+ * this check).
+ */
+export interface EditorAuthResult extends AuthResult {
+  role: "admin" | "editor";
+}
+
+export async function requireEditor(req: Request): Promise<EditorAuthResult | Response> {
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
+  const { user, supabase } = authResult;
+
+  const { data: roles, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .in("role", ["admin", "editor"]);
+
+  if (error || !roles || roles.length === 0) {
+    return jsonError("Editor or admin privileges required", 403);
+  }
+
+  const role: "admin" | "editor" = roles.some((r) => r.role === "admin") ? "admin" : "editor";
+
+  return { user, supabase, role };
+}
+
+/**
+ * Guard for edge functions that write directly to `tools`/`blog_posts`/
+ * `workflows` via the service-role client (bypassing RLS). Content-approval
+ * RLS from the 20260906040000 migration only protects direct client writes;
+ * these service-role writes have no other gate, so every function that
+ * mutates a row an editor didn't just create MUST call this first.
+ *
+ * If `role` is 'editor' and the row's current status is already
+ * 'published', returns 'pending_review' so the caller merges it into its
+ * update payload - this un-publishes the row (removing it from public
+ * listings that filter on status='published') the moment an editor/AI
+ * agent changes its content, forcing a fresh admin review before it goes
+ * live again. Returns undefined when no override is needed (row isn't
+ * published yet, or caller is admin - admins may edit published rows
+ * in place without triggering a re-review).
+ */
+export function editorStatusOverride(
+  role: "admin" | "editor",
+  currentStatus: string | null | undefined
+): "pending_review" | undefined {
+  if (role === "editor" && currentStatus === "published") {
+    return "pending_review";
+  }
+  return undefined;
+}

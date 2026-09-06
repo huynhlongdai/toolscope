@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 const WORD_COUNTS: Record<string, string> = {
   listicle: "1500-2500", comparison: "1800-3000", guide: "2000-3500", review: "1500-2500", news: "1000-1800",
@@ -9,7 +9,11 @@ const WORD_COUNTS: Record<string, string> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may generate draft blog content;
+  // they never get to flip status to 'published' - that happens client-side
+  // via publish_content(), which is admin-gated. This function itself does
+  // not write to the DB.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {

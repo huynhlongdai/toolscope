@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
 
 function extractDomain(url: string): string {
   try {
@@ -168,7 +168,12 @@ Body Text: ${bodyText}`;
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may run this. The insert-new-tool
+  // path already forces status "pending_review" (safe as-is). The
+  // update-existing-tool path below uses the service-role client
+  // (bypasses RLS) and can hit an already-published tool - guarded via
+  // editorStatusOverride, which forces it back to pending_review.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
@@ -320,9 +325,18 @@ IMPORTANT: Generate 5-8 FAQ items in Vietnamese. Each question must end with "?"
       if (toolData.requires_card != null) updateData.requires_card = toolData.requires_card;
       if (Array.isArray(toolData.signup_options)) updateData.signup_options = toolData.signup_options;
 
+      // This uses the service-role client and can write to an
+      // ALREADY-PUBLISHED tool, bypassing RLS entirely. If the caller is
+      // an editor, force the tool back to pending_review so the edit gets
+      // an admin re-review before staying/going live again.
+      const { data: existingTool } = await supabase.from("tools").select("status").eq("id", tool_id).maybeSingle();
+      const statusOverride = editorStatusOverride(auth.role, existingTool?.status);
+      if (statusOverride) updateData.status = statusOverride;
+
       const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
       if (updateErr) console.error("Failed to update tool:", updateErr);
       toolData.saved = !updateErr;
+      if (statusOverride) toolData.status = statusOverride;
     } else if (save_to_db && !tool_id) {
       const { data: newTool, error: insertErr } = await supabase
         .from("tools")

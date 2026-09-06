@@ -1,13 +1,25 @@
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may enrich a SINGLE tool
+  // (tool_id) - the per-tool status guard below handles an
+  // already-published target. The `batch` mode auto-selects up to 20
+  // already-published tools and mass-updates them via the service-role
+  // client; mass-unpublishing live tools without a human picking them is
+  // too risky for an editor, so batch stays admin-only.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
     const { tool_id, batch } = await req.json();
+    if (batch && auth.role !== "admin") {
+      return new Response(JSON.stringify({ error: "Batch enrichment requires admin privileges" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -17,12 +29,12 @@ Deno.serve(async (req) => {
     // Get tools to enrich
     let toolsToEnrich: any[] = [];
     if (tool_id) {
-      const { data } = await supabase.from("tools").select("id, name, website_url, pricing_type").eq("id", tool_id).single();
+      const { data } = await supabase.from("tools").select("id, name, website_url, pricing_type, status").eq("id", tool_id).single();
       if (data) toolsToEnrich = [data];
     } else if (batch) {
       const { data } = await supabase
         .from("tools")
-        .select("id, name, website_url, pricing_type")
+        .select("id, name, website_url, pricing_type, status")
         .eq("status", "published")
         .is("trial_days", null)
         .not("website_url", "is", null)
@@ -115,6 +127,13 @@ Only include signup_options that actually exist. If unsure, set to null.`;
         if (info.trial_days != null) updateData.trial_days = info.trial_days;
         if (info.requires_card != null) updateData.requires_card = info.requires_card;
         if (Array.isArray(info.signup_options)) updateData.signup_options = info.signup_options;
+
+        // Service-role write bypasses RLS; force back to pending_review if
+        // an editor just touched an already-published tool (batch mode
+        // can't reach here as non-admin per the guard above, so this only
+        // matters for the single tool_id path).
+        const statusOverride = editorStatusOverride(auth.role, tool.status);
+        if (statusOverride) updateData.status = statusOverride;
 
         if (Object.keys(updateData).length > 0) {
           await supabase.from("tools").update(updateData).eq("id", tool.id);

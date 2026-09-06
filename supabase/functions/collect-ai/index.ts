@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 function formatUrl(url: string): string {
   let f = url.trim();
@@ -246,7 +246,11 @@ async function readFileFromStorage(supabase: any, filePath: string, fileType: st
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may run tool-collection workflows.
+  // Every write path here only touches the collect_* staging tables, or
+  // inserts a brand-new tool with status "pending_review" - never mutates
+  // an already-published tool, so no extra guard is needed beyond this.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {

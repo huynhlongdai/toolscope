@@ -1,11 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may rewrite a tool's article. This
+  // function uses the service-role client, which bypasses RLS entirely, so
+  // if the target tool is already published we force it back to
+  // pending_review below (editorStatusOverride) - it does NOT stay live
+  // with unreviewed content.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
@@ -14,7 +19,7 @@ serve(async (req) => {
 
     const supabase = auth.supabase;
 
-    const { data: tool, error: toolErr } = await supabase.from("tools").select("*, categories(name), ai_scores(*)").eq("id", tool_id).maybeSingle();
+    const { data: tool, error: toolErr } = await supabase.from("tools").select("*, categories(name), ai_scores(*), status").eq("id", tool_id).maybeSingle();
     if (toolErr || !tool) return new Response(JSON.stringify({ error: "Tool not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const aiScore = tool.ai_scores as any;
@@ -52,11 +57,13 @@ Viết theo cấu trúc: ## Là gì?, ## Tính năng chính, ## Đặc điểm n
 
     const updateData: any = { detailed_content: content };
     if (faq.length > 0) updateData.faq = faq;
+    const statusOverride = editorStatusOverride(auth.role, tool.status);
+    if (statusOverride) updateData.status = statusOverride;
 
     const { error: updateErr } = await supabase.from("tools").update(updateData).eq("id", tool_id);
     if (updateErr) console.error("Failed to save:", updateErr);
 
-    return new Response(JSON.stringify({ content, saved: !updateErr }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ content, saved: !updateErr, status: statusOverride || tool.status }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("generate-tool-article error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

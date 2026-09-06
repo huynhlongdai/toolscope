@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 const LOCALE_NAMES: Record<string, string> = {
   en: "English", zh: "Chinese (Simplified)", ja: "Japanese", ko: "Korean",
@@ -11,7 +11,11 @@ const LOCALE_NAMES: Record<string, string> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may generate translations; the
+  // translations table has no "published" concept of its own - it's an
+  // overlay always shown alongside whatever locale the visitor picks, so
+  // there's no unreviewed-content risk here.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {

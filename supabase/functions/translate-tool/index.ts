@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAI } from "../_shared/ai-provider.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor } from "../_shared/auth.ts";
 
 const LOCALE_NAMES: Record<string, string> = {
   en: "English",
@@ -18,7 +18,8 @@ const LOCALE_NAMES: Record<string, string> = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may generate tool-content translations.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {

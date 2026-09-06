@@ -1,10 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireAdmin(req);
+  // Editors (incl. an AI content agent) may (re-)score a tool. The
+  // ai_scores upsert below is public-visible immediately (no
+  // published/draft concept of its own), so if the target tool is already
+  // published we force the tool back to pending_review - the new score
+  // needs an admin look before it's presented as final again.
+  const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
@@ -19,7 +24,7 @@ serve(async (req) => {
     // Get tool info
     const { data: tool, error: toolErr } = await supabase
       .from("tools")
-      .select("name, description, short_description, pricing_type, features, website_url")
+      .select("name, description, short_description, pricing_type, features, website_url, status")
       .eq("id", tool_id)
       .single();
 
@@ -113,6 +118,16 @@ serve(async (req) => {
       }, { onConflict: "tool_id" });
 
     if (upsertErr) throw upsertErr;
+
+    // If an editor just rescored an already-published tool, force it back
+    // to pending_review for an admin re-check (ai_scores has no
+    // published/draft state of its own, so the tool's own status is what
+    // gates whether the new score is presented as final on the live site).
+    const statusOverride = editorStatusOverride(auth.role, tool.status);
+    if (statusOverride) {
+      const { error: statusErr } = await supabase.from("tools").update({ status: statusOverride }).eq("id", tool_id);
+      if (statusErr) console.error("Failed to update tool status after rescoring:", statusErr);
+    }
 
     return new Response(JSON.stringify({ success: true, scores }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
