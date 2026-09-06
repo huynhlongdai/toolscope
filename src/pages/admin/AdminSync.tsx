@@ -592,6 +592,7 @@ export default function AdminSync() {
             ) : !syncLogs?.length ? (
               <p className="text-center text-muted-foreground py-8">Chưa có lần đồng bộ nào</p>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -629,6 +630,7 @@ export default function AdminSync() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
