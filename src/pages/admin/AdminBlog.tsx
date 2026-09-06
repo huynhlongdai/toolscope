@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages, ShieldCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { RichTextEditor, clearAutosaveDraft } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -565,6 +565,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       const { error } = await supabase.from("blog_posts").update(payload).eq("id", post.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã cập nhật");
+      clearAutosaveDraft(`blog-${post.id}`);
     } else {
       // Editors' INSERT RLS requires status IN (draft, pending_review) - the
       // status Select below already hides 'published'/'archived' for them,
@@ -576,6 +577,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       const { error } = await supabase.from("blog_posts").insert(insertPayload);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã tạo bài viết");
+      clearAutosaveDraft("blog-new");
     }
     queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
     setSaving(false);
@@ -631,7 +633,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
 
             <div className="space-y-2">
               <Label>Nội dung</Label>
-              <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." />
+              <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." autosaveKey={isNew ? "blog-new" : `blog-${post.id}`} />
             </div>
 
             <div className="space-y-2">

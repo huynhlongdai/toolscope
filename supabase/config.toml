@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.setup-external-db]
 verify_jwt = false
+
+[functions.agent-content-api]
+verify_jwt = false

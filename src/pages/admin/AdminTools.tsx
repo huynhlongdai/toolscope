@@ -23,7 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, ExternalLink, Star, Eye, MessageSquare, RefreshCw, Sparkles, Loader2, Upload, CheckCircle2, XCircle, Clock, Languages, Filter, MoreHorizontal, HeartPulse, Activity, X, Copy, BarChart3, FlaskConical } from "lucide-react";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { RichTextEditor, clearAutosaveDraft } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 import { marked } from "marked";
@@ -1073,6 +1073,15 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     }
 
     toast.success(tool ? "Đã cập nhật tool" : "Đã thêm tool");
+    // Clear both the "new" draft slot (used while creating) and the
+    // id-based slot (used once the tool has an id) so no stale
+    // autosave-recovery banner reappears after a successful save.
+    clearAutosaveDraft("tool-desc-new");
+    clearAutosaveDraft("tool-detail-new");
+    if (tool?.id) {
+      clearAutosaveDraft(`tool-desc-${tool.id}`);
+      clearAutosaveDraft(`tool-detail-${tool.id}`);
+    }
     queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
     setSaving(false);
     onClose();
@@ -1572,11 +1581,11 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
         <>
           <div className="space-y-2">
             <Label>Mô tả (Description)</Label>
-            <RichTextEditor content={form.description} onChange={(v: string) => updateField("description", v)} placeholder="Mô tả tool..." />
+            <RichTextEditor content={form.description} onChange={(v: string) => updateField("description", v)} placeholder="Mô tả tool..." autosaveKey={`tool-desc-${tool?.id ?? "new"}`} />
           </div>
           <div className="space-y-2">
             <Label>Nội dung chi tiết (Detailed Content)</Label>
-            <RichTextEditor content={form.detailed_content} onChange={(v: string) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." />
+            <RichTextEditor content={form.detailed_content} onChange={(v: string) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." autosaveKey={`tool-detail-${tool?.id ?? "new"}`} />
           </div>
         </>
       ) : (

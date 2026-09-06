@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, Plus, Trash2, ArrowUp, ArrowDown, Eye } from "lucide-react";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { RichTextEditor, clearAutosaveDraft } from "@/components/admin/RichTextEditor";
 
 interface Block {
   type: string;
@@ -111,7 +111,13 @@ export default function AdminPageEditor() {
     }).eq("id", id!);
     setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("Đã lưu"); queryClient.invalidateQueries({ queryKey: ["admin-page", id] }); }
+    else {
+      toast.success("Đã lưu");
+      blocks.forEach((block, idx) => {
+        if (block.type === "text") clearAutosaveDraft(`page-${id}-block-${idx}`);
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-page", id] });
+    }
   };
 
   const addBlock = (type: string) => {
@@ -194,7 +200,7 @@ export default function AdminPageEditor() {
                 </div>
               </CardHeader>
               <CardContent>
-                <BlockEditor block={block} onChange={(data) => updateBlockData(idx, data)} />
+                <BlockEditor block={block} onChange={(data) => updateBlockData(idx, data)} autosaveKey={`page-${id}-block-${idx}`} />
               </CardContent>
             </Card>
           ))}
@@ -209,7 +215,7 @@ export default function AdminPageEditor() {
   );
 }
 
-function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) => void }) {
+function BlockEditor({ block, onChange, autosaveKey }: { block: Block; onChange: (data: any) => void; autosaveKey?: string }) {
   const d = block.data;
   const update = (key: string, value: any) => onChange({ ...d, [key]: value });
 
@@ -224,7 +230,7 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (data: any) 
         </div>
       );
     case "text":
-      return <RichTextEditor content={d.content} onChange={(v) => update("content", v)} />;
+      return <RichTextEditor content={d.content} onChange={(v) => update("content", v)} autosaveKey={autosaveKey} />;
     case "image":
       return (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

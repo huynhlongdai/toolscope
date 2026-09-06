@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
@@ -25,6 +25,7 @@ import {
   MoveHorizontal, MoveVertical, Merge, Split,
   Maximize, Minimize, ChevronDown, Type, Heading1, Heading2, Heading3, Heading4,
   LayoutGrid, MessageSquareQuote, Timer, Tag, Grip, FileText,
+  History, X, Save,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -33,15 +34,46 @@ interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /**
+   * When provided, enables WordPress-style local autosave/draft-recovery:
+   * every ~2s of inactivity the current HTML is persisted to
+   * localStorage under `rte-autosave:${autosaveKey}`. On mount, if a
+   * saved draft differs from the incoming `content` prop, a recovery
+   * banner offers to restore it or discard it. Pass a stable per-record
+   * key, e.g. `blog-${post?.id ?? "new"}`, so drafts don't leak across
+   * unrelated posts/pages. Protects against browser crash / accidental
+   * tab close before the surrounding form's own Save button is clicked -
+   * it does NOT replace that Save (nothing is written to the DB here).
+   */
+  autosaveKey?: string;
 }
 
-export function RichTextEditor({ content, onChange, placeholder = "Nhập nội dung..." }: RichTextEditorProps) {
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+const AUTOSAVE_PREFIX = "rte-autosave:";
+
+/**
+ * Call after the surrounding form successfully persists content to the
+ * database (e.g. inside a mutation's onSuccess), passing the same key
+ * given to <RichTextEditor autosaveKey=... />. Clears the now-stale local
+ * draft so the recovery banner doesn't reappear with outdated content the
+ * next time this record is opened for editing.
+ */
+export function clearAutosaveDraft(autosaveKey: string) {
+  try { localStorage.removeItem(`${AUTOSAVE_PREFIX}${autosaveKey}`); } catch { /* ignore */ }
+}
+
+export function RichTextEditor({ content, onChange, placeholder = "Nhập nội dung...", autosaveKey }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkNewTab, setLinkNewTab] = useState(true);
   const [linkOpen, setLinkOpen] = useState(false);
+  const storageKey = autosaveKey ? `${AUTOSAVE_PREFIX}${autosaveKey}` : null;
+  const [draftAvailable, setDraftAvailable] = useState<{ html: string; savedAt: number } | null>(null);
+  const [lastAutosavedAt, setLastAutosavedAt] = useState<number | null>(null);
+  const initialContentRef = useRef(content);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -63,8 +95,62 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       TableHeader,
     ],
     content,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      onChange(html);
+      scheduleAutosave(html);
+    },
   });
+
+  const scheduleAutosave = useCallback((html: string) => {
+    if (!storageKey) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ html, savedAt: Date.now() }));
+        setLastAutosavedAt(Date.now());
+      } catch {
+        // localStorage full/unavailable (private mode, quota) - autosave is
+        // best-effort only, never block editing.
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  // On mount: check for a saved draft newer/different than the content the
+  // parent form loaded us with, and offer to restore it.
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { html: string; savedAt: number };
+      if (saved?.html && saved.html !== initialContentRef.current) {
+        setDraftAvailable(saved);
+      }
+    } catch {
+      // Corrupt/unreadable draft entry - ignore silently, not worth surfacing.
+    }
+    // Only run once per mount (per autosaveKey) - intentionally not
+    // re-checking on every content prop change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  useEffect(() => {
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, []);
+
+  const restoreDraft = () => {
+    if (!draftAvailable || !editor) return;
+    editor.commands.setContent(draftAvailable.html);
+    onChange(draftAvailable.html);
+    setDraftAvailable(null);
+  };
+
+  const discardDraft = () => {
+    if (storageKey) { try { localStorage.removeItem(storageKey); } catch { /* ignore */ } }
+    setDraftAvailable(null);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,6 +253,24 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
   const editorContent = (
     <div className={`border rounded-md flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-background rounded-none" : ""}`}>
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleFileUpload} />
+
+      {/* Draft recovery banner (autosave) */}
+      {draftAvailable && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs">
+          <span className="flex items-center gap-1.5 text-amber-800 dark:text-amber-200">
+            <History className="h-3.5 w-3.5 shrink-0" />
+            Có bản nháp tự động lưu lúc {new Date(draftAvailable.savedAt).toLocaleString("vi-VN")} chưa được lưu vào hệ thống.
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button type="button" size="sm" variant="outline" className="h-6 text-xs px-2" onClick={restoreDraft}>
+              Khôi phục
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={discardDraft} title="Bỏ bản nháp">
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Toolbar Row 1: Block type + Text formatting + Color */}
       <div className="flex flex-wrap items-center gap-0.5 border-b p-1 bg-muted/30">
@@ -491,11 +595,16 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
         <EditorContent editor={editor} className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[280px] [&_.tiptap_table]:border-collapse [&_.tiptap_table]:w-full [&_.tiptap_table_td]:border [&_.tiptap_table_td]:border-border [&_.tiptap_table_td]:p-2 [&_.tiptap_table_th]:border [&_.tiptap_table_th]:border-border [&_.tiptap_table_th]:p-2 [&_.tiptap_table_th]:bg-muted/50 [&_.tiptap_table_th]:font-semibold [&_.selectedCell]:bg-primary/10" />
       </div>
 
-      {/* Footer: Word count + Reading time */}
+      {/* Footer: Word count + Reading time + autosave status */}
       <div className="flex items-center justify-between border-t px-3 py-1.5 bg-muted/20 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <span>📝 {wordCount} từ</span>
           <span>⏱ ~{readingTime} phút đọc</span>
+          {storageKey && lastAutosavedAt && (
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-500">
+              <Save className="h-3 w-3" /> Đã lưu nháp {new Date(lastAutosavedAt).toLocaleTimeString("vi-VN")}
+            </span>
+          )}
         </div>
         {uploading && <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Đang upload...</span>}
       </div>
