@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,6 +24,7 @@ import { Progress } from "@/components/ui/progress";
 export default function AdminBlog() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [editPost, setEditPost] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -52,6 +54,23 @@ export default function AdminBlog() {
       logAuditAction("blog_status_change", "blog_post", vars.id, { status: vars.status });
       toast.success("Đã cập nhật");
     },
+  });
+
+  // Admin-only: the ONLY path that flips a post's status to 'published'.
+  // Editors' RLS ("Authors and admins can update posts") rejects
+  // status='published' outright, so this goes through the publish_content()
+  // RPC (SECURITY DEFINER, admin-checked server-side) instead.
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, publish }: { id: string; publish: boolean }) => {
+      const { error } = await (supabase.rpc as any)("publish_content", { _table: "blog_posts", _id: id, _publish: publish });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+      logAuditAction("blog_status_change", "blog_post", vars.id, { status: vars.publish ? "published" : "draft" });
+      toast.success(vars.publish ? "Đã publish bài viết" : "Đã gỡ publish");
+    },
+    onError: (e: any) => toast.error(e.message || "Không thể publish"),
   });
 
   const deletePost = useMutation({
@@ -118,14 +137,23 @@ export default function AdminBlog() {
                     <TableCell className="font-medium max-w-[250px] truncate">{p.title}</TableCell>
                     <TableCell>{p.profiles?.display_name ?? "—"}</TableCell>
                     <TableCell>
-                      <Select value={p.status} onValueChange={(v) => updateStatus.mutate({ id: p.id, status: v })}>
+                      <Select
+                        value={p.status}
+                        onValueChange={(v) => {
+                          if (v === "published") { publishMutation.mutate({ id: p.id, publish: true }); return; }
+                          updateStatus.mutate({ id: p.id, status: v });
+                        }}
+                      >
                         <SelectTrigger className="h-7 w-[130px]">
                           <Badge variant={p.status === "published" ? "default" : "secondary"} className="text-xs">{p.status}</Badge>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="published">Published</SelectItem>
+                          {/* Editors cannot select "Published" directly - RLS rejects it, so
+                              it's hidden; they submit pending_review for an admin to publish. */}
+                          {isAdmin && <SelectItem value="published">Published</SelectItem>}
                           <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="archived">Archived</SelectItem>
+                          <SelectItem value="pending_review">Pending</SelectItem>
+                          {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -417,6 +445,7 @@ function SEOScorePanel({ form, onSuggestionApply }: { form: any; onSuggestionApp
 /* ---------- Blog Form Dialog ---------- */
 function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: boolean; onClose: () => void; userId?: string }) {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAdminAuth();
   const isNew = !post?.id || post?._isNew;
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
@@ -427,7 +456,7 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
     cover_image_url: post?.cover_image_url ?? "",
     tags: Array.isArray(post?.tags) ? post.tags.join(", ") : (post?.tags ?? ""),
     content: post?.content ?? "",
-    status: post?.status ?? "draft",
+    status: post?.status ?? (isNew && !isAdmin ? "pending_review" : "draft"),
     seo_title: post?.seo_title ?? "",
     seo_description: post?.seo_description ?? "",
     seo_keywords: Array.isArray(post?.seo_keywords) ? post.seo_keywords.join(", ") : (post?.seo_keywords ?? ""),
@@ -536,7 +565,14 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã cập nhật");
     } else {
-      const { error } = await supabase.from("blog_posts").insert({ ...payload, author_id: userId });
+      // Editors' INSERT RLS requires status IN (draft, pending_review) - the
+      // status Select below already hides 'published'/'archived' for them,
+      // but guard here too in case form.status was pre-set some other way.
+      const insertPayload = { ...payload, author_id: userId };
+      if (!isAdmin && !["draft", "pending_review"].includes(insertPayload.status)) {
+        insertPayload.status = "pending_review";
+      }
+      const { error } = await supabase.from("blog_posts").insert(insertPayload);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã tạo bài viết");
     }
@@ -601,10 +637,16 @@ function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: bool
                 <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
+                  <SelectItem value="pending_review">Pending Review</SelectItem>
+                  {/* Editors' RLS only allows draft/pending_review - publishing/archiving
+                      is an admin-only action done via the Publish button in the list. */}
+                  {isAdmin && <SelectItem value="published">Published</SelectItem>}
+                  {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
                 </SelectContent>
               </Select>
+              {!isAdmin && form.status === "pending_review" && (
+                <p className="text-xs text-muted-foreground">Bài viết sẻ chờ admin duyệt trước khi published.</p>
+              )}
             </div>
           </TabsContent>
 

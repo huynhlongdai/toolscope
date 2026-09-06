@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -41,6 +42,7 @@ const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code
 export default function AdminTools() {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -152,6 +154,23 @@ export default function AdminTools() {
       queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
       toast.success("Đã nhân bản tool");
     },
+  });
+
+  // Admin-only: the ONLY path that flips a tool's status to 'published'.
+  // Goes through the publish_content() RPC (SECURITY DEFINER, admin-checked
+  // server-side) instead of a raw .update({status}) which editor RLS would
+  // reject anyway - this keeps one auditable choke point for going live.
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, publish }: { id: string; publish: boolean }) => {
+      const { error } = await (supabase.rpc as any)("publish_content", { _table: "tools", _id: id, _publish: publish });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tools"] });
+      logAuditAction("tool_status_change", "tool", vars.id, { status: vars.publish ? "published" : "draft" });
+      toast.success(vars.publish ? "Đã publish tool" : "Đã gỡ publish");
+    },
+    onError: (e: any) => toast.error(e.message || "Không thể publish"),
   });
 
   const [page, setPage] = useState(0);
@@ -468,9 +487,13 @@ export default function AdminTools() {
                       <Button variant="ghost" size="sm" onClick={() => setEditTool(tool)} className="text-xs h-7 px-2">
                         <Eye className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Xem</span>
                       </Button>
-                      <Button variant="default" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "published" })} className="text-xs h-7 px-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Duyệt</span>
-                      </Button>
+                      {isAdmin ? (
+                        <Button variant="default" size="sm" onClick={() => publishMutation.mutate({ id: tool.id, publish: true })} className="text-xs h-7 px-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Duyệt</span>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic px-2">Chờ admin duyệt</span>
+                      )}
                       <Button variant="destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: tool.id, status: "archived" })} className="text-xs h-7 px-2">
                         <XCircle className="h-3.5 w-3.5 sm:mr-1" /><span className="hidden sm:inline">Từ chối</span>
                       </Button>
@@ -601,9 +624,11 @@ export default function AdminTools() {
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-sm font-medium">Đã chọn {selectedIds.size} tool</span>
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "published" })}>
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Publish
-                </Button>
+                {isAdmin && (
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => Promise.all(selectedArray.map((id) => (supabase.rpc as any)("publish_content", { _table: "tools", _id: id, _publish: true }))).then(() => { queryClient.invalidateQueries({ queryKey: ["admin-tools"] }); setSelectedIds(new Set()); toast.success(`Đã publish ${selectedArray.length} tools`); })}>
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Publish
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedArray, status: "archived" })}>
                   Lưu trữ
                 </Button>
@@ -712,12 +737,21 @@ export default function AdminTools() {
                       </TableCell>
                       <TableCell>{(tool as any).categories?.name ?? "—"}</TableCell>
                       <TableCell>
-                        <Select value={tool.status} onValueChange={(v) => updateStatusMutation.mutate({ id: tool.id, status: v })}>
+                        <Select
+                          value={tool.status}
+                          onValueChange={(v) => {
+                            if (v === "published") { publishMutation.mutate({ id: tool.id, publish: true }); return; }
+                            updateStatusMutation.mutate({ id: tool.id, status: v });
+                          }}
+                        >
                           <SelectTrigger className="h-7 w-[130px]">
                             <Badge variant={statusColor(tool.status) as any} className="text-xs">{tool.status}</Badge>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="published">Published</SelectItem>
+                            {/* Editors cannot select "Published" directly - RLS would reject it
+                                anyway, so it's hidden and they must go through the pending_review
+                                queue for an admin to Publish. */}
+                            {isAdmin && <SelectItem value="published">Published</SelectItem>}
                             <SelectItem value="draft">Draft</SelectItem>
                             <SelectItem value="pending_review">Pending</SelectItem>
                             <SelectItem value="archived">Archived</SelectItem>
@@ -820,6 +854,7 @@ export default function AdminTools() {
 function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const [saving, setSaving] = useState(false);
   const [autoFilling, setAutoFilling] = useState(false);
   const [autoFillQuery, setAutoFillQuery] = useState("");
@@ -1024,7 +1059,11 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
       const { error } = await supabase.from("tools").update(payload).eq("id", tool.id);
       if (error) { toast.error(error.message); setSaving(false); return; }
     } else {
-      const { data: newTool, error } = await supabase.from("tools").insert({ ...payload, status: "published" as any }).select("id").single();
+      // Admins publish new tools immediately; editors (incl. an AI content
+      // agent) can only create pending_review rows - RLS would reject
+      // status: "published" from an editor anyway, but gate it here too so
+      // the insert doesn't just fail with a confusing DB error.
+      const { data: newTool, error } = await supabase.from("tools").insert({ ...payload, status: (isAdmin ? "published" : "pending_review") as any }).select("id").single();
       if (error) { toast.error(error.message); setSaving(false); return; }
       savedToolId = newTool?.id;
     }
@@ -1059,15 +1098,25 @@ function ToolFormDialog({ tool, open, onClose }: { tool: any; open: boolean; onC
     if (!fakeReview.title || !user?.id) return;
     const { error } = await supabase.from("reviews").insert({
       tool_id: tool.id, author_id: user.id, title: fakeReview.title,
-      content: fakeReview.content, is_editor_review: true, status: "published" as any,
+      content: fakeReview.content, is_editor_review: true,
+      // Editors' sample reviews land as draft (hidden from the public site
+      // per the "Published reviews viewable" policy) until an admin approves
+      // them via toggleReviewStatus below.
+      status: (isAdmin ? "published" : "draft") as any,
     });
     if (error) toast.error(error.message);
-    else { toast.success("Đã tạo review ảo"); setFakeReview({ title: "", content: "" }); refetchReviews(); }
+    else { toast.success(isAdmin ? "Đã tạo review ảo" : "Đã tạo review ảo (chờ admin duyệt)"); setFakeReview({ title: "", content: "" }); refetchReviews(); }
   };
 
   const toggleReviewStatus = async (id: string, current: string) => {
     const newStatus = current === "published" ? "draft" : "published";
-    await supabase.from("reviews").update({ status: newStatus as any }).eq("id", id);
+    // reviews RLS: "Users can update own reviews" allows author OR admin -
+    // no editor-specific status carve-out exists, so an editor toggling a
+    // review they didn't author to 'published' would be rejected by RLS.
+    // Only admins get this control in the UI.
+    if (!isAdmin) { toast.error("Chỉ admin mới được ẩn/hiển review"); return; }
+    const { error } = await supabase.from("reviews").update({ status: newStatus as any }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
     refetchReviews();
   };
 

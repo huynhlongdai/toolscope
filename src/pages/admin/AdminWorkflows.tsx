@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +15,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages, CheckCircle2 } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 
 export default function AdminWorkflows() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [editWf, setEditWf] = useState<any>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -40,6 +42,22 @@ export default function AdminWorkflows() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-workflows"] }); toast.success("Đã xóa"); },
+  });
+
+  // Admin-only: the ONLY path that flips a workflow's status to 'published'.
+  // Editors' RLS ("Users can update own workflows") rejects status='published'
+  // outright, so this goes through the publish_content() RPC (SECURITY
+  // DEFINER, admin-checked server-side) instead.
+  const publishMutation = useMutation({
+    mutationFn: async ({ id, publish }: { id: string; publish: boolean }) => {
+      const { error } = await (supabase.rpc as any)("publish_content", { _table: "workflows", _id: id, _publish: publish });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-workflows"] });
+      toast.success(vars.publish ? "Đã publish workflow" : "Đã gỡ publish");
+    },
+    onError: (e: any) => toast.error(e.message || "Không thể publish"),
   });
 
   const filtered = workflows.filter((w: any) => w.title.toLowerCase().includes(search.toLowerCase()));
@@ -86,6 +104,11 @@ export default function AdminWorkflows() {
                     <TableCell>{(wf.steps as any[])?.length || 0}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {isAdmin && wf.status !== "published" && (
+                          <Button variant="ghost" size="icon" title="Publish" onClick={() => publishMutation.mutate({ id: wf.id, publish: true })}>
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => setEditWf(wf)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa?")) deleteMut.mutate(wf.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -109,6 +132,7 @@ export default function AdminWorkflows() {
 
 function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: boolean; onClose: () => void; userId?: string }) {
   const queryClient = useQueryClient();
+  const { isAdmin } = useAdminAuth();
   const isNew = !wf?.id;
   const [saving, setSaving] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -273,7 +297,14 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
     };
 
     if (isNew) {
-      const { error } = await supabase.from("workflows").insert({ ...payload, author_id: userId } as any);
+      // Editors' INSERT RLS requires status IN (draft, pending_review) or NULL
+      // - the status Select below hides 'published'/'archived' for them, but
+      // guard here too in case status was pre-set some other way.
+      const insertPayload: any = { ...payload, author_id: userId };
+      if (!isAdmin && !(["draft", "pending_review"].includes(insertPayload.status))) {
+        insertPayload.status = "pending_review";
+      }
+      const { error } = await supabase.from("workflows").insert(insertPayload);
       if (error) { toast.error(error.message); setSaving(false); return; }
       toast.success("Đã tạo workflow");
     } else {
@@ -399,8 +430,11 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="pending_review">Pending Review</SelectItem>
+                    {/* Editors' RLS only allows draft/pending_review - publishing is an
+                        admin-only action done via the Publish button in the list. */}
+                    {isAdmin && <SelectItem value="published">Published</SelectItem>}
+                    {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>

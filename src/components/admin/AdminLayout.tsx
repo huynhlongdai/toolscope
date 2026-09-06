@@ -27,11 +27,11 @@ const navGroups = [
     items: [
       { title: "Tools", url: "/admin/tools", icon: Wrench, badgeKey: "pendingTools" as const },
       { title: "CollectAI", url: "/admin/collect", icon: BrainCircuit },
-      { title: "Blog Posts", url: "/admin/blog", icon: FileText },
-      { title: "Workflows", url: "/admin/workflows", icon: Workflow },
+      { title: "Blog Posts", url: "/admin/blog", icon: FileText, badgeKey: "pendingBlog" as const },
+      { title: "Workflows", url: "/admin/workflows", icon: Workflow, badgeKey: "pendingWorkflows" as const },
       { title: "Categories & Tags", url: "/admin/categories", icon: Tags },
       { title: "Pages", url: "/admin/pages", icon: FileStack },
-      { title: "Deals & Coupons", url: "/admin/deals", icon: Tag },
+      { title: "Deals & Coupons", url: "/admin/deals", icon: Tag, badgeKey: "pendingDeals" as const },
       { title: "Launches", url: "/admin/launches", icon: Rocket, badgeKey: "pendingLaunches" as const },
       { title: "Tasks", url: "/admin/tasks", icon: ListChecks },
     ],
@@ -59,21 +59,39 @@ const navGroups = [
   },
 ];
 
-type BadgeCounts = { pendingTools: number; pendingLaunches: number; pendingReports: number };
+type BadgeCounts = {
+  pendingTools: number;
+  pendingLaunches: number;
+  pendingReports: number;
+  pendingBlog: number;
+  pendingWorkflows: number;
+  pendingDeals: number;
+};
 
 function useSidebarBadges() {
   return useQuery({
     queryKey: ["admin-sidebar-badges"],
     queryFn: async () => {
-      const [tools, launches, reports] = await Promise.all([
+      const [tools, launches, reports, blog, workflows, deals] = await Promise.all([
         supabase.from("tools").select("id", { count: "exact", head: true }).eq("status", "draft"),
         supabase.from("launches").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        // Editor-authored content awaiting an admin's publish_content() call -
+        // see the 20260906040000 migration's content-approval RLS.
+        supabase.from("blog_posts").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+        supabase.from("workflows").select("id", { count: "exact", head: true }).eq("status", "pending_review"),
+        // deals has no content_status column - is_active=false is the closest
+        // analog, but that also matches admin-deactivated/expired deals, so
+        // this count is a rough "needs attention" signal rather than exact.
+        supabase.from("deals").select("id", { count: "exact", head: true }).eq("is_active", false),
       ]);
       return {
         pendingTools: tools.count || 0,
         pendingLaunches: launches.count || 0,
         pendingReports: reports.count || 0,
+        pendingBlog: blog.count || 0,
+        pendingWorkflows: workflows.count || 0,
+        pendingDeals: deals.count || 0,
       } as BadgeCounts;
     },
     staleTime: 30_000,

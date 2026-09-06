@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { Plus, Pencil, Trash2, Search, Tag, RefreshCw, Download, Sparkles, Trend
 export default function AdminDeals() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
   const [editDeal, setEditDeal] = useState<any>(null);
@@ -60,6 +62,24 @@ export default function AdminDeals() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-deals"] });
     },
+  });
+
+  // Admin-only: the ONLY path that flips a deal to is_active=true. Editors'
+  // RLS ("Editors can update deals keeping them inactive") rejects
+  // is_active=true outright, so activating goes through the
+  // publish_content() RPC (SECURITY DEFINER, admin-checked server-side).
+  // Deactivating (is_active=false) is allowed for editors too, so that
+  // keeps using the direct toggleActive mutation above.
+  const publishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.rpc as any)("publish_content", { _table: "deals", _id: id, _publish: true });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-deals"] });
+      toast.success("Đã kích hoạt deal");
+    },
+    onError: (e: any) => toast.error(e.message || "Không thể kích hoạt"),
   });
 
   const filtered = deals.filter((d: any) =>
@@ -163,7 +183,12 @@ export default function AdminDeals() {
                       <TableCell>
                         <Switch
                           checked={deal.is_active}
-                          onCheckedChange={(v) => toggleActive.mutate({ id: deal.id, active: v })}
+                          disabled={!isAdmin && !deal.is_active}
+                          title={!isAdmin && !deal.is_active ? "Chỉ admin được kích hoạt deal" : undefined}
+                          onCheckedChange={(v) => {
+                            if (v && !isAdmin) { publishMutation.mutate(deal.id); return; }
+                            toggleActive.mutate({ id: deal.id, active: v });
+                          }}
                         />
                       </TableCell>
                       <TableCell className="text-right">
@@ -415,6 +440,7 @@ function DealsAnalyticsTab({ deals }: { deals: any[] }) {
 /* ─── Deal Form Dialog ────────────────────────────── */
 function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onClose: () => void }) {
   const { user } = useAuth();
+  const { isAdmin } = useAdminAuth();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     tool_id: deal?.tool_id ?? "",
@@ -489,6 +515,13 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
       is_exclusive: form.is_exclusive,
       is_active: form.is_active,
     };
+
+    // Editors' RLS requires is_active = false on both INSERT and UPDATE
+    // ("Editors can insert inactive deals" / "...keeping them inactive") -
+    // the checkbox itself stays enabled so editors can prepare a deal, but
+    // it can't go live from this form; only the list's Switch (admin-only
+    // publish_content() path) can activate it.
+    if (!isAdmin) payload.is_active = false;
 
     if (deal) {
       const { error } = await (supabase.from("deals") as any).update(payload).eq("id", deal.id);
@@ -615,8 +648,8 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
               <Label>Độc quyền</Label>
             </div>
             <div className="flex items-center gap-2">
-              <Switch checked={form.is_active} onCheckedChange={(v) => update("is_active", v)} />
-              <Label>Hoạt động</Label>
+              <Switch checked={form.is_active} onCheckedChange={(v) => update("is_active", v)} disabled={!isAdmin} title={!isAdmin ? "Chỉ admin được kích hoạt deal" : undefined} />
+              <Label>Hoạt động{!isAdmin && <span className="text-xs text-muted-foreground ml-1">(chờ admin duyệt)</span>}</Label>
             </div>
           </div>
 
