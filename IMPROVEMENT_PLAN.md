@@ -11,22 +11,35 @@
 
 - [ ] 1.1 Hero Section: typewriter animation, floating search dropdown, animated stats
 - [ ] 1.2 ToolCard: logo skeleton, hover preview tooltip, "New" badge
-- [ ] 1.3 ToolDetail: mobile bottom-sheet sidebar, sticky only lg+, back-to-top button
-- [ ] 1.4 Auth: Google OAuth + GitHub OAuth buttons
+- [x] 1.3 ToolDetail: sticky only lg+, back-to-top button (done). Sidebar
+      "bottom-sheet" reinterpreted as collapsible cards (ScreenshotGallery,
+      AlternativesSection collapse by default on mobile) — functionally
+      equivalent scroll-fatigue fix, not a literal bottom-sheet drawer.
+- [ ] 1.4 Auth: Google OAuth + GitHub OAuth buttons — blocked, needs user to
+      create OAuth app credentials (Google Cloud Console / GitHub OAuth App)
+      and provide Client ID/Secret before this can be wired into Supabase Auth.
 
 ## Priority 2 — Functionality
 
 - [ ] 2.1 ToolsPage: multi-select categories, free-trial filter, AI score range, URL-persisted filters
 - [ ] 2.2 Search: 300ms debounce, autocomplete dropdown, localStorage history
 - [ ] 2.3 ComparePage: extract services/compare.ts, URL sharing, export PDF
-- [ ] 2.4 ToolDetail: load user's existing rating on mount
+      (mobile card/accordion view for the comparison table already done as
+      part of the mobile redesign batch — the desktop `<table>` + refactor
+      into services/compare.ts + PDF export are still pending)
+- [x] 2.4 ToolDetail: load user's existing rating on mount — done
+      (`fetchUserRating` query + `existingRating` effect already implemented)
 - [ ] 2.5 OptimizedImage component: lazy load, blur placeholder, Intersection Observer
 
 ## Priority 3 — Performance & Technical Debt
 
 - [ ] 3.1 Bundle: further split vendor-icons via dynamic import grouping
 - [ ] 3.2 Virtual list: @tanstack/react-virtual for ToolsPage list view
-- [ ] 3.3 SEO: Edge Function sitemap.xml, public/robots.txt
+- [x] 3.3 SEO: Edge Function sitemap.xml, public/robots.txt — done
+      (`supabase/functions/sitemap` covers both; VPS nginx proxy for
+      `/sitemap.xml` was found pointing at a stale/decommissioned Supabase
+      project ref and was fixed live + in repo `nginx.conf` + `supabase/config.toml`
+      this session — see session notes)
 - [ ] 3.4 Skeleton loading: unified skeleton components across all pages
 
 ## Priority 4 — UI Polish
