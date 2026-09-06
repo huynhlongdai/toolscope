@@ -98,6 +98,33 @@ Xây dựng hệ thống 3 role (`admin`/`editor`/`user`) để giao 1 tài kho�
 ## Mobile UX audit (7 việc)
 Audit toàn bộ site trên breakpoint mobile, phát hiện + fix 7 vấn đề: bảng admin bị tràn ngang (AdminNewsletter/AdminSync), form 2 cột bị bóp trên mobile (SubmitToolPage/ProfilePage), icon search header bị ẩn dưới `md:`, `ComparePage` bảng so sánh chuyển sang Accordion card-view trên mobile thay vì cuộn ngang, `TabsList` 4 tab bọc `overflow-x-auto` tránh vỡ layout, sidebar `ToolDetail` (`ScreenshotGallery`/`AlternativesSection`) thu gọn mặc định trên mobile (Radix `Collapsible` + `useIsMobile`) để giảm mỏi cuộn.
 
+## Mobile UX fix batch 2 (TabsList overflow + block-editor forms)
+Hoàn thiện tiếp phần audit mobile: `AdminWorkflows.tsx`/`AdminBlog.tsx`/`AdminTranslations.tsx` — `TabsList` bọc trong `ScrollArea` (`inline-flex w-auto min-w-full sm:grid sm:grid-cols-N`, mỗi `TabsTrigger` thêm `whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3`) để tránh vỡ layout khi tab dài hơn màn hình; `LeaderboardPage.tsx` (chỉ 3 tab ngắn, trang public) dùng cách nhẹ hơn — icon + `<span className="truncate">`, không cần ScrollArea. `AdminPageEditor.tsx`: 9 chỗ `grid-cols-N` cứng đổi thành `grid-cols-1 sm:grid-cols-N`, 6 hàng `flex gap-2` nhiều Input thêm `flex-wrap`. Xác nhận component `Table` gốc của shadcn đã có sẵn `overflow-auto` wrapper nên bảng dữ liệu admin không cần fix thêm. Build + `npx vitest run` (26/26) pass, commit `dc35738`.
+
+## Autosave / khôi phục bản nháp cho content editor (hướng tới trải nghiệm kiểu WordPress)
+`RichTextEditor.tsx` nhận thêm prop `autosaveKey?: string` — khi được truyền, mỗi lần gõ sẽ debounce 2s rồi lưu HTML vào `localStorage` (key `rte-autosave:<autosaveKey>`); khi mở lại editor, nếu có bản nháp khác với nội dung ban đầu, hiện banner "Có bản nháp tự động lưu lúc ..." cho phép **Khôi phục** hoặc **Bỏ**; footer hiện trạng thái "Đã lưu nháp {giờ}". Có hàm export `clearAutosaveDraft(autosaveKey)` để trang cha gọi sau khi lưu DB thành công, tránh banner nháp cũ hiện lại lần sau. Đã gắn `autosaveKey` vào cả 4 nơi dùng `RichTextEditor`:
+- `AdminBlog.tsx` — nội dung bài blog, key `blog-${post.id}` / `blog-new`
+- `AdminPageEditor.tsx` — block loại "text" trong page builder, key `page-${id}-block-${idx}`
+- `AdminTools.tsx` — mô tả + nội dung chi tiết tool, key `tool-desc-*` / `tool-detail-*`
+
+Tính năng hoàn toàn client-side (không cần migration/deploy Supabase), build + `npx vitest run` (26/26) pass, commit `d698e6d`.
+
+## API cho AI Agent viết/đăng/cập nhật bài (edge function `agent-content-api`)
+Edge function mới `supabase/functions/agent-content-api/index.ts` — một endpoint HTTP thống nhất để 1 tài khoản **editor** (ví dụ do 1 AI agent điều khiển, tạo qua `invite-editor` sẵn có) có thể tự viết/sửa/gửi duyệt/đọc/xoá bài blog, dùng chính token của người gọi (không dùng service-role) nên RLS DB vẫn là lớp chặn cuối cùng. Đã deploy production, verify bằng curl (trả 401 rõ ràng khi token không hợp lệ, CORS OPTIONS trả 200).
+
+- **Endpoint**: `POST https://yntzlkzckvxlfrrqmmwm.supabase.co/functions/v1/agent-content-api`
+- **Header**: `Authorization: Bearer <access_token của tài khoản editor>` (lấy qua `supabase.auth.signInWithPassword`)
+- **Body** `{ "action": "...", ...params }`, các `action` hỗ trợ:
+  - `create` — tạo bài mới (`title`, `content` bắt buộc; `slug` tự sinh từ title nếu thiếu). Editor luôn tạo ở trạng thái `draft` hoặc `pending_review` (không bao giờ tự `published` được, RLS chặn).
+  - `update` — sửa bài đã có (`id` bắt buộc); nếu editor sửa bài đang `published`, tự động chuyển về `pending_review` để admin duyệt lại.
+  - `submit_for_review` — chuyển 1 bài `draft` sang `pending_review`, tự động tạo `notifications` cho tất cả admin.
+  - `publish` — chỉ admin gọi được, thực hiện qua RPC `publish_content` sẵn có.
+  - `get` — lấy 1 bài theo `id` hoặc `slug`.
+  - `list` — danh sách có phân trang (`limit`/`offset`), lọc theo `status`/`author_id`; editor mặc định chỉ thấy bài của mình trừ khi truyền `all: true`.
+  - `delete` — editor chỉ xoá được bài của chính mình và chưa `published` (migration RLS mới `20260906081500_editor_delete_own_draft_posts.sql`); admin xoá tự do (vẫn theo RLS).
+- **Đã deploy**: migration + function đều đã lên production (`yntzlkzckvxlfrrqmmwm`), commit `d698e6d`.
+- **Chưa làm**: chưa mở rộng sang `tools`/`workflows`/`deals` (hiện chỉ `blog_posts`); chưa có test tích hợp thực tế bằng 1 tài khoản editor thật (mới verify được lỗi 401/CORS, chưa test luồng create→submit→publish end-to-end).
+
 ## Fix bug SEO production: sitemap.xml
 Phát hiện `nginx.conf` (cả bản trong repo lẫn bản sống trên VPS) proxy `/sitemap.xml` về project Supabase **cũ đã ngừng dùng** (`pzwtcburehrbxfangtzc`) — request rơi qua SPA fallback, trả về HTML thay vì XML, khiến Google Search Console thấy sitemap rỗng/hỏng. Đã sửa cả 2 nơi trỏ về project đúng (`yntzlkzckvxlfrrqmmwm`), apply trực tiếp trên VPS qua SSH (backup config cũ → patch → `nginx -t` → reload), verify live trả về XML hợp lệ 27 `<url>`. Đồng thời sửa luôn `supabase/config.toml` `project_id` bị lệch (bug đã biết từ trước, chưa fix).
 
