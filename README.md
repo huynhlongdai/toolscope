@@ -87,6 +87,18 @@ curl http://localhost:3000
 
 ## Deploy
 - **Production LIVE**: `https://astute.tools` — VPS `57.155.90.49` (nginx + Let's Encrypt SSL), SSH qua `azureuser` + `~/.ssh/astute_tools_key.pem` + sudo. `.env` (project Supabase cũ) và `.env.local` (project Supabase mới đang dùng, override) đều đã có trong `.gitignore`, không commit lên git.
+- **Cách deploy bản mới lên VPS** (thư mục web root `/var/www/astute.tools` chỉ chứa static build, không phải git clone):
+  ```bash
+  cd /home/user/toolscope && npm run build
+  tar -czf /tmp/dist_deploy.tar.gz -C dist .
+  scp -i ~/.ssh/astute_tools_key.pem /tmp/dist_deploy.tar.gz azureuser@57.155.90.49:/tmp/
+  ssh -i ~/.ssh/astute_tools_key.pem azureuser@57.155.90.49 '
+    sudo cp -r /var/www/astute.tools /var/www/astute.tools.backup_$(date +%Y%m%d_%H%M%S)
+    sudo rm -rf /var/www/astute.tools/* && sudo tar -xzf /tmp/dist_deploy.tar.gz -C /var/www/astute.tools
+    sudo chown -R www-data:www-data /var/www/astute.tools && rm -f /tmp/dist_deploy.tar.gz'
+  ```
+  Luôn tự động backup thư mục cũ (`astute.tools.backup_<timestamp>`) trước khi ghi đè — cần rollback thì `sudo rm -rf /var/www/astute.tools && sudo mv /var/www/astute.tools.backup_<timestamp> /var/www/astute.tools`.
+- **2026-09-06**: đã deploy bản mới nhất (Task 3 mobile fix + Task 4 autosave + Task 5 agent-content-api, commit `146815c`) lên VPS production, verify `https://astute.tools` trả 200, asset hash (`index-CCA2GvvT.js`) khớp đúng bản build local, `/blog`, `/admin/blog`, `/sitemap.xml` đều 200.
 
 ## Phân quyền Admin/Editor/Viewer (P0-1 → P0-5)
 Xây dựng hệ thống 3 role (`admin`/`editor`/`user`) để giao 1 tài khoản editor an toàn cho AI agent hỗ trợ tạo nội dung — editor dùng được mọi tool tạo nội dung nhưng **không bao giờ tự publish được**, và bị khoá khỏi Settings/Users/Backup/Danger-Zone/API-keys.
