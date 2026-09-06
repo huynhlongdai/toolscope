@@ -113,9 +113,19 @@ const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNo
   ],
 };
 
-/** Wraps admin element with auth guard */
+/** Wraps admin element with auth guard (admin OR editor allowed) */
 function adminRoute(element: React.ReactNode) {
   return <AdminGuard>{element}</AdminGuard>;
+}
+
+/**
+ * Wraps admin element with a STRICTER auth guard: only admins may pass,
+ * editors are redirected to /admin. Use for sensitive routes that must
+ * stay out of an editor/AI-agent's reach: Settings, Users, Backup,
+ * Audit Logs, Sync.
+ */
+function adminOnlyRoute(element: React.ReactNode) {
+  return <AdminGuard adminOnly>{element}</AdminGuard>;
 }
 
 function AppRoutes() {
@@ -147,7 +157,7 @@ function AppRoutes() {
         {/* Admin routes (guarded) */}
         <Route path="/admin" element={adminRoute(<AdminDashboard />)} />
         <Route path="/admin/tools" element={adminRoute(<AdminTools />)} />
-        <Route path="/admin/users" element={adminRoute(<AdminUsers />)} />
+        <Route path="/admin/users" element={adminOnlyRoute(<AdminUsers />)} />
         <Route path="/admin/reviews" element={adminRoute(<AdminReviews />)} />
         <Route path="/admin/moderation" element={adminRoute(<AdminModeration />)} />
         <Route path="/admin/blog" element={adminRoute(<AdminBlog />)} />
@@ -161,14 +171,14 @@ function AppRoutes() {
         <Route path="/admin/deals" element={adminRoute(<AdminDeals />)} />
         <Route path="/admin/launches" element={adminRoute(<AdminLaunches />)} />
         <Route path="/admin/tasks" element={adminRoute(<AdminTasks />)} />
-        <Route path="/admin/settings" element={adminRoute(<AdminSettings />)} />
+        <Route path="/admin/settings" element={adminOnlyRoute(<AdminSettings />)} />
         <Route path="/admin/reports" element={adminRoute(<AdminReports />)} />
-        <Route path="/admin/audit-logs" element={adminRoute(<AdminAuditLogs />)} />
+        <Route path="/admin/audit-logs" element={adminOnlyRoute(<AdminAuditLogs />)} />
         <Route path="/admin/newsletter" element={adminRoute(<AdminNewsletter />)} />
         <Route path="/admin/translations" element={adminRoute(<AdminTranslations />)} />
-        <Route path="/admin/backup" element={adminRoute(<AdminBackup />)} />
+        <Route path="/admin/backup" element={adminOnlyRoute(<AdminBackup />)} />
         <Route path="/admin/analytics" element={adminRoute(<AdminAnalytics />)} />
-        <Route path="/admin/sync" element={adminRoute(<AdminSync />)} />
+        <Route path="/admin/sync" element={adminOnlyRoute(<AdminSync />)} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AnalyticsProvider />

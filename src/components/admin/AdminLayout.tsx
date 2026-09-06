@@ -12,7 +12,8 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 
-import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3 } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3, RefreshCw } from "lucide-react";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const navGroups = [
   {
@@ -39,7 +40,8 @@ const navGroups = [
   {
     label: "Cộng đồng",
     items: [
-      { title: "Users", url: "/admin/users", icon: Users },
+      // adminOnly: user/role management must stay out of an editor/AI-agent's reach
+      { title: "Users", url: "/admin/users", icon: Users, adminOnly: true },
       { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
       { title: "Reports", url: "/admin/reports", icon: AlertTriangle, badgeKey: "pendingReports" as const },
       { title: "Moderation", url: "/admin/moderation", icon: Shield },
@@ -52,9 +54,12 @@ const navGroups = [
       { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
       { title: "Translations", url: "/admin/translations", icon: Languages },
       { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
-      { title: "Audit Logs", url: "/admin/audit-logs", icon: History },
-      { title: "Backup", url: "/admin/backup", icon: Database },
-      { title: "Cài đặt", url: "/admin/settings", icon: Settings },
+      // adminOnly: these routes are gated admin-only in App.tsx (adminOnlyRoute) -
+      // hide from editors' sidebar so it matches what they can actually access.
+      { title: "Audit Logs", url: "/admin/audit-logs", icon: History, adminOnly: true },
+      { title: "Backup", url: "/admin/backup", icon: Database, adminOnly: true },
+      { title: "Sync", url: "/admin/sync", icon: RefreshCw, adminOnly: true },
+      { title: "Cài đặt", url: "/admin/settings", icon: Settings, adminOnly: true },
     ],
   },
 ];
@@ -103,6 +108,17 @@ function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { data: badges } = useSidebarBadges();
+  const { isAdmin } = useAdminAuth();
+
+  // Hide admin-only nav items (Users/Audit Logs/Backup/Sync/Settings) from
+  // editors entirely - keeps the sidebar consistent with the adminOnlyRoute()
+  // guards in App.tsx that already block direct navigation to these URLs.
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !(item as any).adminOnly || isAdmin),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -120,7 +136,7 @@ function AdminSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navGroups.map((group) => (
+              {visibleGroups.map((group) => (
                 <div key={group.label} className="mb-2">
                   {!collapsed && (
                     <p className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
@@ -184,12 +200,18 @@ function getPersistedSidebarState(): boolean {
 }
 
 /**
- * NOTE: Auth/role checking is intentionally NOT done here anymore.
- * Every admin page that renders <AdminLayout> is already wrapped by
- * <AdminGuard> in App.tsx's adminRoute() helper, which performs the
- * loading/redirect/role check exactly once before this component ever
- * mounts. Re-checking here (as before) caused a duplicate useAdminAuth()
- * fetch on every admin page load. See src/components/AdminGuard.tsx.
+ * NOTE: Route-level redirect/access checking is intentionally NOT done
+ * here. Every admin page that renders <AdminLayout> is already wrapped
+ * by <AdminGuard> in App.tsx's adminRoute()/adminOnlyRoute() helpers,
+ * which perform the loading/redirect/role check exactly once before
+ * this component ever mounts. See src/components/AdminGuard.tsx.
+ *
+ * AdminSidebar's own useAdminAuth() call (above) is only used to filter
+ * which nav items are rendered (hide Users/Backup/Audit Logs/Sync/
+ * Settings from editors) - it does not redirect. Because useAdminAuth()
+ * is backed by a React Query cache keyed on the user id, this does not
+ * trigger a duplicate network fetch beyond the one AdminGuard already
+ * made.
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
   const [defaultOpen] = useState(() => !getPersistedSidebarState());

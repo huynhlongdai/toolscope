@@ -87,4 +87,35 @@ describe("AdminGuard", () => {
 
     expect(screen.getByText("Admin Content")).toBeInTheDocument();
   });
+
+  // P0-4: sensitive routes (Settings/Users/Backup/Audit Logs/Sync) pass
+  // adminOnly, which must deny editors even though they pass the normal
+  // isAdminOrEditor check.
+  it("redirects editor away when adminOnly is set", () => {
+    const fakeUser = { id: "456" } as any;
+    mockedUseAuth.mockReturnValue({ user: fakeUser, session: null, loading: false, signOut: vi.fn() });
+    mockedUseAdminAuth.mockReturnValue({ isAdmin: false, isEditor: true, isAdminOrEditor: true, loading: false, user: fakeUser });
+
+    render(
+      <MemoryRouter initialEntries={["/admin/settings"]}>
+        <AdminGuard adminOnly><div>Sensitive Content</div></AdminGuard>
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByText("Sensitive Content")).not.toBeInTheDocument();
+  });
+
+  it("renders children for admin when adminOnly is set", () => {
+    const fakeUser = { id: "123" } as any;
+    mockedUseAuth.mockReturnValue({ user: fakeUser, session: null, loading: false, signOut: vi.fn() });
+    mockedUseAdminAuth.mockReturnValue({ isAdmin: true, isEditor: false, isAdminOrEditor: true, loading: false, user: fakeUser });
+
+    render(
+      <MemoryRouter initialEntries={["/admin/settings"]}>
+        <AdminGuard adminOnly><div>Sensitive Content</div></AdminGuard>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText("Sensitive Content")).toBeInTheDocument();
+  });
 });
