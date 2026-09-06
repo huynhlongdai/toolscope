@@ -6,6 +6,7 @@ import { useTranslatedContent } from "@/hooks/useTranslatedContent";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { ArrowLeft, Calendar, Eye, User, List, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -370,7 +371,7 @@ export default function BlogDetail() {
                     {relatedPosts.map((rp: any) => (
                       <Link key={rp.id} to={`/blog/${rp.slug}`} className="flex gap-3 group">
                         {rp.cover_image_url && (
-                          <img src={rp.cover_image_url} alt={rp.title} className="h-16 w-24 rounded-md object-cover flex-shrink-0" />
+                          <OptimizedImage src={rp.cover_image_url} alt={rp.title} wrapperClassName="h-16 w-24 rounded-md flex-shrink-0" className="h-full w-full object-cover" />
                         )}
                         <div className="min-w-0">
                           <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{rp.title}</p>
@@ -456,7 +457,7 @@ export default function BlogDetail() {
                     {relatedPosts.map((rp: any) => (
                       <Link key={rp.id} to={`/blog/${rp.slug}`} className="flex gap-3 group">
                         {rp.cover_image_url && (
-                          <img src={rp.cover_image_url} alt={rp.title} className="h-14 w-20 rounded-md object-cover flex-shrink-0" />
+                          <OptimizedImage src={rp.cover_image_url} alt={rp.title} wrapperClassName="h-14 w-20 rounded-md flex-shrink-0" className="h-full w-full object-cover" />
                         )}
                         <div className="min-w-0">
                           <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">{rp.title}</p>

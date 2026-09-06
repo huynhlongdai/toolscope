@@ -29,7 +29,14 @@
       into services/compare.ts + PDF export are still pending)
 - [x] 2.4 ToolDetail: load user's existing rating on mount — done
       (`fetchUserRating` query + `existingRating` effect already implemented)
-- [ ] 2.5 OptimizedImage component: lazy load, blur placeholder, Intersection Observer
+- [x] 2.5 OptimizedImage component: lazy load, blur placeholder, Intersection Observer
+      — component existed (`src/components/ui/OptimizedImage.tsx`) but was
+      unused anywhere; wired it into ToolCard.tsx (logo, highest repeat count
+      site-wide), BlogPage.tsx + WorkflowsPage.tsx (grid cover images), and
+      BlogDetail.tsx related-posts thumbnails (below-fold, lazy-safe).
+      Intentionally NOT applied to BlogDetail's main article hero cover image
+      (likely LCP element) — IntersectionObserver-gated lazy load would delay
+      the largest above-fold paint instead of helping it.
 
 ## Priority 3 — Performance & Technical Debt
 

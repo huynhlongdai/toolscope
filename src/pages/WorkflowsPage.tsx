@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { Link } from "react-router-dom";
 import { Workflow, ArrowRight, Eye, ThumbsUp } from "lucide-react";
 import { useTranslatedList } from "@/hooks/useTranslatedContent";
@@ -60,9 +61,12 @@ const WorkflowsPage = () => {
                   <Link key={wf.id} to={`/workflow/${wf.slug}`}>
                     <Card className="group h-full transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20">
                       {wf.cover_image_url && (
-                        <div className="h-36 overflow-hidden rounded-t-xl">
-                          <img src={wf.cover_image_url} alt={displayTitle} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
-                        </div>
+                        <OptimizedImage
+                          src={wf.cover_image_url}
+                          alt={displayTitle}
+                          wrapperClassName="h-36 rounded-t-xl"
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                        />
                       )}
                       <CardContent className="p-5">
                         <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{displayTitle}</h3>

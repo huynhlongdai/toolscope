@@ -6,6 +6,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { Link, useSearchParams } from "react-router-dom";
 import { Calendar, Eye, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -120,9 +121,12 @@ export default function BlogPage() {
               <Link key={post.id} to={`/blog/${post.slug}`}>
                 <Card className="h-full overflow-hidden transition-all hover:shadow-lg hover:border-primary/30">
                   {post.cover_image_url && (
-                    <div className="aspect-video overflow-hidden">
-                      <img src={post.cover_image_url} alt={post.title} className="h-full w-full object-cover transition-transform hover:scale-105" />
-                    </div>
+                    <OptimizedImage
+                      src={post.cover_image_url}
+                      alt={post.title}
+                      wrapperClassName="aspect-video"
+                      className="h-full w-full object-cover transition-transform hover:scale-105"
+                    />
                   )}
                   <CardHeader className="pb-2">
                     <div className="mb-1">

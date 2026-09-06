@@ -1,9 +1,9 @@
-import { memo, useState } from "react";
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { Star, ExternalLink, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { getToolLogoUrl } from "@/lib/favicon";
 import { cn } from "@/lib/utils";
 
@@ -65,36 +65,29 @@ export const ToolCard = memo(function ToolCard({
   createdAt,
 }: ToolCardProps) {
   const resolvedLogo = getToolLogoUrl(logoUrl, websiteUrl);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgError, setImgError] = useState(false);
 
   const isNew = createdAt
     ? (Date.now() - new Date(createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000
     : false;
 
-  const logoEl = (
+  const logoEl = resolvedLogo ? (
+    <OptimizedImage
+      src={resolvedLogo}
+      alt={name}
+      wrapperClassName={cn(
+        "relative flex shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground",
+        variant === "list" ? "h-10 w-10" : "h-12 w-12"
+      )}
+      skeletonClassName="rounded-xl"
+      className="h-full w-full rounded-xl object-cover"
+      fallback={name.charAt(0).toUpperCase()}
+    />
+  ) : (
     <div className={cn(
       "relative flex shrink-0 items-center justify-center rounded-xl bg-muted text-lg font-bold text-muted-foreground overflow-hidden",
       variant === "list" ? "h-10 w-10" : "h-12 w-12"
     )}>
-      {resolvedLogo && !imgError ? (
-        <>
-          {!imgLoaded && <Skeleton className="absolute inset-0 rounded-xl" />}
-          <img
-            src={resolvedLogo}
-            alt={name}
-            loading="lazy"
-            onLoad={() => setImgLoaded(true)}
-            onError={() => setImgError(true)}
-            className={cn(
-              "h-full w-full rounded-xl object-cover transition-opacity duration-200",
-              imgLoaded ? "opacity-100" : "opacity-0"
-            )}
-          />
-        </>
-      ) : (
-        name.charAt(0).toUpperCase()
-      )}
+      {name.charAt(0).toUpperCase()}
     </div>
   );
 
