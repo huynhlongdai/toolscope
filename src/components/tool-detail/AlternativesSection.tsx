@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ToolCard } from "@/components/tools/ToolCard";
-import { ArrowRightLeft } from "lucide-react";
+import { ArrowRightLeft, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   toolId: string;
@@ -11,6 +14,9 @@ interface Props {
 }
 
 export function AlternativesSection({ toolId, toolName, categoryId }: Props) {
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const expanded = open || !isMobile;
   // Fetch from tool_alternatives table first
   const { data: directAlts } = useQuery({
     queryKey: ["tool-alternatives-direct", toolId],
@@ -63,30 +69,41 @@ export function AlternativesSection({ toolId, toolName, categoryId }: Props) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <ArrowRightLeft className="h-4 w-4" /> Alternatives cho {toolName}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {alternatives.map((alt) => (
-          <ToolCard
-            key={alt.id}
-            id={alt.id}
-            name={alt.name}
-            slug={alt.slug}
-            shortDescription={alt.short_description || undefined}
-            logoUrl={alt.logo_url || undefined}
-            websiteUrl={alt.website_url || undefined}
-            pricingType={alt.pricing_type}
-            avgRating={Number(alt.avg_rating) || 0}
-            ratingCount={alt.rating_count}
-            categoryName={(alt.categories as any)?.name}
-            isAiRecommended={(alt.ai_scores as any)?.is_recommended}
-            aiScore={(alt.ai_scores as any)?.overall_score ? Number((alt.ai_scores as any).overall_score) : undefined}
-          />
-        ))}
-      </CardContent>
+      <Collapsible open={expanded} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild disabled={!isMobile}>
+          <CardHeader className={isMobile ? "cursor-pointer select-none" : ""}>
+            <CardTitle className="text-base flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4" /> Alternatives cho {toolName}
+              </span>
+              {isMobile && (
+                <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              )}
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-3">
+            {alternatives.map((alt) => (
+              <ToolCard
+                key={alt.id}
+                id={alt.id}
+                name={alt.name}
+                slug={alt.slug}
+                shortDescription={alt.short_description || undefined}
+                logoUrl={alt.logo_url || undefined}
+                websiteUrl={alt.website_url || undefined}
+                pricingType={alt.pricing_type}
+                avgRating={Number(alt.avg_rating) || 0}
+                ratingCount={alt.rating_count}
+                categoryName={(alt.categories as any)?.name}
+                isAiRecommended={(alt.ai_scores as any)?.is_recommended}
+                aiScore={(alt.ai_scores as any)?.overall_score ? Number((alt.ai_scores as any).overall_score) : undefined}
+              />
+            ))}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

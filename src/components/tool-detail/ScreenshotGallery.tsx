@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Images, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Images, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   toolId: string;
@@ -13,6 +15,9 @@ interface Props {
 export function ScreenshotGallery({ toolId, toolName }: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
+  const expanded = open || !isMobile;
 
   const { data: screenshots } = useQuery({
     queryKey: ["tool-screenshots", toolId],
@@ -36,48 +41,59 @@ export function ScreenshotGallery({ toolId, toolName }: Props) {
   return (
     <>
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Images className="h-4 w-4" /> Screenshots ({screenshots.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative group cursor-pointer" onClick={() => setLightbox(true)}>
-            <img
-              src={screenshots[activeIdx].image_url}
-              alt={screenshots[activeIdx].caption || `${toolName} screenshot ${activeIdx + 1}`}
-              className="w-full rounded-lg object-cover max-h-[300px]"
-              loading="lazy"
-            />
-            {screenshots.length > 1 && (
-              <>
-                <button onClick={(e) => { e.stopPropagation(); prev(); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); next(); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            )}
-          </div>
-          {screenshots[activeIdx].caption && (
-            <p className="text-xs text-muted-foreground mt-2">{screenshots[activeIdx].caption}</p>
-          )}
-          {screenshots.length > 1 && (
-            <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
-              {screenshots.map((s: any, i: number) => (
-                <button key={s.id} onClick={() => setActiveIdx(i)}
-                  className={`shrink-0 rounded-md overflow-hidden border-2 transition-colors ${
-                    i === activeIdx ? "border-primary" : "border-transparent"
-                  }`}>
-                  <img src={s.image_url} alt="" className="h-12 w-16 object-cover" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          )}
-        </CardContent>
+        <Collapsible open={expanded} onOpenChange={setOpen}>
+          <CollapsibleTrigger asChild disabled={!isMobile}>
+            <CardHeader className={`pb-2 ${isMobile ? "cursor-pointer select-none" : ""}`}>
+              <CardTitle className="text-base flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <Images className="h-4 w-4" /> Screenshots ({screenshots.length})
+                </span>
+                {isMobile && (
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+                )}
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="relative group cursor-pointer" onClick={() => setLightbox(true)}>
+                <img
+                  src={screenshots[activeIdx].image_url}
+                  alt={screenshots[activeIdx].caption || `${toolName} screenshot ${activeIdx + 1}`}
+                  className="w-full rounded-lg object-cover max-h-[300px]"
+                  loading="lazy"
+                />
+                {screenshots.length > 1 && (
+                  <>
+                    <button onClick={(e) => { e.stopPropagation(); prev(); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); next(); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+              {screenshots[activeIdx].caption && (
+                <p className="text-xs text-muted-foreground mt-2">{screenshots[activeIdx].caption}</p>
+              )}
+              {screenshots.length > 1 && (
+                <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1">
+                  {screenshots.map((s: any, i: number) => (
+                    <button key={s.id} onClick={() => setActiveIdx(i)}
+                      className={`shrink-0 rounded-md overflow-hidden border-2 transition-colors ${
+                        i === activeIdx ? "border-primary" : "border-transparent"
+                      }`}>
+                      <img src={s.image_url} alt="" className="h-12 w-16 object-cover" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* Lightbox */}

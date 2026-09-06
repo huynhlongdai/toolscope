@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   GitCompareArrows, Plus, X, Star, Check, Minus, Calculator,
   TrendingUp, Users, DollarSign, BarChart3, Clock, Zap, ArrowRightLeft, Share2
@@ -428,6 +430,7 @@ function ProductivityScore({ tools, t }: { tools: ToolWithScores[]; t: (key: str
 /* ─── Main Compare Page ─── */
 export default function ComparePage() {
   const { t } = useI18n();
+  const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedIds = useMemo(() => {
     const ids = searchParams.get("tools")?.split(",").filter(Boolean) || [];
@@ -575,58 +578,103 @@ export default function ComparePage() {
             />
           ) : (
             <Tabs defaultValue="table" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <TabsList className="grid grid-cols-4 max-w-lg">
-                  <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
-                  <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
-                  <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
-                  <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
-                </TabsList>
-                <Button variant="outline" size="sm" className="gap-2" onClick={handleShareUrl}>
+              {/* Tab bar + Share button: on narrow screens the 4 Vietnamese-
+                  label tabs (grid-cols-4 in a max-w-lg) can get tight, so the
+                  bar scrolls horizontally instead of shrinking/wrapping tab
+                  text, and Share moves below on its own row. */}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="overflow-x-auto">
+                  <TabsList className="inline-flex w-max sm:grid sm:grid-cols-4 sm:w-full sm:max-w-lg">
+                    <TabsTrigger value="table">{t("compare.tabTable")}</TabsTrigger>
+                    <TabsTrigger value="charts">{t("compare.tabCharts")}</TabsTrigger>
+                    <TabsTrigger value="pricing">{t("compare.tabPricing")}</TabsTrigger>
+                    <TabsTrigger value="tools">{t("compare.tabTools")}</TabsTrigger>
+                  </TabsList>
+                </div>
+                <Button variant="outline" size="sm" className="gap-2 self-end sm:self-auto" onClick={handleShareUrl}>
                   <Share2 className="h-4 w-4" /> Share
                 </Button>
               </div>
 
               {/* TAB: Table */}
               <TabsContent value="table" className="space-y-6">
-                <Card>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="w-36 p-4 text-left text-sm font-medium text-muted-foreground" />
-                          {tools.map((tool) => (
-                            <th key={tool.id} className="p-4 text-center" style={{ width: `${100 / (colCount + 1)}%` }}>
-                              <div className="flex flex-col items-center gap-2">
-                                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-lg font-bold">
-                                  {tool.logo_url
-                                    ? <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-xl object-cover" />
-                                    : tool.name.charAt(0)}
-                                </div>
-                                <span className="font-semibold text-sm">{tool.name}</span>
-                                {tool.ai_scores?.is_recommended && (
-                                  <Badge className="bg-primary/90 text-primary-foreground text-[10px]">⚡ AI Recommended</Badge>
-                                )}
+                {isMobile ? (
+                  /* Mobile: a horizontally-scrolling side-by-side <table> is
+                     awkward to read one-handed, so swap to a per-tool
+                     accordion instead - each tool is its own collapsible
+                     card listing every compareRows entry as a label/value
+                     pair, no horizontal scrolling required. */
+                  <Accordion type="multiple" defaultValue={tools.map((tl) => tl.id)} className="space-y-3">
+                    {tools.map((tool) => (
+                      <AccordionItem key={tool.id} value={tool.id} className="rounded-lg border border-border bg-card px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-sm font-bold">
+                              {tool.logo_url
+                                ? <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-lg object-cover" />
+                                : tool.name.charAt(0)}
+                            </div>
+                            <div className="text-left">
+                              <p className="font-semibold text-sm">{tool.name}</p>
+                              {tool.ai_scores?.is_recommended && (
+                                <Badge className="bg-primary/90 text-primary-foreground text-[10px] mt-0.5">⚡ AI Recommended</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 pt-1">
+                            {compareRows.map((row) => (
+                              <div key={row.key} className="flex items-center justify-between border-b border-border/50 py-1.5 last:border-0">
+                                <span className="text-xs text-muted-foreground">{row.label}</span>
+                                <div className="text-sm">{row.render(tool)}</div>
                               </div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {compareRows.map((row, i) => (
-                          <tr key={row.key} className={i % 2 === 0 ? "bg-muted/20" : ""}>
-                            <td className="p-3 text-sm font-medium text-muted-foreground">{row.label}</td>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <Card>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="w-36 p-4 text-left text-sm font-medium text-muted-foreground" />
                             {tools.map((tool) => (
-                              <td key={tool.id} className="p-3 text-center text-sm">
-                                <div className="flex items-center justify-center">{row.render(tool)}</div>
-                              </td>
+                              <th key={tool.id} className="p-4 text-center" style={{ width: `${100 / (colCount + 1)}%` }}>
+                                <div className="flex flex-col items-center gap-2">
+                                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-lg font-bold">
+                                    {tool.logo_url
+                                      ? <img src={tool.logo_url} alt={tool.name} className="h-full w-full rounded-xl object-cover" />
+                                      : tool.name.charAt(0)}
+                                  </div>
+                                  <span className="font-semibold text-sm">{tool.name}</span>
+                                  {tool.ai_scores?.is_recommended && (
+                                    <Badge className="bg-primary/90 text-primary-foreground text-[10px]">⚡ AI Recommended</Badge>
+                                  )}
+                                </div>
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
+                        </thead>
+                        <tbody>
+                          {compareRows.map((row, i) => (
+                            <tr key={row.key} className={i % 2 === 0 ? "bg-muted/20" : ""}>
+                              <td className="p-3 text-sm font-medium text-muted-foreground">{row.label}</td>
+                              {tools.map((tool) => (
+                                <td key={tool.id} className="p-3 text-center text-sm">
+                                  <div className="flex items-center justify-center">{row.render(tool)}</div>
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
 
                 {/* Pros / Cons */}
                 <div className={`grid gap-4 ${compareGridCols(colCount)}`}>
