@@ -378,6 +378,7 @@ function DocsTab() {
   -H "Authorization: Bearer sk_agent_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \\
   -H "Content-Type: application/json" \\
   -d '{
+    "resource": "blog_posts",
     "action": "create",
     "title": "Bài viết đầu tiên của agent",
     "content": "<p>Nội dung bài viết...</p>",
@@ -392,6 +393,7 @@ function DocsTab() {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
+    resource: "tools",       // "blog_posts" (mặc định) | "tools" | "deals" | "translations"
     action: "list",
     status: "pending_review",
     limit: 20,
@@ -399,44 +401,70 @@ function DocsTab() {
 });
 const data = await res.json();`;
 
-  const fullPrompt = `Bạn là một AI agent viết nội dung cho website, tích hợp qua API sau:
+  const fullPrompt = `Bạn là một AI agent quản lý nội dung cho website, tích hợp qua MỘT API duy nhất, hỗ trợ 4 loại nội dung (resource): bài viết, tools, voucher/deal, và bản dịch đa ngôn ngữ.
 
 - Base URL: ${AGENT_CONTENT_API_URL}
 - Method: luôn POST
 - Auth: header "Authorization: Bearer <AGENT_TOKEN>" (token dạng sk_agent_..., được Admin cấp trong Admin -> Agent Tokens)
 - Content-Type: application/json
-- Body: { "action": "<tên action>", ...các field tuỳ action }
+- Body: { "resource": "<blog_posts|tools|deals|translations>", "action": "<tên action>", ...các field tuỳ resource/action }
+  - Nếu KHÔNG truyền "resource", mặc định là "blog_posts" (để tương thích ngược).
 
-Các action hỗ trợ:
-1. create - Tạo bài viết mới.
-   Body: { action: "create", title (bắt buộc), content (bắt buộc), slug?, excerpt?, cover_image_url?, tags?, seo_title?, seo_description?, seo_keywords?, related_tool_ids?, submit_for_review? }
-   - slug tự sinh từ title nếu không truyền.
-   - Bài viết LUÔN ở trạng thái draft hoặc pending_review, KHÔNG BAO GIỜ tự published được (đây là giới hạn cố định của quyền editor, không phải lỗi).
+QUY TẮC CHUNG (áp dụng mọi resource trừ translations):
+- Agent (quyền editor) tạo/sửa nội dung KHÔNG BAO GIỜ tự đưa nội dung lên live được - luôn ở trạng thái nháp/chờ duyệt (draft/pending_review, hoặc is_active=false với deals). Đây là giới hạn cố định, không phải lỗi.
+- Sửa một bài/tool/deal ĐANG live sẽ tự động đưa nó về trạng thái chờ duyệt lại, admin phải duyệt lại mới lên live.
+- Đưa nội dung lên live (publish/activate) CHỈ admin mới gọi được - agent gọi sẽ bị từ chối (403). Khi agent submit_for_review, hệ thống tự thông báo cho toàn bộ admin.
+- Mỗi resource (trừ translations) mặc định chỉ list/update/delete được nội dung CHÍNH agent này tạo ra; truyền "all": true trong action=list để xem tất cả (nếu có quyền).
+- Response luôn là JSON. Lỗi trả về { "error": "..." } kèm HTTP status phù hợp (401 = token sai/hết hạn/bị revoke, 403 = không đủ quyền, 400 = thiếu field bắt buộc, 404 = không tìm thấy, 409 = trùng slug).
 
-2. update - Sửa bài viết đã có.
-   Body: { action: "update", id (bắt buộc), ...các field như create, đều optional }
-   - Nếu sửa bài đang published, bài tự chuyển về pending_review để admin duyệt lại.
+═══════════════════════════════════════
+1) resource = "blog_posts" (bài viết) — action: create | update | get | list | submit_for_review | publish | delete
+- create: { title* , content*, slug?, excerpt?, cover_image_url?, tags?, seo_title?, seo_description?, seo_keywords?, related_tool_ids?, submit_for_review? }
+- update: { id*, ...các field như create (optional) }
+- get: { id } hoặc { slug }
+- list: { status?, author_id?, limit?, offset?, all? }
+- submit_for_review: { id* }
+- delete: { id* } — chỉ xoá bài của mình và CHƯA published
+- publish: { id*, publish? } — admin only
 
-3. get - Lấy 1 bài viết.
-   Body: { action: "get", id } hoặc { action: "get", slug }
+Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"blog_posts","action":"create","title":"...","content":"...","submit_for_review":true}'
 
-4. list - Danh sách bài viết (phân trang).
-   Body: { action: "list", status?, author_id?, limit?, offset?, all? }
-   - Mặc định chỉ thấy bài của chính agent, truyền all: true để xem tất cả (nếu có quyền).
+═══════════════════════════════════════
+2) resource = "tools" (công cụ AI trong thư mục) — action: create | update | get | list | submit_for_review | publish | delete
+- create: { name*, slug?, description?, short_description?, website_url?, logo_url?, affiliate_url?, pricing_type? (free|freemium|paid|open_source|contact), category_id?, platforms? (mảng hoặc chuỗi phân cách bởi dấu phẩy), features?, pricing_details?, faq? (mảng {question,answer}), has_free_trial?, trial_days?, requires_card?, signup_options?, related_tool_ids?, submit_for_review? }
+- update: { id*, ...các field như create (optional) }
+- get: { id } hoặc { slug } — trả kèm categories(name)
+- list: { status?, category_id?, submitted_by?, limit?, offset?, all? }
+- submit_for_review: { id* }
+- delete: { id* } — chỉ xoá tool của mình và CHƯA published
+- publish: { id*, publish? } — admin only
 
-5. submit_for_review - Gửi 1 bài draft sang chờ duyệt.
-   Body: { action: "submit_for_review", id }
+Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"tools","action":"create","name":"ChatGPT","description":"...","pricing_type":"freemium","submit_for_review":true}'
 
-6. delete - Xoá bài viết.
-   Body: { action: "delete", id }
-   - Chỉ xoá được bài viết CHÍNH agent tạo và CHƯA published.
+═══════════════════════════════════════
+3) resource = "deals" (voucher / mã giảm giá) — action: create | update | get | list | activate_deal | delete
+- Deals KHÔNG dùng status - dùng cờ is_active (true/false). Agent tạo/sửa deal LUÔN ra is_active=false, không có action publish/submit_for_review riêng - dùng "activate_deal" (admin only) để kích hoạt.
+- create: { tool_id* (uuid của tool), title*, description?, coupon_code?, discount_type? (percentage|fixed...), discount_value?, deal_url?, original_price?, deal_price?, currency? (mặc định USD), starts_at?, expires_at?, is_verified?, is_exclusive? }
+- update: { id*, ...các field như create (optional) } — nếu deal đang active, sửa sẽ tự tắt is_active để admin duyệt lại
+- get: { id* } — trả kèm tools(name, slug)
+- list: { is_active?, tool_id?, created_by?, limit?, offset?, all? }
+- delete: { id* } — chỉ xoá deal của mình và ĐANG KHÔNG active
+- activate_deal: { id*, activate? } — admin only, tương đương "publish" cho deals
 
-7. publish - CHỈ tài khoản admin mới gọi được (agent với quyền editor sẽ bị từ chối).
+Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"deals","action":"create","tool_id":"<uuid>","title":"Giảm 20% năm đầu","coupon_code":"SAVE20","discount_type":"percentage","discount_value":20}'
 
-Response luôn là JSON. Lỗi trả về dạng { "error": "..." } kèm HTTP status phù hợp (401 = token sai/hết hạn/bị revoke, 403 = không đủ quyền, 400 = thiếu field bắt buộc).
+═══════════════════════════════════════
+4) resource = "translations" (bản dịch đa ngôn ngữ cho blog/tool/deal/workflow) — action: create | get | list | delete
+- KHÔNG có publish/update riêng và KHÔNG bị chặn tự động lên live - translations chỉ là lớp phủ hiển thị theo locale, không có rủi ro "nội dung chưa duyệt bị public", nên agent được TỰ DO ghi/sửa/xoá.
+- action "create" cũng đóng vai trò "update" (upsert theo entity_type+entity_id+locale+field_name).
+- create: { entity_type* (blog|tool|deal|workflow), entity_id* (uuid), locale* (vd: en, ja, ko, zh), is_auto? (mặc định true), và MỘT trong hai cách:
+    (a) { field_name*, translated_text* } — ghi 1 field
+    (b) { fields: { title: "...", content: "...", ... } } — ghi nhiều field trong 1 lần gọi
+- get: { entity_type*, entity_id*, locale? }
+- list: { entity_type?, entity_id?, locale?, limit?, offset? }
+- delete: { entity_type*, entity_id*, locale?, field_name? } — không truyền locale/field_name thì xoá TOÀN BỘ bản dịch của entity đó
 
-Ví dụ tạo bài viết:
-curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"action":"create","title":"...","content":"...","submit_for_review":true}'`;
+Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"translations","action":"create","entity_type":"blog","entity_id":"<uuid>","locale":"en","fields":{"title":"...","excerpt":"..."}}'`;
 
   return (
     <div className="space-y-6">
@@ -487,64 +515,223 @@ curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" 
       <Card>
         <CardHeader>
           <CardTitle>Bảng action hỗ trợ</CardTitle>
-          <CardDescription>Toàn bộ action của <code className="text-xs">agent-content-api</code></CardDescription>
+          <CardDescription>Toàn bộ resource/action của <code className="text-xs">agent-content-api</code>. Mỗi request cần kèm <code className="text-xs">"resource"</code> (mặc định <code className="text-xs">blog_posts</code> nếu bỏ trống).</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Ai gọi được</TableHead>
-                  <TableHead>Field chính</TableHead>
-                  <TableHead>Ghi chú</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell><code className="text-xs">create</code></TableCell>
-                  <TableCell>editor, admin</TableCell>
-                  <TableCell className="text-xs">title*, content*, slug?, excerpt?, tags?, submit_for_review?</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">Luôn ra draft/pending_review, không published</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">update</code></TableCell>
-                  <TableCell>editor (bài của mình), admin</TableCell>
-                  <TableCell className="text-xs">id*, ...các field như create</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">Sửa bài published → tự về pending_review</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">get</code></TableCell>
-                  <TableCell>editor, admin</TableCell>
-                  <TableCell className="text-xs">id hoặc slug</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">-</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">list</code></TableCell>
-                  <TableCell>editor, admin</TableCell>
-                  <TableCell className="text-xs">status?, limit?, offset?, all?</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy bài của mình</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">submit_for_review</code></TableCell>
-                  <TableCell>editor, admin</TableCell>
-                  <TableCell className="text-xs">id*</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">Tạo notification cho admin</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">publish</code></TableCell>
-                  <TableCell>admin only</TableCell>
-                  <TableCell className="text-xs">id*, publish?</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">Editor gọi sẽ bị 403</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell><code className="text-xs">delete</code></TableCell>
-                  <TableCell>editor (bài của mình, chưa published), admin</TableCell>
-                  <TableCell className="text-xs">id*</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">-</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+        <CardContent className="space-y-6">
+          <div>
+            <p className="text-sm font-medium mb-2">resource = <code className="text-xs bg-muted px-1 rounded">blog_posts</code> (bài viết)</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Ai gọi được</TableHead>
+                    <TableHead>Field chính</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell><code className="text-xs">create</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">title*, content*, slug?, excerpt?, tags?, submit_for_review?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Luôn ra draft/pending_review, không published</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">update</code></TableCell>
+                    <TableCell>editor (bài của mình), admin</TableCell>
+                    <TableCell className="text-xs">id*, ...các field như create</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Sửa bài published → tự về pending_review</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">get</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">id hoặc slug</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">list</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">status?, author_id?, limit?, offset?, all?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy bài của mình</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">submit_for_review</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Tạo notification cho admin</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">publish</code></TableCell>
+                    <TableCell>admin only</TableCell>
+                    <TableCell className="text-xs">id*, publish?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor gọi sẽ bị 403</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">delete</code></TableCell>
+                    <TableCell>editor (bài của mình, chưa published), admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">-</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium mb-2">resource = <code className="text-xs bg-muted px-1 rounded">tools</code> (công cụ AI trong thư mục)</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Ai gọi được</TableHead>
+                    <TableHead>Field chính</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell><code className="text-xs">create</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">name*, slug?, description?, pricing_type?, category_id?, platforms?, faq?, submit_for_review?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Luôn ra draft/pending_review, không published</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">update</code></TableCell>
+                    <TableCell>editor (tool của mình), admin</TableCell>
+                    <TableCell className="text-xs">id*, ...các field như create</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Sửa tool published → tự về pending_review</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">get</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">id hoặc slug</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Trả kèm categories(name)</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">list</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">status?, category_id?, submitted_by?, limit?, offset?, all?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy tool của mình</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">submit_for_review</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Tạo notification cho admin</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">publish</code></TableCell>
+                    <TableCell>admin only</TableCell>
+                    <TableCell className="text-xs">id*, publish?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor gọi sẽ bị 403</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">delete</code></TableCell>
+                    <TableCell>editor (tool của mình, chưa published), admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">-</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium mb-2">resource = <code className="text-xs bg-muted px-1 rounded">deals</code> (voucher / mã giảm giá)</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Ai gọi được</TableHead>
+                    <TableHead>Field chính</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell><code className="text-xs">create</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">tool_id*, title*, coupon_code?, discount_type?, discount_value?, expires_at?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor tạo LUÔN is_active=false</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">update</code></TableCell>
+                    <TableCell>editor (deal của mình), admin</TableCell>
+                    <TableCell className="text-xs">id*, ...các field như create</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Sửa deal active → tự tắt is_active, admin duyệt lại</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">get</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Trả kèm tools(name, slug)</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">list</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">is_active?, tool_id?, created_by?, limit?, offset?, all?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy deal của mình</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">activate_deal</code></TableCell>
+                    <TableCell>admin only</TableCell>
+                    <TableCell className="text-xs">id*, activate?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Tương đương "publish" - editor gọi sẽ bị 403</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">delete</code></TableCell>
+                    <TableCell>editor (deal của mình, chưa active), admin</TableCell>
+                    <TableCell className="text-xs">id*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Không xoá được deal đang active</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium mb-2">resource = <code className="text-xs bg-muted px-1 rounded">translations</code> (bản dịch đa ngôn ngữ)</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Ai gọi được</TableHead>
+                    <TableHead>Field chính</TableHead>
+                    <TableHead>Ghi chú</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell><code className="text-xs">create</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">entity_type*, entity_id*, locale*, fields{"{}"} hoặc field_name+translated_text</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Upsert - vừa tạo vừa sửa, KHÔNG cần duyệt</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">get</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">entity_type*, entity_id*, locale?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">-</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">list</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">entity_type?, entity_id?, locale?, limit?, offset?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Không lọc theo người tạo (không có ownership)</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">delete</code></TableCell>
+                    <TableCell>editor, admin</TableCell>
+                    <TableCell className="text-xs">entity_type*, entity_id*, locale?, field_name?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Bỏ trống locale/field_name → xoá toàn bộ bản dịch của entity</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
