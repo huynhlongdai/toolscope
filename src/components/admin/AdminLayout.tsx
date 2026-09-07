@@ -12,7 +12,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
 
-import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3, RefreshCw } from "lucide-react";
+import { Menu, FileStack, BrainCircuit, Workflow, SearchCheck, Tag, Rocket, ListChecks, Settings, AlertTriangle, History, Mail, Languages, Database, BarChart3, RefreshCw, KeyRound } from "lucide-react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const navGroups = [
@@ -56,6 +56,7 @@ const navGroups = [
       { title: "Search Analytics", url: "/admin/search-analytics", icon: SearchCheck },
       // adminOnly: these routes are gated admin-only in App.tsx (adminOnlyRoute) -
       // hide from editors' sidebar so it matches what they can actually access.
+      { title: "Agent Tokens", url: "/admin/agent-tokens", icon: KeyRound, adminOnly: true },
       { title: "Audit Logs", url: "/admin/audit-logs", icon: History, adminOnly: true },
       { title: "Backup", url: "/admin/backup", icon: Database, adminOnly: true },
       { title: "Sync", url: "/admin/sync", icon: RefreshCw, adminOnly: true },

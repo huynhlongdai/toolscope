@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/auth.ts";
+import { corsHeaders, requireEditorOrAgentToken, editorStatusOverride } from "../_shared/auth.ts";
 
 // Unified content API for AI writing agents (Task 5).
 //
@@ -36,10 +36,15 @@ import { corsHeaders, requireEditor, editorStatusOverride } from "../_shared/aut
 //   publish            -> { id, publish?: boolean } (admin only)
 //   delete             -> { id } (admin, or editor deleting own non-published draft)
 //
-// Auth: Bearer token of an editor or admin account (same as
-// generate-blog-post / invite-editor). Uses the CALLER's own Supabase
-// client (via requireEditor), so normal RLS applies - this function adds
-// no privilege beyond what the editor/admin already has through the SPA.
+// Auth: Bearer token of an editor or admin account. Accepts EITHER:
+//   - a normal Supabase session JWT (human login, or generate-blog-post-
+//     style service calls), OR
+//   - an agent API token (`sk_agent_...`) minted in Admin -> Agent Tokens
+//     (manage-agent-tokens function) - this is the intended way to give a
+//     fully automated AI agent access without any email/password step.
+// See requireEditorOrAgentToken in _shared/auth.ts for the resolution
+// logic. This function adds no privilege beyond what the resolved
+// editor/admin account already has through the SPA.
 
 function slugify(input: string): string {
   return input
@@ -67,7 +72,7 @@ const POST_FIELDS = [
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const auth = await requireEditor(req);
+  const auth = await requireEditorOrAgentToken(req);
   if (auth instanceof Response) return auth;
   const { user, supabase, role } = auth;
 

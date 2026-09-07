@@ -57,6 +57,7 @@ const AdminTasks = lazy(() => import("./pages/admin/AdminTasks"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 const AdminAuditLogs = lazy(() => import("./pages/admin/AdminAuditLogs"));
+const AdminAgentTokens = lazy(() => import("./pages/admin/AdminAgentTokens"));
 const AdminNewsletter = lazy(() => import("./pages/admin/AdminNewsletter"));
 const AdminTranslations = lazy(() => import("./pages/admin/AdminTranslations"));
 const AdminBackup = lazy(() => import("./pages/admin/AdminBackup"));
@@ -174,6 +175,7 @@ function AppRoutes() {
         <Route path="/admin/settings" element={adminOnlyRoute(<AdminSettings />)} />
         <Route path="/admin/reports" element={adminRoute(<AdminReports />)} />
         <Route path="/admin/audit-logs" element={adminOnlyRoute(<AdminAuditLogs />)} />
+        <Route path="/admin/agent-tokens" element={adminOnlyRoute(<AdminAgentTokens />)} />
         <Route path="/admin/newsletter" element={adminRoute(<AdminNewsletter />)} />
         <Route path="/admin/translations" element={adminRoute(<AdminTranslations />)} />
         <Route path="/admin/backup" element={adminOnlyRoute(<AdminBackup />)} />

@@ -154,3 +154,114 @@ export function editorStatusOverride(
   }
   return undefined;
 }
+
+// ── Agent API tokens (machine credentials for AI agents) ───────────────
+//
+// Long-lived, revocable tokens that let an AI agent call agent-content-api
+// WITHOUT going through the human-only invite-editor email/password flow.
+// A token looks like `sk_agent_<43 random url-safe base64 chars>` and maps
+// (via the SHA-256 hash stored in agent_api_keys.token_hash - never the
+// plaintext) to an existing editor/admin `user_id`. See the
+// 20260907120000_agent_api_keys migration for the table shape and
+// supabase/functions/manage-agent-tokens for the admin-facing create/
+// list/revoke API.
+
+export const AGENT_TOKEN_PREFIX = "sk_agent_";
+
+/**
+ * SHA-256 hash of a token, hex-encoded. Used both when minting a new
+ * token (manage-agent-tokens) and when validating one on every request
+ * (requireEditorOrAgentToken) - only the hash is ever persisted.
+ */
+export async function hashAgentToken(token: string): Promise<string> {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/**
+ * Generates a new plaintext agent token. Only ever shown to the admin
+ * once, at creation time - the caller must hash it (hashAgentToken) before
+ * persisting, and must not log/store the plaintext anywhere.
+ */
+export function generateAgentToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const b64 = btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return `${AGENT_TOKEN_PREFIX}${b64}`;
+}
+
+/**
+ * Like requireEditor, but ALSO accepts a Bearer value that is an agent API
+ * token (see AGENT_TOKEN_PREFIX) instead of a Supabase session JWT. This
+ * is what lets a fully automated AI agent call agent-content-api using a
+ * token an admin generated in Admin -> Agent Tokens, with no email/
+ * password/login step at all.
+ *
+ * Resolution order for the Bearer value:
+ *   1. Starts with `sk_agent_` -> look up agent_api_keys by hash. Must be
+ *      unrevoked and unexpired. On success, best-effort bumps
+ *      last_used_at and returns the SAME shape as requireEditor (role
+ *      resolved from the token owner's real user_roles row), so callers
+ *      don't need to special-case anything.
+ *   2. Otherwise -> falls through to the normal requireEditor (session
+ *      JWT) path, so nothing changes for human editors/admins using the
+ *      SPA.
+ */
+export async function requireEditorOrAgentToken(req: Request): Promise<EditorAuthResult | Response> {
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.replace(/^Bearer\s+/i, "");
+
+  if (token && token.startsWith(AGENT_TOKEN_PREFIX)) {
+    const supabase = getServiceClient();
+    const tokenHash = await hashAgentToken(token);
+
+    const { data: key, error: keyError } = await supabase
+      .from("agent_api_keys")
+      .select("id, user_id, revoked_at, expires_at")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
+
+    if (keyError || !key) {
+      return jsonError("Invalid agent token", 401);
+    }
+    if (key.revoked_at) {
+      return jsonError("Agent token has been revoked", 401);
+    }
+    if (key.expires_at && new Date(key.expires_at) < new Date()) {
+      return jsonError("Agent token has expired", 401);
+    }
+
+    const { data: roles, error: rolesError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", key.user_id)
+      .in("role", ["admin", "editor"]);
+
+    if (rolesError || !roles || roles.length === 0) {
+      return jsonError("Token owner no longer has editor/admin privileges", 403);
+    }
+
+    const { data: userData } = await supabase.auth.admin.getUserById(key.user_id);
+    if (!userData?.user) {
+      return jsonError("Token owner account no longer exists", 401);
+    }
+
+    // Best-effort - a failure here must never block the actual request.
+    supabase
+      .from("agent_api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", key.id)
+      .then(() => {})
+      .catch(() => {});
+
+    const role: "admin" | "editor" = roles.some((r) => r.role === "admin") ? "admin" : "editor";
+    return { user: userData.user, supabase, role };
+  }
+
+  return requireEditor(req);
+}

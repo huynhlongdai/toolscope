@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.agent-content-api]
 verify_jwt = false
+
+[functions.manage-agent-tokens]
+verify_jwt = false
