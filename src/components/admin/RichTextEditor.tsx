@@ -30,6 +30,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InsertToolDialog, InsertDealDialog } from "@/components/admin/InsertToolDealDialogs";
+import { normalizeToHtml, wasConverted } from "@/lib/content-format";
 
 interface RichTextEditorProps {
   content: string;
@@ -73,8 +74,20 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
   const storageKey = autosaveKey ? `${AUTOSAVE_PREFIX}${autosaveKey}` : null;
   const [draftAvailable, setDraftAvailable] = useState<{ html: string; savedAt: number } | null>(null);
   const [lastAutosavedAt, setLastAutosavedAt] = useState<number | null>(null);
-  const initialContentRef = useRef(content);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Tiptap is an HTML-only editor. Legacy rows (seed data, AI edge functions)
+  // hold Markdown, which Tiptap would swallow as literal text - the author
+  // would see a raw "## Heading" and the first Save would freeze it into
+  // <p>## Heading</p>, destroying the document. Normalize on the way in so
+  // those documents upgrade on first edit instead of being corrupted by it.
+  // useState initializer, not useMemo: this must be computed exactly once,
+  // from the content we were mounted with, and never recomputed from HTML the
+  // editor itself has since produced.
+  const [initialHtml] = useState(() => normalizeToHtml(content));
+  const [converted] = useState(() => wasConverted(content));
+  const [conversionDismissed, setConversionDismissed] = useState(false);
+  const initialContentRef = useRef(initialHtml);
 
   const editor = useEditor({
     extensions: [
@@ -95,7 +108,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       TableCell,
       TableHeader,
     ],
-    content,
+    content: initialHtml,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onChange(html);
@@ -139,6 +152,17 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
   useEffect(() => {
     return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, []);
+
+  // When the incoming content was Markdown, the editor is now showing the
+  // converted HTML while the parent form still holds the original Markdown
+  // string. Push the conversion up so what gets saved matches what the author
+  // sees - leaving the two out of sync is how the old bug silently persisted
+  // the wrong thing.
+  useEffect(() => {
+    if (converted && initialHtml) onChange(initialHtml);
+    // Runs once on mount for converted documents only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const restoreDraft = () => {
@@ -257,6 +281,27 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
   const editorContent = (
     <div className={`border rounded-md flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-background rounded-none" : ""}`}>
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleFileUpload} />
+
+      {/* Markdown -> HTML upgrade notice. A format conversion must never be
+          silent: the author needs to know why the document suddenly renders
+          properly, and that saving is what makes the upgrade permanent. */}
+      {converted && !conversionDismissed && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-sky-50 dark:bg-sky-950/30 px-3 py-2 text-xs">
+          <span className="flex items-center gap-1.5 text-sky-800 dark:text-sky-200">
+            <FileText className="h-3.5 w-3.5 shrink-0" />
+            Bài này được lưu ở định dạng Markdown cũ — đã tự động chuyển sang HTML để hiển thị đúng. Bấm <strong>Lưu</strong> để cập nhật vĩnh viễn.
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs shrink-0"
+            onClick={() => setConversionDismissed(true)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {/* Draft recovery banner (autosave) */}
       {draftAvailable && (
