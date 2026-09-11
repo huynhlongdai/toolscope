@@ -503,6 +503,11 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
     is_verified: deal?.is_verified ?? false,
     is_exclusive: deal?.is_exclusive ?? false,
     is_active: deal?.is_active ?? true,
+    deal_type: deal?.deal_type ?? "coupon_code",
+    redemption_type: deal?.redemption_type ?? "code",
+    usage_limit: deal?.usage_limit ?? "",
+    terms_conditions: deal?.terms_conditions ?? "",
+    banner_image_url: deal?.banner_image_url ?? "",
   });
 
   const [toolSearch, setToolSearch] = useState("");
@@ -559,7 +564,15 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
       is_verified: form.is_verified,
       is_exclusive: form.is_exclusive,
       is_active: form.is_active,
+      deal_type: form.deal_type,
+      redemption_type: form.redemption_type,
+      usage_limit: form.usage_limit ? parseInt(form.usage_limit, 10) : null,
+      terms_conditions: form.terms_conditions || null,
+      banner_image_url: form.banner_image_url || null,
     };
+    if (!deal) {
+      payload.slug = slugifyVi(form.title) + "-" + Math.random().toString(36).slice(2, 10);
+    }
 
     // Editors' RLS requires is_active = false on both INSERT and UPDATE
     // ("Editors can insert inactive deals" / "...keeping them inactive") -
@@ -670,6 +683,47 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
           <div>
             <Label>Link ưu đãi</Label>
             <Input value={form.deal_url} onChange={(e) => update("deal_url", e.target.value)} placeholder="https://..." />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Loại ưu đãi (deal_type)</Label>
+              <Select value={form.deal_type} onValueChange={(v) => update("deal_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(DEAL_TYPE_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Cách nhận ưu đãi (redemption_type)</Label>
+              <Select value={form.redemption_type} onValueChange={(v) => update("redemption_type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(REDEMPTION_TYPE_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Giới hạn số lượt dùng (usage_limit)</Label>
+              <Input type="number" value={form.usage_limit} onChange={(e) => update("usage_limit", e.target.value)} placeholder="Bỏ trống = không giới hạn" />
+            </div>
+            <div>
+              <Label>Ảnh banner (banner_image_url)</Label>
+              <Input value={form.banner_image_url} onChange={(e) => update("banner_image_url", e.target.value)} placeholder="https://..." />
+            </div>
+          </div>
+
+          <div>
+            <Label>Điều khoản & điều kiện (terms_conditions)</Label>
+            <Textarea value={form.terms_conditions} onChange={(e) => update("terms_conditions", e.target.value)} placeholder="Điều kiện áp dụng đầy đủ..." />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
