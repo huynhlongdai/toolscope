@@ -1,0 +1,118 @@
+name: Deploy to VPS
+
+# Builds the Vite SPA and ships dist/ to the nginx document root on the VPS.
+#
+# The VPS serves static files directly through nginx (confirmed: nginx/1.24.0
+# Ubuntu, with the repo's nginx.conf rules live - /sitemap.xml proxies to the
+# Supabase edge function and /assets/ carries a 1-year immutable cache). The
+# ecosystem.config.cjs PM2 'vite preview' setup is NOT the serving path.
+#
+# Required repository secrets:
+#   VPS_HOST          - e.g. 57.155.90.49
+#   VPS_USER          - SSH login user
+#   VPS_SSH_KEY       - full private key, including BEGIN/END lines
+#   VPS_WEB_ROOT      - nginx document root, e.g. /var/www/astute.tools
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_PUBLISHABLE_KEY
+#   VITE_SUPABASE_PROJECT_ID
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Never let two deploys race on the same document root.
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run tests
+        run: npx vitest run
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: npm run build
+
+      - name: Verify build output
+        # A deploy that ships a broken dist/ would take the site down. Fail
+        # here instead, while the live site is still untouched.
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        run: |
+          test -f dist/index.html || { echo "::error::dist/index.html missing"; exit 1; }
+          test -d dist/assets || { echo "::error::dist/assets missing"; exit 1; }
+
+          # Vite inlines import.meta.env at build time and silently emits the
+          # string "undefined" when a var is absent - the app then points at
+          # https://undefined.supabase.co and every request fails, while the
+          # build itself reports success. Catch that here.
+          if grep -rq 'undefined\.supabase\.co' dist/assets; then
+            echo "::error::Build embedded undefined.supabase.co - VITE_SUPABASE_URL secret is missing or empty"
+            exit 1
+          fi
+          if ! grep -rqF "${VITE_SUPABASE_URL}" dist/assets; then
+            echo "::error::Build does not contain the expected Supabase URL"
+            exit 1
+          fi
+          echo "dist/ contents:"; ls -la dist
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Back up current release on the VPS
+        # Keep the previous document root so a bad deploy can be rolled back
+        # without waiting for another CI run.
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo rm -rf '${{ secrets.VPS_WEB_ROOT }}.prev' && \
+             sudo cp -a '${{ secrets.VPS_WEB_ROOT }}' '${{ secrets.VPS_WEB_ROOT }}.prev' || true"
+
+      - name: Upload build
+        # Stage into a temp dir owned by the SSH user, then move it into place
+        # with sudo - rsync-ing straight into a root-owned web root fails.
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            dist/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/astute-deploy/"
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo rsync -a --delete /tmp/astute-deploy/ '${{ secrets.VPS_WEB_ROOT }}/' && \
+             sudo chown -R www-data:www-data '${{ secrets.VPS_WEB_ROOT }}' && \
+             rm -rf /tmp/astute-deploy"
+
+      - name: Reload nginx
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "sudo nginx -t && sudo systemctl reload nginx"
+
+      - name: Smoke test the live site
+        # Assert the deploy actually produced a working site, rather than
+        # trusting that a green rsync means a green page.
+        run: |
+          for path in / /blog /compare; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 3 \
+              "https://astute.tools${path}")
+            echo "${path} -> ${code}"
+            [ "$code" = "200" ] || { echo "::error::${path} returned ${code}"; exit 1; }
+          done
