@@ -87,6 +87,77 @@ import { corsHeaders, requireEditorOrAgentToken, editorStatusOverride } from "..
 //        HOẶC { entity_type, entity_id, locale, field_name, translated_text }
 //        — 1 field mỗi lần gọi, tuỳ agent thích dùng cách nào.
 //
+// ── Second wave (2026-09-11, "quản trị toàn vẹn website" mở rộng) ──────
+// User đã xác nhận scope rõ ràng: mở rộng agent ra categories/tags/tasks/
+// pages/menus/moderation(reports)/newsletter, NHƯNG users/settings/backup
+// KHÔNG bao giờ cho agent chạm tới (giữ nguyên, không có action nào expose
+// 3 resource đó qua API này). moderation (approve/reject content của
+// NGƯỜI KHÁC, ban user) cũng KHÔNG expose - khác hẳn "tự duyệt draft của
+// chính mình", nó động vào tài khoản người khác giống hệt lý do users bị
+// loại. Agent chỉ được TẠO report (giống user thường bấm nút báo cáo).
+//
+//   resource = "categories" | "tags" | "tasks"
+//     create/update/get/list/delete
+//     -> { name, slug?, description?, icon?, parent_id? (categories only),
+//          sort_order? }
+//     - Cả 3 bảng này vốn không có khái niệm draft/pending_review (khác
+//       blog/tools/deals) - admin đã chủ động cho phép editor
+//       insert/update trực tiếp từ migration 20260906040000 (categories/
+//       tags) - tasks được bổ sung tương tự trong migration hôm nay. Ghi
+//       là LÊN NGAY công khai (giống categories hiện tại), không có
+//       action publish/submit_for_review cho nhóm này.
+//     - delete: CHỈ admin (editor/agent không được xoá taxonomy - tránh
+//       xoá nhầm ảnh hưởng nhiều tools/tasks đang tham chiếu).
+//
+//   resource = "pages" (CMS page builder)
+//     create/update/get/list/submit_for_review/publish/delete
+//     -> { title, slug?, blocks? (jsonb block array), seo_title?,
+//          seo_description?, template?, submit_for_review? }
+//     - Y HỆT pattern blog_posts/tools: editor/agent chỉ tạo được
+//       draft/pending_review, không bao giờ tự set published (RLS +
+//       check trong code). action=publish chỉ admin, dùng chung RPC
+//       publish_content(_table='pages',...).
+//
+//   resource = "menus" (header/footer navigation)
+//     get/list/propose/publish
+//     -> propose: { location ('header'|'footer'), items (array giống
+//          MenuItem[] trong AdminMenus.tsx) } - LUÔN ghi vào cột
+//          `draft_items`, KHÔNG BAO GIỜ ghi trực tiếp vào `items` (cột
+//          live, hiển thị ngay cho mọi khách truy cập) cho dù caller là
+//          editor hay admin gọi qua action này - menus không có khái
+//          niệm status nên đây là cách duy nhất để có "staging" cho nav.
+//     -> publish: { location } - CHỈ ADMIN - copy draft_items -> items
+//          (RPC publish_menu, SECURITY DEFINER).
+//     - get/list trả cả `items` (live) và `draft_items` (đang chờ) để
+//       agent biết đề xuất của mình đã được áp dụng hay chưa.
+//
+//   resource = "reports" (tín hiệu kiểm duyệt - KHÔNG phải moderation
+//   action thật, agent không bao giờ approve/reject/xoá nội dung người
+//   khác hay ban user - những hành động đó vẫn 100% admin-only qua
+//   AdminModeration.tsx, ngoài phạm vi API này)
+//     create/get/list
+//     -> create: { target_type (comment|review|tool|user|question),
+//          target_id, reason, details? } - agent chỉ tạo report MỚI,
+//          giống hệt 1 user thường bấm "Báo cáo". Không có action
+//          update_status/resolve/dismiss ở đây (những cái đó là
+//          admin-only, vẫn nằm trong AdminReports.tsx).
+//     - list: chỉ trả report do CHÍNH caller tạo (reporter_id = user.id),
+//       không xem được report của người khác (giữ nguyên RLS gốc).
+//
+//   resource = "newsletter" (soạn NỘI DUNG campaign, không phải subscriber
+//   management - agent KHÔNG được đọc/viết newsletter_subscribers vì đó
+//   là email PII của user thật, và không có quyền "gửi" bất cứ campaign
+//   nào - gửi email vẫn là hành động admin-only, hiện tại còn là
+//   placeholder chưa nối email provider thật trong AdminNewsletter.tsx)
+//     draft_campaign/list_campaigns
+//     -> draft_campaign: { subject, content } - lưu vào 1 row RIÊNG BIỆT
+//          trong site_settings (key='newsletter_campaign_drafts'), KHÁC
+//          với key='newsletter_campaigns' (lịch sử email admin đã thực sự
+//          soạn) và hoàn toàn tách biệt khỏi mọi site config/blacklist
+//          khác cũng nằm trong site_settings. Admin xem/duyệt/gửi thật
+//          vẫn làm trong AdminNewsletter.tsx như cũ - action này chỉ để
+//          agent "nộp bản thảo" nội dung, không đọc được subscriber nào.
+//
 // Auth: Bearer token of an editor or admin account. Accepts EITHER:
 //   - a normal Supabase session JWT (human login, or generate-blog-post-
 //     style service calls), OR
@@ -145,6 +216,18 @@ const VALID_DEAL_TYPES = [
 const VALID_REDEMPTION_TYPES = ["code", "auto_apply", "manual_contact"] as const;
 
 const VALID_ENTITY_TYPES = ["blog", "tool", "deal", "workflow"] as const;
+
+const CATEGORY_FIELDS = ["name", "slug", "description", "icon", "parent_id", "sort_order"] as const;
+const TAG_FIELDS = ["name", "slug"] as const;
+const TASK_FIELDS = ["name", "slug", "description", "icon", "sort_order"] as const;
+
+const PAGE_FIELDS = ["title", "slug", "seo_title", "seo_description", "template"] as const;
+
+const VALID_MENU_LOCATIONS = ["header", "footer"] as const;
+
+const VALID_REPORT_TARGET_TYPES = ["comment", "review", "tool", "user", "question"] as const;
+
+const NEWSLETTER_DRAFTS_KEY = "newsletter_campaign_drafts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -838,9 +921,453 @@ serve(async (req) => {
       }, 400);
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // Resource: categories / tags / tasks (simple taxonomy - shared
+    // handler since all 3 have the exact same shape: name/slug/etc.,
+    // no draft/published concept, admin-only delete).
+    // ────────────────────────────────────────────────────────────────
+    if (resource === "categories" || resource === "tags" || resource === "tasks") {
+      const table = resource;
+      const FIELDS = resource === "categories" ? CATEGORY_FIELDS : resource === "tags" ? TAG_FIELDS : TASK_FIELDS;
+
+      if (action === "create") {
+        if (!body.name) return json({ error: "name là bắt buộc" }, 400);
+        const slug = slugify(body.slug || body.name);
+
+        const payload: Record<string, unknown> = { name: body.name, slug };
+        for (const f of FIELDS) if (f !== "name" && f !== "slug" && body[f] !== undefined) payload[f] = body[f];
+
+        const { data, error } = await supabase.from(table).insert(payload).select().single();
+        if (error) {
+          if (/duplicate key/i.test(error.message)) return json({ error: `"${body.name}" hoặc slug "${slug}" đã tồn tại` }, 409);
+          return json({ error: error.message }, 500);
+        }
+        return json({ success: true, [table === "categories" ? "category" : table === "tags" ? "tag" : "task"]: data });
+      }
+
+      if (action === "update") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const payload: Record<string, unknown> = {};
+        for (const f of FIELDS) if (body[f] !== undefined) payload[f] = body[f];
+        if (body.slug !== undefined) payload.slug = slugify(body.slug);
+
+        const { data, error } = await supabase.from(table).update(payload).eq("id", body.id).select().single();
+        if (error) {
+          if (/duplicate key/i.test(error.message)) return json({ error: "Tên hoặc slug đã tồn tại" }, 409);
+          return json({ error: error.message }, 500);
+        }
+        if (!data) return json({ error: "Không tìm thấy" }, 404);
+        return json({ success: true, [table === "categories" ? "category" : table === "tags" ? "tag" : "task"]: data });
+      }
+
+      if (action === "get") {
+        if (!body.id && !body.slug) return json({ error: "Cần id hoặc slug" }, 400);
+        let query = supabase.from(table).select("*");
+        query = body.id ? query.eq("id", body.id) : query.eq("slug", body.slug);
+        const { data, error } = await query.maybeSingle();
+        if (error) return json({ error: error.message }, 500);
+        if (!data) return json({ error: "Không tìm thấy" }, 404);
+        return json({ [table === "categories" ? "category" : table === "tags" ? "tag" : "task"]: data });
+      }
+
+      if (action === "list") {
+        const limit = Math.min(Math.max(Number(body.limit) || 50, 1), 200);
+        const offset = Math.max(Number(body.offset) || 0, 0);
+        let query = supabase.from(table).select("*", { count: "exact" });
+        if (body.parent_id !== undefined && table === "categories") query = query.eq("parent_id", body.parent_id);
+        query = query.order("sort_order", { ascending: true, nullsFirst: false }).range(offset, offset + limit - 1);
+        const { data, error, count } = await query;
+        if (error) return json({ error: error.message }, 500);
+        return json({ [table]: data, total: count, limit, offset });
+      }
+
+      if (action === "delete") {
+        // Editor/agent KHÔNG được xoá taxonomy - có thể đang được nhiều
+        // tools/tasks khác tham chiếu, xoá nhầm ảnh hưởng diện rộng.
+        // Chỉ admin (RLS "Admins can manage X" ALL policy) mới xoá được.
+        if (role !== "admin") return json({ error: `Chỉ admin mới được xoá ${resource}. Editor/AI agent chỉ có thể tạo/sửa.` }, 403);
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const { error } = await supabase.from(table).delete().eq("id", body.id);
+        if (error) return json({ error: error.message }, 500);
+        return json({ success: true });
+      }
+
+      return json({
+        error: `Invalid action for resource=${resource}`,
+        valid_actions: ["create", "update", "get", "list", "delete"],
+      }, 400);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Resource: pages (CMS page builder) - same editor-safe pattern as
+    // tools/blog_posts: editor/agent can only produce draft/pending_review,
+    // action=publish is admin-only via publish_content() RPC.
+    // ────────────────────────────────────────────────────────────────
+    if (resource === "pages") {
+      if (action === "create") {
+        if (!body.title) return json({ error: "title là bắt buộc" }, 400);
+        const slug = slugify(body.slug || body.title);
+        const wantsReview = role === "editor" || body.submit_for_review === true;
+
+        const payload: Record<string, unknown> = {
+          title: body.title,
+          slug,
+          blocks: Array.isArray(body.blocks) ? body.blocks : [],
+          seo_title: body.seo_title ?? null,
+          seo_description: body.seo_description ?? null,
+          template: body.template ?? "blank",
+          created_by: user.id,
+          status: wantsReview ? "pending_review" : "draft",
+        };
+
+        const { data, error } = await supabase.from("pages").insert(payload).select().single();
+        if (error) {
+          if (/duplicate key.*slug/i.test(error.message)) return json({ error: `Slug "${slug}" đã tồn tại. Hãy đổi slug hoặc title.` }, 409);
+          return json({ error: error.message }, 500);
+        }
+
+        if (data.status === "pending_review") {
+          await notifyAdmins({
+            title: "Trang chờ duyệt",
+            message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã tạo trang "${data.title}" chờ admin duyệt trước khi đăng.`,
+            link: `/admin/pages/${data.id}`,
+            metadata: { page_id: data.id, source: "agent-content-api" },
+          });
+        }
+
+        return json({ success: true, page: data });
+      }
+
+      if (action === "update") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const { data: existing, error: fetchError } = await supabase
+          .from("pages").select("id, status, created_by, title").eq("id", body.id).maybeSingle();
+        if (fetchError) return json({ error: fetchError.message }, 500);
+        if (!existing) return json({ error: "Không tìm thấy trang" }, 404);
+        if (role === "editor" && existing.created_by && existing.created_by !== user.id) {
+          return json({ error: "Chỉ có thể sửa trang do chính bạn tạo" }, 403);
+        }
+
+        const payload: Record<string, unknown> = {};
+        for (const f of PAGE_FIELDS) if (body[f] !== undefined) payload[f] = body[f];
+        if (body.slug !== undefined) payload.slug = slugify(body.slug);
+        if (body.blocks !== undefined) payload.blocks = Array.isArray(body.blocks) ? body.blocks : [];
+
+        if (body.status !== undefined) {
+          if (role === "editor" && body.status !== "draft" && body.status !== "pending_review") {
+            return json({ error: "Editor chỉ có thể đặt status là draft hoặc pending_review. Dùng action=submit_for_review hoặc action=publish (admin)." }, 403);
+          }
+          payload.status = body.status;
+        }
+
+        const override = editorStatusOverride(role, existing.status);
+        if (override) payload.status = override;
+
+        const { data, error } = await supabase.from("pages").update(payload).eq("id", body.id).select().single();
+        if (error) {
+          if (/duplicate key.*slug/i.test(error.message)) return json({ error: "Slug đã tồn tại" }, 409);
+          return json({ error: error.message }, 500);
+        }
+
+        if (override === "pending_review" || (payload.status === "pending_review" && existing.status !== "pending_review")) {
+          await notifyAdmins({
+            title: "Trang chờ duyệt",
+            message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã sửa trang "${data.title}" chờ admin duyệt trước khi đăng.`,
+            link: `/admin/pages/${data.id}`,
+            metadata: { page_id: data.id, source: "agent-content-api" },
+          });
+        }
+
+        return json({ success: true, page: data, ...(override ? { note: "Trang đã published bị chuyển về pending_review vì có chỉnh sửa mới, cần admin duyệt lại." } : {}) });
+      }
+
+      if (action === "submit_for_review") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const { data: existing, error: fetchError } = await supabase
+          .from("pages").select("id, status, created_by, title").eq("id", body.id).maybeSingle();
+        if (fetchError) return json({ error: fetchError.message }, 500);
+        if (!existing) return json({ error: "Không tìm thấy trang" }, 404);
+        if (role === "editor" && existing.created_by && existing.created_by !== user.id) return json({ error: "Chỉ có thể gửi duyệt trang do chính bạn tạo" }, 403);
+
+        const { data, error } = await supabase.from("pages").update({ status: "pending_review" }).eq("id", body.id).select().single();
+        if (error) return json({ error: error.message }, 500);
+
+        await notifyAdmins({
+          title: "Trang chờ duyệt",
+          message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã gửi trang "${data.title}" chờ admin duyệt trước khi đăng.`,
+          link: `/admin/pages/${data.id}`,
+          metadata: { page_id: data.id, source: "agent-content-api" },
+        });
+        return json({ success: true, page: data });
+      }
+
+      if (action === "publish") {
+        if (role !== "admin") return json({ error: "Chỉ admin mới được publish. Dùng action=submit_for_review để gửi duyệt." }, 403);
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const publish = body.publish !== false;
+
+        const { error } = await supabase.rpc("publish_content", { _table: "pages", _id: body.id, _publish: publish });
+        if (error) return json({ error: error.message }, 500);
+
+        const { data } = await supabase.from("pages").select().eq("id", body.id).maybeSingle();
+        return json({ success: true, page: data });
+      }
+
+      if (action === "get") {
+        if (!body.id && !body.slug) return json({ error: "Cần id hoặc slug" }, 400);
+        let query = supabase.from("pages").select("*");
+        query = body.id ? query.eq("id", body.id) : query.eq("slug", body.slug);
+        const { data, error } = await query.maybeSingle();
+        if (error) return json({ error: error.message }, 500);
+        if (!data) return json({ error: "Không tìm thấy trang" }, 404);
+        return json({ page: data });
+      }
+
+      if (action === "list") {
+        const limit = Math.min(Math.max(Number(body.limit) || 20, 1), 100);
+        const offset = Math.max(Number(body.offset) || 0, 0);
+        let query = supabase.from("pages").select("id, title, slug, status, template, created_by, created_at, updated_at", { count: "exact" });
+        if (body.status) query = query.eq("status", body.status);
+        if (body.created_by) query = query.eq("created_by", body.created_by);
+        else if (role === "editor" && !body.all) query = query.eq("created_by", user.id);
+        query = query.order("updated_at", { ascending: false }).range(offset, offset + limit - 1);
+
+        const { data, error, count } = await query;
+        if (error) return json({ error: error.message }, 500);
+        return json({ pages: data, total: count, limit, offset });
+      }
+
+      if (action === "delete") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const { data: existing, error: fetchError } = await supabase
+          .from("pages").select("id, status, created_by").eq("id", body.id).maybeSingle();
+        if (fetchError) return json({ error: fetchError.message }, 500);
+        if (!existing) return json({ error: "Không tìm thấy trang" }, 404);
+        if (role === "editor") {
+          if (existing.created_by !== user.id) return json({ error: "Chỉ có thể xóa trang do chính bạn tạo" }, 403);
+          if (existing.status === "published") return json({ error: "Không thể xóa trang đã published. Liên hệ admin." }, 403);
+        }
+        const { error } = await supabase.from("pages").delete().eq("id", body.id);
+        if (error) return json({ error: error.message }, 500);
+        return json({ success: true });
+      }
+
+      return json({
+        error: "Invalid action for resource=pages",
+        valid_actions: ["create", "update", "get", "list", "submit_for_review", "publish", "delete"],
+      }, 400);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Resource: menus - propose/publish only. Editor/agent writes ALWAYS
+    // go to draft_items, NEVER to the live `items` column, regardless of
+    // caller role. Only action=publish (admin-only, via publish_menu RPC)
+    // copies draft_items -> items.
+    // ────────────────────────────────────────────────────────────────
+    if (resource === "menus") {
+      if (action === "propose") {
+        const location = body.location as string;
+        if (!location || !VALID_MENU_LOCATIONS.includes(location as any)) {
+          return json({ error: `location phải là một trong: ${VALID_MENU_LOCATIONS.join(", ")}` }, 400);
+        }
+        if (!Array.isArray(body.items)) return json({ error: "items phải là 1 array MenuItem[]" }, 400);
+
+        const { data: existing } = await supabase.from("menus").select("id").eq("location", location).maybeSingle();
+
+        let data, error;
+        if (existing) {
+          ({ data, error } = await supabase
+            .from("menus")
+            .update({ draft_items: body.items, draft_updated_by: user.id, draft_updated_at: new Date().toISOString() })
+            .eq("id", existing.id)
+            .select()
+            .single());
+        } else {
+          // Chưa có row nào cho location này - tạo mới với items=[] (live
+          // rỗng) và draft_items=đề xuất, để admin publish khi sẵn sàng.
+          ({ data, error } = await supabase
+            .from("menus")
+            .insert({ name: location, location, items: [], draft_items: body.items, draft_updated_by: user.id, draft_updated_at: new Date().toISOString() })
+            .select()
+            .single());
+        }
+        if (error) return json({ error: error.message }, 500);
+
+        await notifyAdmins({
+          title: "Đề xuất menu mới chờ duyệt",
+          message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã đề xuất menu "${location}" mới - cần admin publish để áp dụng.`,
+          link: `/admin/menus`,
+          metadata: { location, source: "agent-content-api" },
+        });
+
+        return json({ success: true, menu: data, note: "Đã lưu vào draft_items. Menu LIVE chưa thay đổi - cần admin gọi action=publish để áp dụng." });
+      }
+
+      if (action === "publish") {
+        if (role !== "admin") return json({ error: "Chỉ admin mới được publish menu." }, 403);
+        const location = body.location as string;
+        if (!location || !VALID_MENU_LOCATIONS.includes(location as any)) {
+          return json({ error: `location phải là một trong: ${VALID_MENU_LOCATIONS.join(", ")}` }, 400);
+        }
+
+        const { error } = await supabase.rpc("publish_menu", { _location: location });
+        if (error) return json({ error: error.message }, 500);
+
+        const { data } = await supabase.from("menus").select().eq("location", location).maybeSingle();
+        return json({ success: true, menu: data });
+      }
+
+      if (action === "get" || action === "list") {
+        let query = supabase.from("menus").select("*");
+        if (body.location) query = query.eq("location", body.location);
+        const { data, error } = await query;
+        if (error) return json({ error: error.message }, 500);
+        if (action === "get") {
+          if (!data?.length) return json({ error: "Không tìm thấy menu" }, 404);
+          return json({ menu: data[0] });
+        }
+        return json({ menus: data });
+      }
+
+      return json({
+        error: "Invalid action for resource=menus",
+        valid_actions: ["propose", "publish", "get", "list"],
+      }, 400);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Resource: reports (moderation SIGNAL only - agent creates reports
+    // exactly like a normal user clicking "Report", never approves/
+    // rejects/deletes anything or bans a user - those stay admin-only in
+    // AdminModeration.tsx / AdminReports.tsx, outside this API entirely).
+    // ────────────────────────────────────────────────────────────────
+    if (resource === "reports") {
+      if (action === "create") {
+        const targetType = body.target_type as string;
+        if (!targetType || !VALID_REPORT_TARGET_TYPES.includes(targetType as any)) {
+          return json({ error: `target_type phải là một trong: ${VALID_REPORT_TARGET_TYPES.join(", ")}` }, 400);
+        }
+        if (!body.target_id) return json({ error: "target_id là bắt buộc" }, 400);
+        if (!body.reason) return json({ error: "reason là bắt buộc" }, 400);
+
+        const payload = {
+          reporter_id: user.id,
+          target_type: targetType,
+          target_id: body.target_id,
+          reason: body.reason,
+          details: body.details ?? null,
+          status: "pending",
+        };
+
+        const { data, error } = await supabase.from("reports").insert(payload).select().single();
+        if (error) return json({ error: error.message }, 500);
+
+        await notifyAdmins({
+          title: "Báo cáo mới",
+          message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã gửi báo cáo về ${targetType}: ${body.reason}`,
+          link: `/admin/reports`,
+          metadata: { report_id: data.id, target_type: targetType, target_id: body.target_id, source: "agent-content-api" },
+        });
+
+        return json({ success: true, report: data });
+      }
+
+      if (action === "get") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        // RLS "Users can view own reports" tự giới hạn - editor/agent chỉ
+        // thấy report do chính user_id gắn với token tạo ra, admin thấy hết.
+        const { data, error } = await supabase.from("reports").select("*").eq("id", body.id).maybeSingle();
+        if (error) return json({ error: error.message }, 500);
+        if (!data) return json({ error: "Không tìm thấy hoặc không có quyền xem" }, 404);
+        return json({ report: data });
+      }
+
+      if (action === "list") {
+        const limit = Math.min(Math.max(Number(body.limit) || 20, 1), 100);
+        const offset = Math.max(Number(body.offset) || 0, 0);
+        let query = supabase.from("reports").select("*", { count: "exact" });
+        // Editor/agent chỉ được xem report do chính mình tạo (không phải
+        // RLS chặn ở đây vì dùng service-role client - enforce ở code,
+        // giống mọi resource khác trong function này).
+        if (role !== "admin") query = query.eq("reporter_id", user.id);
+        else if (body.reporter_id) query = query.eq("reporter_id", body.reporter_id);
+        if (body.status) query = query.eq("status", body.status);
+        if (body.target_type) query = query.eq("target_type", body.target_type);
+        query = query.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+
+        const { data, error, count } = await query;
+        if (error) return json({ error: error.message }, 500);
+        return json({ reports: data, total: count, limit, offset });
+      }
+
+      return json({
+        error: "Invalid action for resource=reports",
+        valid_actions: ["create", "get", "list"],
+        note: "Approve/reject/resolve/dismiss/ban là admin-only, ngoài phạm vi agent API này. Dùng AdminReports.tsx/AdminModeration.tsx.",
+      }, 400);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // Resource: newsletter - CAMPAIGN CONTENT DRAFTING ONLY. No access to
+    // newsletter_subscribers (PII), no send capability. Drafts are stored
+    // in their OWN site_settings key, never touching site config/
+    // blacklist/anything else that lives in that table.
+    // ────────────────────────────────────────────────────────────────
+    if (resource === "newsletter") {
+      if (action === "draft_campaign") {
+        if (!body.subject) return json({ error: "subject là bắt buộc" }, 400);
+        if (!body.content) return json({ error: "content là bắt buộc" }, 400);
+
+        const { data: existingRow } = await supabase
+          .from("site_settings").select("value").eq("key", NEWSLETTER_DRAFTS_KEY).maybeSingle();
+        const drafts: any[] = Array.isArray(existingRow?.value) ? (existingRow!.value as any[]) : [];
+
+        const draft = {
+          id: crypto.randomUUID(),
+          subject: body.subject,
+          content: body.content,
+          created_by: user.id,
+          created_by_role: role,
+          created_at: new Date().toISOString(),
+          status: "draft", // luôn "draft" - agent không có action để đổi status này, admin duyệt/gửi trong AdminNewsletter.tsx
+        };
+        const updated = [draft, ...drafts].slice(0, 50);
+
+        const { error } = await supabase
+          .from("site_settings")
+          .upsert({ key: NEWSLETTER_DRAFTS_KEY, value: updated as any, updated_at: new Date().toISOString() }, { onConflict: "key" });
+        if (error) return json({ error: error.message }, 500);
+
+        await notifyAdmins({
+          title: "Bản thảo newsletter mới",
+          message: `${role === "editor" ? "Editor/AI Agent" : "Admin"} đã soạn bản thảo email "${body.subject}" - vào Admin -> Newsletter để xem/gửi.`,
+          link: `/admin/newsletter`,
+          metadata: { draft_id: draft.id, source: "agent-content-api" },
+        });
+
+        return json({ success: true, draft, note: "Bản thảo đã lưu, cần admin vào AdminNewsletter.tsx để xem/gửi thật - agent không có quyền gửi hoặc xem subscriber." });
+      }
+
+      if (action === "list_campaigns") {
+        const { data: row, error } = await supabase
+          .from("site_settings").select("value").eq("key", NEWSLETTER_DRAFTS_KEY).maybeSingle();
+        if (error) return json({ error: error.message }, 500);
+        const drafts: any[] = Array.isArray(row?.value) ? (row!.value as any[]) : [];
+        // Editor/agent chỉ thấy draft do chính mình tạo, admin thấy hết.
+        const visible = role === "admin" ? drafts : drafts.filter((d) => d.created_by === user.id);
+        return json({ drafts: visible, total: visible.length });
+      }
+
+      return json({
+        error: "Invalid action for resource=newsletter",
+        valid_actions: ["draft_campaign", "list_campaigns"],
+        note: "Không có quyền đọc newsletter_subscribers hoặc gửi email - đó vẫn là admin-only trong AdminNewsletter.tsx.",
+      }, 400);
+    }
+
     return json({
       error: "Invalid resource",
-      valid_resources: ["blog_posts", "tools", "deals", "translations"],
+      valid_resources: ["blog_posts", "tools", "deals", "translations", "categories", "tags", "tasks", "pages", "menus", "reports", "newsletter"],
     }, 400);
   } catch (e) {
     console.error("agent-content-api error:", e);
