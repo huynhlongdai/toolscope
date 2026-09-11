@@ -9,8 +9,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
-import { sanitizeHtml } from "@/lib/sanitize";
+import { ShortcodeContent } from "@/components/content/ShortcodeContent";
 import { useI18n } from "@/lib/i18n";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 
 interface Block { type: string; data: any; }
 
@@ -18,14 +20,18 @@ export default function DynamicPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useI18n();
 
+  const { isAdminOrEditor, loading: roleLoading } = useAdminAuth();
+
   const { data: page, isLoading } = useQuery({
-    queryKey: ["page", slug],
+    queryKey: ["page", slug, isAdminOrEditor],
     queryFn: async () => {
-      const { data, error } = await supabase.from("pages").select("*").eq("slug", slug!).eq("status", "published").maybeSingle();
+      let q = supabase.from("pages").select("*").eq("slug", slug!);
+      if (!isAdminOrEditor) q = q.eq("status", "published");
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!slug,
+    enabled: !!slug && !roleLoading,
   });
 
   useEffect(() => { if (page) document.title = page.seo_title || page.title; }, [page]);
@@ -38,6 +44,7 @@ export default function DynamicPage() {
 
   return (
     <PageLayout>
+        {page.status !== "published" && <PreviewBanner status={page.status} />}
         {blocks.map((block, idx) => (<BlockRenderer key={idx} block={block} />))}
         {blocks.length === 0 && (<div className="container py-16 text-center text-muted-foreground">{t("dynamicPage.noContent")}</div>)}
     </PageLayout>
@@ -83,7 +90,7 @@ function BlockRenderer({ block }: { block: Block }) {
 
   switch (block.type) {
     case "hero": return (<section className="py-20 bg-gradient-to-br from-primary/5 to-primary/10"><div className="container text-center space-y-4"><h1 className="text-4xl font-bold md:text-5xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.title}</h1>{d.subtitle && <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{d.subtitle}</p>}{d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}</div></section>);
-    case "text": return (<section className="py-12"><div className="container max-w-3xl prose prose-neutral dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: sanitizeHtml(d.content) }} /></section>);
+    case "text": return (<section className="py-12"><div className="container max-w-3xl"><ShortcodeContent content={d.content} isHtml className="prose prose-neutral dark:prose-invert max-w-none" /></div></section>);
     case "image": return (<section className="py-8"><div className="container max-w-4xl"><img src={d.src} alt={d.alt} className="w-full rounded-xl" />{d.caption && <p className="text-sm text-muted-foreground text-center mt-2">{d.caption}</p>}</div></section>);
     case "cta": return (<section className="py-16 bg-primary/5"><div className="container text-center space-y-4"><h2 className="text-3xl font-bold">{d.title}</h2>{d.description && <p className="text-muted-foreground">{d.description}</p>}{d.buttonText && <Button asChild size="lg"><a href={d.buttonUrl}>{d.buttonText}</a></Button>}</div></section>);
     case "features": return (<section className="py-16"><div className="container">{d.title && <h2 className="text-3xl font-bold text-center mb-8">{d.title}</h2>}<div className="grid gap-6 md:grid-cols-3">{(d.items ?? []).map((item: any, i: number) => (<Card key={i}><CardContent className="pt-6 text-center space-y-2"><span className="text-3xl">{item.icon}</span><h3 className="font-semibold">{item.title}</h3><p className="text-sm text-muted-foreground">{item.description}</p></CardContent></Card>))}</div></div></section>);

@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Tag, RefreshCw, Download, Sparkles, TrendingUp, Clock, CheckCircle, XCircle, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Tag, RefreshCw, Download, Sparkles, TrendingUp, Clock, CheckCircle, XCircle, ShieldCheck, ShieldAlert, Eye } from "lucide-react";
 
 const DEAL_TYPE_LABELS: Record<string, string> = {
   coupon_code: "Mã giảm giá",
@@ -278,6 +278,11 @@ export default function AdminDeals() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {deal.slug && (
+                            <Button variant="ghost" size="icon" asChild title="Xem trước">
+                              <a href={`/deals/${deal.slug}`} target="_blank" rel="noopener"><Eye className="h-4 w-4" /></a>
+                            </Button>
+                          )}
                           <Button variant="ghost" size="icon" onClick={() => setEditDeal(deal)}>
                             <Pencil className="h-4 w-4" />
                           </Button>

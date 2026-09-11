@@ -13,6 +13,8 @@ import { ArrowLeft, Eye, Workflow, CheckCircle2, AlertTriangle, Lightbulb, Targe
 import { UpvoteButton } from "@/components/UpvoteButton";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 
 function extractYouTubeId(url: string): string {
   const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -29,15 +31,19 @@ export default function WorkflowDetail() {
     advanced: { label: t("workflow.advanced"), color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
   };
 
+  const { isAdminOrEditor, loading: roleLoading } = useAdminAuth();
+
   const { data: wf, isLoading } = useQuery({
-    queryKey: ["workflow", slug],
+    queryKey: ["workflow", slug, isAdminOrEditor],
     queryFn: async () => {
-      const { data, error } = await supabase.from("workflows").select("*, profiles(display_name, avatar_url)").eq("slug", slug!).eq("status", "published").maybeSingle();
+      let q = supabase.from("workflows").select("*, profiles(display_name, avatar_url)").eq("slug", slug!);
+      if (!isAdminOrEditor) q = q.eq("status", "published");
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
-      if (data) { supabase.from("workflows").update({ view_count: (data.view_count ?? 0) + 1 } as any).eq("id", data.id).then(); }
+      if (data && data.status === "published") { supabase.from("workflows").update({ view_count: (data.view_count ?? 0) + 1 } as any).eq("id", data.id).then(); }
       return data;
     },
-    enabled: !!slug,
+    enabled: !!slug && !roleLoading,
   });
 
   const steps = (wf?.steps as any[]) ?? [];
@@ -106,6 +112,7 @@ export default function WorkflowDetail() {
 
   return (
     <PageLayout title={`${seoTitle} - Astute Tools`} description={seoDesc}>
+        {wf.status !== "published" && <PreviewBanner status={wf.status} />}
         <article className="container max-w-4xl py-8">
           <Link to="/workflows" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> {t("workflow.backToList")}

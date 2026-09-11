@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 import { StructuredReviewForm } from "@/components/tool-detail/StructuredReviewForm";
 import { ReviewBreakdown } from "@/components/tool-detail/ReviewBreakdown";
@@ -59,10 +61,12 @@ export default function ToolDetail() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const { isAdminOrEditor, loading: roleLoading } = useAdminAuth();
+
   const { data: tool, isLoading } = useQuery({
-    queryKey: ["tool", slug],
-    queryFn: () => fetchToolBySlug(slug!),
-    enabled: !!slug,
+    queryKey: ["tool", slug, isAdminOrEditor],
+    queryFn: () => fetchToolBySlug(slug!, isAdminOrEditor),
+    enabled: !!slug && !roleLoading,
   });
 
   // Translated content from DB
@@ -213,6 +217,7 @@ export default function ToolDetail() {
 
   return (
     <PageLayout>
+        {tool.status !== "published" && <PreviewBanner status={tool.status} />}
         <div className="container py-8">
           <Link to="/tools" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" /> {t("tool.backToList")}

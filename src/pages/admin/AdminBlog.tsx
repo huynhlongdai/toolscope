@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages, ShieldCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages, ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Eye } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
 import { RichTextEditor, clearAutosaveDraft } from "@/components/admin/RichTextEditor";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
@@ -162,6 +162,9 @@ export default function AdminBlog() {
                     <TableCell className="text-muted-foreground">{new Date(p.created_at).toLocaleDateString("vi-VN")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" asChild title="Xem trước">
+                          <a href={`/blog/${p.slug}`} target="_blank" rel="noopener"><Eye className="h-4 w-4" /></a>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setEditPost(p)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa?")) deletePost.mutate(p.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />

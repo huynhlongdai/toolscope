@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Sparkles, Loader2, ExternalLink, Video, Languages, CheckCircle2, Eye } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
 import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
 
@@ -110,6 +110,9 @@ export default function AdminWorkflows() {
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                           </Button>
                         )}
+                        <Button variant="ghost" size="icon" asChild title="Xem trước">
+                          <a href={`/workflow/${wf.slug}`} target="_blank" rel="noopener"><Eye className="h-4 w-4" /></a>
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => setEditWf(wf)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa?")) deleteMut.mutate(wf.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />

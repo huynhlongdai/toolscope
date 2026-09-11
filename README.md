@@ -214,6 +214,24 @@ User yêu cầu ("xây dựng api để hỗ trợ agent quản trị toàn vẹ
 
 **Chưa làm** (nằm ngoài phạm vi được duyệt lần này): không có action approve/reject/ban cho moderation (loại trừ có chủ đích); newsletter chưa có khả năng gửi mail thật cho cả agent và Admin UI (vẫn là placeholder từ trước); `AdminMenus.tsx` UI hiện chưa hiển thị trạng thái "có bản nháp đang chờ publish" từ cột `draft_items` mới (agent ghi được qua API nhưng admin phải publish qua RPC/SQL trực tiếp nếu chưa có nút trong UI).
 
+## Preview nội dung nháp/pending review + công cụ viết bài chèn Deal/Tool (2026-09-11)
+Yêu cầu user (dịch): *"thêm tính năng cho phép xem trước nội dung đã đăng hoặc nội dung nháp, nội dung review... để dễ dàng xem bố cục nội dung có đạt chưa. cải tiến bổ sung thêm các công cụ hỗ trợ viết nội dung dễ dàng, có thể gắn deal giảm giá hay tool dễ dàng hơn"* → 2 phần, được duyệt qua chỉ đạo *"triển khai, commit và deploy"*.
+
+**Root cause "không xem trước được draft"**: 2 lớp chặn cộng lại — (1) các trang public detail (`BlogDetail`/`ToolDetail`/`WorkflowDetail`/`DealDetail`/`DynamicPage`) hardcode `.eq("status","published")` (hoặc `.eq("is_active",true)` cho deals) ngay trong query, chặn trước khi RLS kịp xét; (2) RLS SELECT của `pages`/`workflows`/`deals` vốn **không** có carve-out cho editor (chỉ `blog_posts`/`tools` có sẵn từ trước).
+
+**Phần 1 — Preview**:
+- Migration `20260911080000_editor_preview_rls.sql` (đã deploy production, verify qua `pg_policies`): thêm `OR has_role(auth.uid(),'admin') OR has_role(auth.uid(),'editor')` vào SELECT policy của `pages`/`workflows`/`deals`, đưa 3 bảng này về cùng pattern với `blog_posts`/`tools`.
+- 5 trang public detail: dùng `useAdminAuth()` để bỏ qua filter status/is_active khi người xem là admin/editor, hiển thị `PreviewBanner` (banner sticky màu vàng + tự chèn `<meta name="robots" content="noindex,nofollow">`) khi nội dung chưa live. Không ảnh hưởng khách ẩn danh (RLS vẫn chặn họ ở tầng DB).
+- Nút "Xem trước" (icon mắt, mở tab mới tới URL public thật) thêm vào bảng danh sách `AdminBlog`/`AdminWorkflows`/`AdminDeals`; `AdminPageEditor`/`AdminTools` đã có sẵn link tương tự từ trước, tự động hoạt động đúng với draft sau khi migration này deploy.
+
+**Phần 2 — Công cụ viết nội dung chèn Deal/Tool**:
+- `ShortcodeContent` (`src/components/content/ShortcodeContent.tsx`) — renderer shortcode dùng chung, thay thế 3 chỗ code trùng lặp (Blog/Page/Tool detail): hỗ trợ `[deals]`/`[deal]` (mọi deal active của tool hiện tại), `[deal:CODE-hoặc-slug]` (một deal cụ thể — theo coupon code nếu có `toolId`, hoặc theo slug riêng của deal nếu không gắn tool nào), và shortcode mới `[tool:slug]` (thẻ giới thiệu tool, dùng được ở bất kỳ đâu, không cần gắn tool).
+- `DealsWidget` nâng cấp: thêm mode `dealSlug` để tra một deal cụ thể trực tiếp qua cột `slug` riêng của nó, không còn bắt buộc phải có `toolId`.
+- `ToolEmbedWidget` (mới): render `ToolCard` compact từ `[tool:slug]`, tra tool published theo slug.
+- `RichTextEditor`: menu chèn khối đặc biệt có thêm 2 dialog tìm-kiếm-thật (`InsertToolDealDialogs.tsx`, dùng `cmdk`/`Command`) — "Chèn Deal cụ thể..." (tìm theo tên deal, chèn `[deal:CODE-hoặc-slug]` với deal thật vừa chọn) và "Chèn Tool Card..." (tìm theo tên tool, chèn `[tool:slug]`) — thay cho hành vi cũ chỉ chèn text tĩnh `[deals]`.
+
+**Verify**: `npx tsc --noEmit` pass, `npm run build` pass, `npx vitest run` 26/26 pass. Migration deploy qua `supabase db query --linked`, verify lại 3 policy bằng `SELECT ... FROM pg_policies` — khớp đúng nội dung migration.
+
 ## Backlog còn lại (`IMPROVEMENT_PLAN.md`)
 - **P1.1** Hero typewriter/floating-search, **P1.2** ToolCard hover-preview/logo-skeleton, **P1.4** Google/GitHub OAuth (cần user tạo OAuth app credentials trước).
 - **P2.1** ToolsPage multi-select filter, **P2.2** search debounce/autocomplete/history, **P2.3** ComparePage tách `services/compare.ts` + export PDF.

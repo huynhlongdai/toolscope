@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { ArrowLeft, Calendar, Eye, User, List, BookOpen } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { sanitizeHtml } from "@/lib/sanitize";
+import { ShortcodeContent } from "@/components/content/ShortcodeContent";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { ToolCard } from "@/components/tools/ToolCard";
 import { useMemo } from "react";
@@ -71,23 +72,29 @@ function parseHeadings(html: string) {
 export default function BlogDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { t, locale } = useI18n();
+  // Admin/editor accounts are granted RLS SELECT on non-published rows (see
+  // migration 20260906040000_..., pattern already existed for blog_posts) -
+  // so for them we skip the `.eq("status","published")` filter below and
+  // show a Preview banner instead, letting drafts/pending_review posts be
+  // reviewed at their real public URL before actually going live.
+  const { isAdminOrEditor, loading: roleLoading } = useAdminAuth();
 
   const { data: post, isLoading } = useQuery({
-    queryKey: ["blog-post", slug],
+    queryKey: ["blog-post", slug, isAdminOrEditor],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("blog_posts")
         .select("*, profiles:author_id(display_name, avatar_url)")
-        .eq("slug", slug!)
-        .eq("status", "published")
-        .maybeSingle();
+        .eq("slug", slug!);
+      if (!isAdminOrEditor) q = q.eq("status", "published");
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
-      if (data) {
+      if (data && data.status === "published") {
         supabase.from("blog_posts").update({ view_count: data.view_count + 1 }).eq("id", data.id).then();
       }
       return data;
     },
-    enabled: !!slug,
+    enabled: !!slug && !roleLoading,
   });
 
   const { translated, isTranslated } = useTranslatedContent(
@@ -236,6 +243,7 @@ export default function BlogDetail() {
 
   return (
     <PageLayout>
+        {post.status !== "published" && <PreviewBanner status={post.status} />}
         <div className="container max-w-6xl py-8">
           <div className="flex gap-8">
             {/* Main article */}
@@ -318,13 +326,12 @@ export default function BlogDetail() {
                 />
               )}
 
-              <div className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary">
-                {contentWithIds.startsWith("<") ? (
-                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentWithIds) }} />
-                ) : (
-                  <ReactMarkdown>{displayContent}</ReactMarkdown>
-                )}
-              </div>
+              <ShortcodeContent
+                content={contentWithIds.startsWith("<") ? contentWithIds : displayContent}
+                isHtml={contentWithIds.startsWith("<")}
+                toolId={primaryToolId}
+                className="prose prose-neutral dark:prose-invert mt-8 max-w-none prose-headings:font-semibold prose-a:text-primary"
+              />
 
               {/* Listicle: ranked cards, each with its own CTA */}
               {articleType === "listicle" && listicleItems.length > 0 && (

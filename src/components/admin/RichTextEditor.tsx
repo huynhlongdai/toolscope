@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { InsertToolDialog, InsertDealDialog } from "@/components/admin/InsertToolDealDialogs";
 
 interface RichTextEditorProps {
   content: string;
@@ -216,6 +217,9 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
   const insertSnippet = (html: string) => {
     editor?.chain().focus().insertContent(html).run();
   };
+
+  const [insertToolOpen, setInsertToolOpen] = useState(false);
+  const [insertDealOpen, setInsertDealOpen] = useState(false);
 
   if (!editor) return null;
 
@@ -567,10 +571,21 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
             <DropdownMenuSeparator />
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`<p>[deals]</p>`)}>
               <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Deal Block</div><div className="text-xs text-muted-foreground">Hiển thị ưu đãi của tool</div></div>
+              <div><div className="font-medium text-sm">Deal Block</div><div className="text-xs text-muted-foreground">Hiển thị tất cả ưu đãi của tool hiện tại</div></div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => setInsertDealOpen(true)}>
+              <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Chèn Deal cụ thể...</div><div className="text-xs text-muted-foreground">Tìm & chèn một deal cụ thể</div></div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => setInsertToolOpen(true)}>
+              <SquarePlus className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Chèn Tool Card...</div><div className="text-xs text-muted-foreground">Tìm & chèn thẻ giới thiệu tool</div></div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <InsertToolDialog open={insertToolOpen} onOpenChange={setInsertToolOpen} onInsert={insertSnippet} />
+        <InsertDealDialog open={insertDealOpen} onOpenChange={setInsertDealOpen} onInsert={insertSnippet} />
 
         <div className="flex-1" />
 

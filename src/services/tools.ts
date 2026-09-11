@@ -13,13 +13,21 @@ export interface ToolListParams {
   pageSize?: number;
 }
 
-export async function fetchToolBySlug(slug: string) {
-  const { data, error } = await supabase
+/**
+ * `skipStatusFilter` is used by the Preview feature: admin/editor accounts
+ * are granted RLS SELECT on non-published tools (see the original SELECT
+ * policy - it already included admin/editor, unlike pages/workflows/deals
+ * which needed a new migration), so ToolDetail.tsx can skip the
+ * `.eq("status","published")` filter for those roles and show a real
+ * preview of a draft/pending_review tool at its normal public URL.
+ */
+export async function fetchToolBySlug(slug: string, skipStatusFilter = false) {
+  let q = supabase
     .from("tools")
     .select("*, categories(name, slug), ai_scores(*)")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
+    .eq("slug", slug);
+  if (!skipStatusFilter) q = q.eq("status", "published");
+  const { data, error } = await q.maybeSingle();
   if (error) throw error;
   return data;
 }

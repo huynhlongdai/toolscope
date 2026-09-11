@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { useTranslatedContent } from "@/hooks/useTranslatedContent";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,18 +43,20 @@ export default function DealDetail() {
   const [copied, setCopied] = useState(false);
   const [verified, setVerified] = useState<"works" | "broken" | null>(null);
 
+  const { isAdminOrEditor, loading: roleLoading } = useAdminAuth();
+
   const { data: deal, isLoading } = useQuery({
-    queryKey: ["deal-detail", slug],
+    queryKey: ["deal-detail", slug, isAdminOrEditor],
     queryFn: async () => {
-      const { data, error } = await (supabase.from("deals") as any)
+      let q = (supabase.from("deals") as any)
         .select("*, tools(name, slug, logo_url)")
-        .eq("slug", slug!)
-        .eq("is_active", true)
-        .maybeSingle();
+        .eq("slug", slug!);
+      if (!isAdminOrEditor) q = q.eq("is_active", true);
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!slug,
+    enabled: !!slug && !roleLoading,
   });
 
   const { translated } = useTranslatedContent(
@@ -153,6 +157,7 @@ export default function DealDetail() {
 
   return (
     <PageLayout title={seoTitle} description={seoDesc} canonical={canonicalUrl} ogImage={deal.banner_image_url ?? undefined}>
+      {!deal.is_active && <PreviewBanner status="inactive" />}
       <article className="container max-w-2xl py-8">
         <Link to="/deals" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" /> {t("deals.backToDeals")}

@@ -9,10 +9,8 @@ import {
   Users, Rocket, ThumbsUp, CheckCircle, List, ChevronDown, ChevronUp, ArrowUp,
   ExternalLink, Star,
 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { sanitizeHtml } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
-import { DealsWidget } from "@/components/deals/DealsWidget";
+import { ShortcodeContent } from "@/components/content/ShortcodeContent";
 import { getToolLogoUrl } from "@/lib/favicon";
 
 interface DetailedArticleProps {
@@ -160,42 +158,12 @@ const proseClasses = cn(
 );
 
 /* ── Content renderer (HTML or Markdown) with shortcode support ── */
+// Thin wrapper kept for local naming clarity - delegates to the shared
+// ShortcodeContent renderer (also used by BlogDetail/DynamicPage) so
+// [deals], [deal:CODE] and [tool:slug] shortcodes behave consistently
+// everywhere.
 function ContentRenderer({ content, isHtml, toolId }: { content: string; isHtml: boolean; toolId?: string }) {
-  // Check for [deals] or [deal:CODE] shortcodes
-  const shortcodeRegex = /\[deals?\]|\[deal:([^\]]+)\]/g;
-  const hasShortcodes = shortcodeRegex.test(content);
-
-  if (hasShortcodes && toolId) {
-    // Split content by shortcodes and render inline
-    const parts = content.split(/(\[deals?\]|\[deal:[^\]]+\])/g);
-    return (
-      <div>
-        {parts.map((part, i) => {
-          const dealMatch = part.match(/^\[deal:([^\]]+)\]$/);
-          if (part === "[deals]" || part === "[deal]") {
-            return <DealsWidget key={i} toolId={toolId} />;
-          }
-          if (dealMatch) {
-            return <DealsWidget key={i} toolId={toolId} couponCode={dealMatch[1]} />;
-          }
-          if (!part) return null;
-          if (isHtml) {
-            return <div key={i} className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(part) }} />;
-          }
-          return <article key={i} className={proseClasses}><ReactMarkdown>{part}</ReactMarkdown></article>;
-        })}
-      </div>
-    );
-  }
-
-  if (isHtml) {
-    return <div className={proseClasses} dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />;
-  }
-  return (
-    <article className={proseClasses}>
-      <ReactMarkdown>{content}</ReactMarkdown>
-    </article>
-  );
+  return <ShortcodeContent content={content} isHtml={isHtml} toolId={toolId} className={proseClasses} />;
 }
 
 /* ── Collapsible Section Card ───────────────────────────── */
