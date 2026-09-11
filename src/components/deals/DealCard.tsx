@@ -12,6 +12,17 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { DealDetailModal } from "./DealDetailModal";
 
+const DEAL_TYPE_I18N_KEY: Record<string, string> = {
+  coupon_code: "deals.type.coupon_code",
+  lifetime_deal: "deals.type.lifetime_deal",
+  free_trial_extended: "deals.type.free_trial_extended",
+  student_discount: "deals.type.student_discount",
+  referral: "deals.type.referral",
+  bundle: "deals.type.bundle",
+  flash_sale: "deals.type.flash_sale",
+  no_code_auto: "deals.type.no_code_auto",
+};
+
 interface Deal {
   id: string;
   tool_id: string;
@@ -32,6 +43,14 @@ interface Deal {
   click_count: number;
   upvotes: number;
   downvotes: number;
+  slug?: string;
+  deal_type?: string;
+  redemption_type?: string;
+  savings_percent?: number | null;
+  usage_limit?: number | null;
+  current_uses?: number | null;
+  last_verified_at?: string | null;
+  banner_image_url?: string | null;
 }
 
 function useCountdown(expiresAt: string | null | undefined) {
@@ -131,11 +150,17 @@ export function DealCard({ deal, toolName, toolSlug, toolLogoUrl }: { deal: Deal
     ? `-${deal.discount_value} ${deal.currency}`
     : deal.discount_type === "free_trial"
     ? t("deals.freeTrial")
+    : deal.savings_percent != null
+    ? `-${deal.savings_percent}%`
     : null;
 
   const isExpiringSoon = deal.expires_at && new Date(deal.expires_at).getTime() - Date.now() < 3 * 86400000;
   const isHot = (deal.click_count || 0) >= 50;
   const shareUrl = toolSlug ? `${window.location.origin}/tool/${toolSlug}` : window.location.href;
+  const usageLimitReached = deal.usage_limit != null && (deal.current_uses ?? 0) >= deal.usage_limit;
+  const dealTypeLabel = deal.deal_type && DEAL_TYPE_I18N_KEY[deal.deal_type]
+    ? t(DEAL_TYPE_I18N_KEY[deal.deal_type])
+    : null;
 
   return (
     <>
@@ -154,14 +179,17 @@ export function DealCard({ deal, toolName, toolSlug, toolLogoUrl }: { deal: Deal
                 <Tag className="h-3 w-3 mr-1" /> {discountLabel}
               </Badge>
             )}
+            {dealTypeLabel && (
+              <Badge variant="outline" className="text-[11px]">{dealTypeLabel}</Badge>
+            )}
             {deal.is_exclusive && (
               <Badge variant="outline" className="border-primary/50 text-primary">
-                <Sparkles className="h-3 w-3 mr-1" /> Độc quyền
+                <Sparkles className="h-3 w-3 mr-1" /> {t("deals.exclusive")}
               </Badge>
             )}
             {deal.is_verified && (
               <Badge variant="secondary">
-                <Shield className="h-3 w-3 mr-1" /> Đã xác minh
+                <Shield className="h-3 w-3 mr-1" /> {t("deals.verified")}
               </Badge>
             )}
             {isHot && (
@@ -173,6 +201,9 @@ export function DealCard({ deal, toolName, toolSlug, toolLogoUrl }: { deal: Deal
               <Badge variant="destructive" className="animate-pulse">
                 <Clock className="h-3 w-3 mr-1" /> {countdown}
               </Badge>
+            )}
+            {usageLimitReached && (
+              <Badge variant="destructive">{t("deals.usageLimitReached")}</Badge>
             )}
           </div>
 

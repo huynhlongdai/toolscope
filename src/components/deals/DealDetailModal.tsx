@@ -2,10 +2,28 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, ExternalLink, Clock, Shield, Sparkles, Tag } from "lucide-react";
+import { Copy, Check, ExternalLink, Clock, Shield, Sparkles, Tag, ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
+
+const DEAL_TYPE_I18N_KEY: Record<string, string> = {
+  coupon_code: "deals.type.coupon_code",
+  lifetime_deal: "deals.type.lifetime_deal",
+  free_trial_extended: "deals.type.free_trial_extended",
+  student_discount: "deals.type.student_discount",
+  referral: "deals.type.referral",
+  bundle: "deals.type.bundle",
+  flash_sale: "deals.type.flash_sale",
+  no_code_auto: "deals.type.no_code_auto",
+};
+
+const REDEMPTION_TYPE_I18N_KEY: Record<string, string> = {
+  code: "deals.redemption.code",
+  auto_apply: "deals.redemption.auto_apply",
+  manual_contact: "deals.redemption.manual_contact",
+};
 
 interface Deal {
   id: string;
@@ -21,6 +39,16 @@ interface Deal {
   expires_at?: string | null;
   is_verified: boolean;
   is_exclusive: boolean;
+  slug?: string;
+  deal_type?: string;
+  redemption_type?: string;
+  savings_percent?: number | null;
+  usage_limit?: number | null;
+  current_uses?: number | null;
+  last_verified_at?: string | null;
+  eligibility?: Record<string, unknown> | null;
+  terms_conditions?: string | null;
+  banner_image_url?: string | null;
 }
 
 interface DealDetailModalProps {
@@ -34,14 +62,25 @@ interface DealDetailModalProps {
 
 export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown, onClickDeal }: DealDetailModalProps) {
   const [copied, setCopied] = useState(false);
+  const [verified, setVerified] = useState<"works" | "broken" | null>(null);
   const { t } = useI18n();
 
   const copyCode = async () => {
     if (!deal.coupon_code) return;
     await navigator.clipboard.writeText(deal.coupon_code);
     setCopied(true);
-    toast.success("Đã copy mã giảm giá!");
+    toast.success(t("deals.copiedCode"));
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleVerify = async (stillWorks: boolean) => {
+    try {
+      await supabase.rpc("verify_deal" as any, { _deal_id: deal.id, _still_works: stillWorks });
+      setVerified(stillWorks ? "works" : "broken");
+      toast.success(stillWorks ? t("deals.verifyThanks") : t("deals.verifyReportedThanks"));
+    } catch {
+      toast.error(t("deals.verifyThanks"));
+    }
   };
 
   const discountLabel = deal.discount_type === "percentage" && deal.discount_value
@@ -50,9 +89,21 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
     ? `-${deal.discount_value} ${deal.currency}`
     : deal.discount_type === "free_trial"
     ? t("deals.freeTrial")
+    : deal.savings_percent != null
+    ? `-${deal.savings_percent}%`
     : null;
 
   const isExpiringSoon = deal.expires_at && new Date(deal.expires_at).getTime() - Date.now() < 3 * 86400000;
+  const usageLimitReached = deal.usage_limit != null && (deal.current_uses ?? 0) >= deal.usage_limit;
+  const dealTypeLabel = deal.deal_type && DEAL_TYPE_I18N_KEY[deal.deal_type] ? t(DEAL_TYPE_I18N_KEY[deal.deal_type]) : null;
+  const redemptionLabel = deal.redemption_type && REDEMPTION_TYPE_I18N_KEY[deal.redemption_type]
+    ? t(REDEMPTION_TYPE_I18N_KEY[deal.redemption_type])
+    : null;
+  // Only show the fake "copy code" affordance when there really is a code
+  // to type in - deals with redemption_type = auto_apply/manual_contact
+  // (common for pure affiliate-link "deals") never had a real code, so the
+  // old UI's coupon_code-only check was misleading for those.
+  const showCouponCode = !!deal.coupon_code && deal.redemption_type !== "manual_contact";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,7 +115,7 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
           </DialogTitle>
           {toolName && (
             <DialogDescription className="text-sm">
-              Ưu đãi cho <span className="font-medium text-foreground">{toolName}</span>
+              {t("deals.offerFor")} <span className="font-medium text-foreground">{toolName}</span>
             </DialogDescription>
           )}
         </DialogHeader>
@@ -76,20 +127,26 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
                 <Tag className="h-3 w-3 mr-1" /> {discountLabel}
               </Badge>
             )}
+            {dealTypeLabel && (
+              <Badge variant="outline" className="text-[11px]">{dealTypeLabel}</Badge>
+            )}
             {deal.is_exclusive && (
               <Badge variant="outline" className="border-primary/50 text-primary">
-                <Sparkles className="h-3 w-3 mr-1" /> Độc quyền
+                <Sparkles className="h-3 w-3 mr-1" /> {t("deals.exclusive")}
               </Badge>
             )}
             {deal.is_verified && (
               <Badge variant="secondary">
-                <Shield className="h-3 w-3 mr-1" /> Đã xác minh
+                <Shield className="h-3 w-3 mr-1" /> {t("deals.verified")}
               </Badge>
             )}
             {isExpiringSoon && countdown && countdown !== "Hết hạn" && (
               <Badge variant="destructive" className="animate-pulse">
                 <Clock className="h-3 w-3 mr-1" /> {countdown}
               </Badge>
+            )}
+            {usageLimitReached && (
+              <Badge variant="destructive">{t("deals.usageLimitReached")}</Badge>
             )}
           </div>
 
@@ -112,9 +169,13 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
             </div>
           )}
 
-          {deal.coupon_code && (
+          {redemptionLabel && (
+            <p className="text-xs text-muted-foreground">{redemptionLabel}</p>
+          )}
+
+          {showCouponCode && (
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-muted-foreground">Mã giảm giá</p>
+              <p className="text-xs font-medium text-muted-foreground">{t("deals.couponCode")}</p>
               <button
                 onClick={copyCode}
                 className={cn(
@@ -130,19 +191,63 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
             </div>
           )}
 
+          {deal.usage_limit != null && (
+            <p className="text-xs text-muted-foreground">
+              {t("deals.usageLimit")}: {deal.current_uses ?? 0}/{deal.usage_limit} {t("deals.usesRemaining")}
+            </p>
+          )}
+
+          {deal.terms_conditions && (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer font-medium">{t("deals.termsConditions")}</summary>
+              <p className="mt-1 whitespace-pre-line">{deal.terms_conditions}</p>
+            </details>
+          )}
+
           {deal.expires_at && countdown && (
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" /> Còn {countdown}
+              <Clock className="h-3 w-3" /> {t("deals.remaining")} {countdown}
+            </p>
+          )}
+
+          {deal.last_verified_at && (
+            <p className="text-[11px] text-muted-foreground">
+              {t("deals.lastVerified")}: {new Date(deal.last_verified_at).toLocaleDateString()}
             </p>
           )}
 
           {deal.deal_url && (
             <Button asChild className="w-full gap-2" onClick={() => onClickDeal?.()}>
               <a href={deal.deal_url} target="_blank" rel="noopener noreferrer sponsored">
-                <ExternalLink className="h-4 w-4" /> Nhận ưu đãi
+                <ExternalLink className="h-4 w-4" /> {t("deals.getCoupon")}
               </a>
             </Button>
           )}
+
+          {/* Community verify - "still works" / "report broken" signal,
+              separate from the static is_verified admin flag. */}
+          <div className="flex items-center justify-center gap-3 pt-1 border-t text-xs">
+            <button
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors",
+                verified === "works" && "text-green-600"
+              )}
+              onClick={() => handleVerify(true)}
+              disabled={verified !== null}
+            >
+              <ThumbsUp className="h-3.5 w-3.5" /> {t("deals.verifyStillWorks")}
+            </button>
+            <button
+              className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors",
+                verified === "broken" && "text-destructive"
+              )}
+              onClick={() => handleVerify(false)}
+              disabled={verified !== null}
+            >
+              <ThumbsDown className="h-3.5 w-3.5" /> {t("deals.verifyReportBroken")}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

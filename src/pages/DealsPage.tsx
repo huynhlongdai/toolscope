@@ -10,10 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tag, Search } from "lucide-react";
 
+const DEAL_TYPE_OPTIONS = [
+  "coupon_code", "lifetime_deal", "free_trial_extended", "student_discount",
+  "referral", "bundle", "flash_sale", "no_code_auto",
+] as const;
+
 export default function DealsPage() {
   const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [discountFilter, setDiscountFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("default");
 
   const { data: deals = [], isLoading } = useQuery({
@@ -35,11 +41,12 @@ export default function DealsPage() {
       const translatedTitle = translationsMap[d.id]?.title || d.title;
       const matchSearch = !search || translatedTitle.toLowerCase().includes(search.toLowerCase()) || d.tools?.name?.toLowerCase().includes(search.toLowerCase());
       const matchType = discountFilter === "all" || d.discount_type === discountFilter;
-      return matchSearch && matchType;
+      const matchDealType = typeFilter === "all" || d.deal_type === typeFilter;
+      return matchSearch && matchType && matchDealType;
     })
     .sort((a: any, b: any) => {
       if (sortBy === "newest") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      if (sortBy === "discount") return (b.discount_value || 0) - (a.discount_value || 0);
+      if (sortBy === "discount") return (b.savings_percent ?? b.discount_value ?? 0) - (a.savings_percent ?? a.discount_value ?? 0);
       if (sortBy === "expiring") {
         const aExp = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
         const bExp = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
@@ -71,6 +78,15 @@ export default function DealsPage() {
               <SelectItem value="percentage">{t("deals.percentage")}</SelectItem>
               <SelectItem value="fixed">{t("deals.fixed")}</SelectItem>
               <SelectItem value="free_trial">{t("deals.freeTrial")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder={t("deals.filterByType")} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("deals.filterByType")}: {t("deals.allTypes")}</SelectItem>
+              {DEAL_TYPE_OPTIONS.map((dt) => (
+                <SelectItem key={dt} value={dt}>{t(`deals.type.${dt}`)}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>

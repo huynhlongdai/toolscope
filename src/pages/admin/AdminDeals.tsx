@@ -186,6 +186,15 @@ export default function AdminDeals() {
                   <SelectItem value="inactive">Đã tắt</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-full sm:w-[170px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại deal</SelectItem>
+                  {Object.entries(DEAL_TYPE_LABELS).map(([k, label]) => (
+                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="rounded-md border overflow-x-auto">
@@ -194,18 +203,21 @@ export default function AdminDeals() {
                   <TableRow>
                     <TableHead>Deal</TableHead>
                     <TableHead>Tool</TableHead>
+                    <TableHead>Loại</TableHead>
                     <TableHead>Giảm giá</TableHead>
                     <TableHead>Mã</TableHead>
+                    <TableHead>Lượt dùng</TableHead>
                     <TableHead>Clicks</TableHead>
+                    <TableHead>Xác minh</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8">Đang tải...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8">Đang tải...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Không có deal nào</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Không có deal nào</TableCell></TableRow>
                   ) : filtered.map((deal: any) => (
                     <TableRow key={deal.id}>
                       <TableCell>
@@ -216,15 +228,43 @@ export default function AdminDeals() {
                       </TableCell>
                       <TableCell className="text-sm">{deal.tools?.name ?? "—"}</TableCell>
                       <TableCell>
+                        <Badge variant="outline" className="text-[10px] whitespace-nowrap">
+                          {DEAL_TYPE_LABELS[deal.deal_type] ?? deal.deal_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         {deal.discount_type === "percentage" && deal.discount_value
                           ? <Badge variant="destructive">-{deal.discount_value}%</Badge>
                           : deal.discount_type === "fixed" && deal.discount_value
                           ? <Badge variant="destructive">-{deal.discount_value} {deal.currency}</Badge>
+                          : deal.savings_percent != null
+                          ? <Badge variant="destructive">-{deal.savings_percent}%</Badge>
                           : <Badge variant="secondary">{deal.discount_type}</Badge>
                         }
                       </TableCell>
                       <TableCell className="font-mono text-xs">{deal.coupon_code || "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        {deal.usage_limit != null ? `${deal.current_uses ?? 0}/${deal.usage_limit}` : "Không giới hạn"}
+                      </TableCell>
                       <TableCell>{deal.click_count}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7"
+                            title="Xác nhận còn dùng được"
+                            onClick={() => verifyMutation.mutate({ id: deal.id, stillWorks: true })}
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon" className="h-7 w-7"
+                            title="Báo lỗi/hết hạn"
+                            onClick={() => verifyMutation.mutate({ id: deal.id, stillWorks: false })}
+                          >
+                            <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Switch
                           checked={deal.is_active}
