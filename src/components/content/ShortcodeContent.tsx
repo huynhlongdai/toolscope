@@ -1,7 +1,7 @@
 import ReactMarkdown from "react-markdown";
-import { sanitizeHtml } from "@/lib/sanitize";
 import { DealsWidget } from "@/components/deals/DealsWidget";
 import { ToolEmbedWidget } from "@/components/tools/ToolEmbedWidget";
+import { BlockRenderer } from "@/components/content/BlockRenderer";
 
 /**
  * Shared shortcode-aware content renderer, used by Blog / Page / Tool detail
@@ -42,7 +42,7 @@ export function ShortcodeContent({
 
   if (!hasShortcodes(content)) {
     return isHtml ? (
-      <div className={className} dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
+      <BlockRenderer html={content} className={className} />
     ) : (
       <article className={className}><ReactMarkdown>{content}</ReactMarkdown></article>
     );
@@ -75,7 +75,7 @@ export function ShortcodeContent({
         }
 
         if (isHtml) {
-          return <div key={i} className={className} dangerouslySetInnerHTML={{ __html: sanitizeHtml(part) }} />;
+          return <BlockRenderer key={i} html={part} className={className} />;
         }
         return <article key={i} className={className}><ReactMarkdown>{part}</ReactMarkdown></article>;
       })}
