@@ -17,7 +17,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Tag, RefreshCw, Download, Sparkles, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Tag, RefreshCw, Download, Sparkles, TrendingUp, Clock, CheckCircle, XCircle, ShieldCheck, ShieldAlert } from "lucide-react";
+
+const DEAL_TYPE_LABELS: Record<string, string> = {
+  coupon_code: "Mã giảm giá",
+  lifetime_deal: "Lifetime Deal",
+  free_trial_extended: "Gia hạn dùng thử",
+  student_discount: "Ưu đãi sinh viên",
+  referral: "Referral",
+  bundle: "Combo/Bundle",
+  flash_sale: "Flash Sale",
+  no_code_auto: "Tự động (không mã)",
+};
+
+const REDEMPTION_TYPE_LABELS: Record<string, string> = {
+  code: "Nhập mã",
+  auto_apply: "Tự động áp dụng",
+  manual_contact: "Liên hệ",
+};
+
+function slugifyVi(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+}
 
 export default function AdminDeals() {
   const queryClient = useQueryClient();
@@ -82,9 +110,26 @@ export default function AdminDeals() {
     onError: (e: any) => toast.error(e.message || "Không thể kích hoạt"),
   });
 
+  // Admin re-verify from the list ("còn dùng được") - same RPC the public
+  // site's verify_deal button calls, just also usable by admin for quick QA.
+  const verifyMutation = useMutation({
+    mutationFn: async ({ id, stillWorks }: { id: string; stillWorks: boolean }) => {
+      const { error } = await (supabase.rpc as any)("verify_deal", { _deal_id: id, _still_works: stillWorks });
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-deals"] });
+      toast.success(vars.stillWorks ? "Đã xác nhận deal còn dùng được" : "Đã báo deal lỗi/hết hạn");
+    },
+    onError: (e: any) => toast.error(e.message || "Lỗi khi xác minh deal"),
+  });
+
+  const [typeFilter, setTypeFilter] = useState("all");
+
   const filtered = deals.filter((d: any) =>
-    d.title.toLowerCase().includes(search.toLowerCase()) ||
-    d.tools?.name?.toLowerCase().includes(search.toLowerCase())
+    (d.title.toLowerCase().includes(search.toLowerCase()) ||
+      d.tools?.name?.toLowerCase().includes(search.toLowerCase())) &&
+    (typeFilter === "all" || d.deal_type === typeFilter)
   );
 
   const totalClicks = deals.reduce((sum: number, d: any) => sum + (d.click_count || 0), 0);
