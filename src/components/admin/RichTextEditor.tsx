@@ -31,6 +31,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InsertToolDialog, InsertDealDialog } from "@/components/admin/InsertToolDealDialogs";
 import { normalizeToHtml, wasConverted } from "@/lib/content-format";
+import { CalloutNode } from "@/components/admin/editor-blocks/CalloutNode";
+import { CtaNode } from "@/components/admin/editor-blocks/CtaNode";
 
 interface RichTextEditorProps {
   content: string;
@@ -107,6 +109,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       TableRow,
       TableCell,
       TableHeader,
+      // Presentation blocks. These serialize to data-block HTML that
+      // BlockRenderer maps back to React components on the public page.
+      CalloutNode,
+      CtaNode,
     ],
     content: initialHtml,
     onUpdate: ({ editor }) => {
@@ -611,6 +617,19 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
             `)}>
               <Timer className="h-4 w-4 mr-2 text-muted-foreground" />
               <div><div className="font-medium text-sm">Countdown</div><div className="text-xs text-muted-foreground">Đếm ngược ưu đãi</div></div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            {/* Real presentation blocks (Tiptap nodes), as opposed to the HTML
+                snippets below - these stay editable as structured blocks and
+                render as React components on the public page. */}
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setCallout("info").run()}>
+              <MessageSquareQuote className="h-4 w-4 mr-2 text-sky-600" />
+              <div><div className="font-medium text-sm">Callout</div><div className="text-xs text-muted-foreground">Hộp lưu ý / mẹo / cảnh báo</div></div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setCtaBlock().run()}>
+              <LayoutGrid className="h-4 w-4 mr-2 text-primary" />
+              <div><div className="font-medium text-sm">Nút CTA</div><div className="text-xs text-muted-foreground">Nút affiliate, tự gắn rel=sponsored</div></div>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
