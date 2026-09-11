@@ -32,6 +32,7 @@ const WorkflowDetail = lazy(() => import("./pages/WorkflowDetail"));
 const DynamicPage = lazy(() => import("./pages/DynamicPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const DealsPage = lazy(() => import("./pages/DealsPage"));
+const DealDetail = lazy(() => import("./pages/DealDetail"));
 const TasksPage = lazy(() => import("./pages/TasksPage"));
 const LaunchesPage = lazy(() => import("./pages/LaunchesPage"));
 const LaunchDetailPage = lazy(() => import("./pages/LaunchDetailPage"));
@@ -91,6 +92,7 @@ const MODULE_ROUTES: Record<string, Array<{ path: string; element: React.ReactNo
   ],
   deals: [
     { path: "/deals", element: <DealsPage /> },
+    { path: "/deals/:slug", element: <DealDetail /> },
   ],
   launches: [
     { path: "/launches", element: <LaunchesPage /> },

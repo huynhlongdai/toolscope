@@ -27,17 +27,19 @@ Sitemap: ${BASE_URL}/sitemap.xml
 
   // Sitemap XML
   try {
-    const [toolsRes, categoriesRes, blogRes, workflowsRes] = await Promise.all([
+    const [toolsRes, categoriesRes, blogRes, workflowsRes, dealsRes] = await Promise.all([
       supabase.from("tools").select("slug, updated_at").eq("status", "published").order("updated_at", { ascending: false }),
       supabase.from("categories").select("slug"),
       supabase.from("blog_posts").select("slug, updated_at").eq("status", "published"),
       supabase.from("workflows").select("slug, updated_at").eq("status", "published"),
+      supabase.from("deals").select("slug, updated_at").eq("is_active", true),
     ]);
 
     const tools = toolsRes.data || [];
     const categories = categoriesRes.data || [];
     const blogs = blogRes.data || [];
     const workflows = workflowsRes.data || [];
+    const deals = dealsRes.data || [];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -83,6 +85,13 @@ Sitemap: ${BASE_URL}/sitemap.xml
 
     for (const w of workflows) {
       addUrl(`/workflow/${w.slug}`, new Date(w.updated_at).toISOString().split("T")[0], "monthly", "0.6");
+    }
+
+    // Dedicated /deals/:slug pages (added 2026-09-11 deals enrichment - each
+    // active deal now has its own SEO-indexable page, previously only
+    // reachable inline inside a card/modal on the /deals list page).
+    for (const d of deals) {
+      addUrl(`/deals/${d.slug}`, new Date(d.updated_at).toISOString().split("T")[0], "weekly", "0.6");
     }
 
     xml += `</urlset>`;

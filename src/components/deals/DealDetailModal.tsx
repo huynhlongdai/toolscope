@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -248,6 +249,16 @@ export function DealDetailModal({ deal, toolName, open, onOpenChange, countdown,
               <ThumbsDown className="h-3.5 w-3.5" /> {t("deals.verifyReportBroken")}
             </button>
           </div>
+
+          {deal.slug && (
+            <Link
+              to={`/deals/${deal.slug}`}
+              className="block text-center text-xs text-muted-foreground hover:text-primary hover:underline"
+              onClick={() => onOpenChange(false)}
+            >
+              {t("deals.viewFullDetail")}
+            </Link>
+          )}
         </div>
       </DialogContent>
     </Dialog>
