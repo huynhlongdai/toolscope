@@ -442,16 +442,17 @@ Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_a
 Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"tools","action":"create","name":"ChatGPT","description":"...","pricing_type":"freemium","submit_for_review":true}'
 
 ═══════════════════════════════════════
-3) resource = "deals" (voucher / mã giảm giá) — action: create | update | get | list | activate_deal | delete
+3) resource = "deals" (voucher / mã giảm giá) — action: create | update | get | list | activate_deal | verify_deal | delete
 - Deals KHÔNG dùng status - dùng cờ is_active (true/false). Agent tạo/sửa deal LUÔN ra is_active=false, không có action publish/submit_for_review riêng - dùng "activate_deal" (admin only) để kích hoạt.
-- create: { tool_id* (uuid của tool), title*, description?, coupon_code?, discount_type? (percentage|fixed...), discount_value?, deal_url?, original_price?, deal_price?, currency? (mặc định USD), starts_at?, expires_at?, is_verified?, is_exclusive? }
+- create: { tool_id* (uuid của tool), title*, description?, coupon_code?, discount_type? (percentage|fixed...), discount_value?, deal_url?, original_price?, deal_price?, currency? (mặc định USD), starts_at?, expires_at?, is_verified?, is_exclusive?, slug? (tự sinh nếu bỏ trống, luôn kèm 8 ký tự random tránh trùng), deal_type? (coupon_code|lifetime_deal|free_trial_extended|student_discount|referral|bundle|flash_sale|no_code_auto — mặc định coupon_code; khác discount_type - discount_type chỉ mô tả CÁCH tính giảm giá, deal_type mô tả LOẠI ưu đãi), redemption_type? (code|auto_apply|manual_contact — mặc định code), eligibility? (jsonb, vd {"new_users_only":true}), terms_conditions?, usage_limit?, banner_image_url? }
 - update: { id*, ...các field như create (optional) } — nếu deal đang active, sửa sẽ tự tắt is_active để admin duyệt lại
-- get: { id* } — trả kèm tools(name, slug)
-- list: { is_active?, tool_id?, created_by?, limit?, offset?, all? }
+- get: { id hoặc slug* } — trả kèm tools(name, slug, logo_url)
+- list: { is_active?, tool_id?, deal_type?, created_by?, limit?, offset?, all? } — trả kèm slug/deal_type/redemption_type/savings_percent (tự tính từ original_price/deal_price)/usage_limit/current_uses
 - delete: { id* } — chỉ xoá deal của mình và ĐANG KHÔNG active
 - activate_deal: { id*, activate? } — admin only, tương đương "publish" cho deals
+- verify_deal: { id*, still_works? (mặc định true) } — KHÔNG cần quyền admin, ai gọi cũng được (giống người dùng thường bấm nút "còn dùng được"/"báo lỗi" trên site) - tín hiệu cộng đồng, tách biệt với activate_deal (admin-only publish gate). still_works=false sẽ tự set is_verified=false và tạo notification cho mọi admin.
 
-Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"deals","action":"create","tool_id":"<uuid>","title":"Giảm 20% năm đầu","coupon_code":"SAVE20","discount_type":"percentage","discount_value":20}'
+Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_agent_xxx" -H "Content-Type: application/json" -d '{"resource":"deals","action":"create","tool_id":"<uuid>","title":"Giảm 20% năm đầu","coupon_code":"SAVE20","discount_type":"percentage","discount_value":20,"deal_type":"coupon_code","redemption_type":"code","usage_limit":100}'
 
 ═══════════════════════════════════════
 4) resource = "translations" (bản dịch đa ngôn ngữ cho blog/tool/deal/workflow) — action: create | get | list | delete
@@ -654,8 +655,8 @@ Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_a
                   <TableRow>
                     <TableCell><code className="text-xs">create</code></TableCell>
                     <TableCell>editor, admin</TableCell>
-                    <TableCell className="text-xs">tool_id*, title*, coupon_code?, discount_type?, discount_value?, expires_at?</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">Editor tạo LUÔN is_active=false</TableCell>
+                    <TableCell className="text-xs">tool_id*, title*, coupon_code?, discount_type?, discount_value?, expires_at?, deal_type?, redemption_type?, usage_limit?, eligibility?, terms_conditions?, banner_image_url?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor tạo LUÔN is_active=false; slug tự sinh nếu bỏ trống</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><code className="text-xs">update</code></TableCell>
@@ -666,20 +667,26 @@ Ví dụ: curl -X POST "${AGENT_CONTENT_API_URL}" -H "Authorization: Bearer sk_a
                   <TableRow>
                     <TableCell><code className="text-xs">get</code></TableCell>
                     <TableCell>editor, admin</TableCell>
-                    <TableCell className="text-xs">id*</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">Trả kèm tools(name, slug)</TableCell>
+                    <TableCell className="text-xs">id hoặc slug*</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Trả kèm tools(name, slug, logo_url)</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><code className="text-xs">list</code></TableCell>
                     <TableCell>editor, admin</TableCell>
-                    <TableCell className="text-xs">is_active?, tool_id?, created_by?, limit?, offset?, all?</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy deal của mình</TableCell>
+                    <TableCell className="text-xs">is_active?, tool_id?, deal_type?, created_by?, limit?, offset?, all?</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Editor mặc định chỉ thấy deal của mình; trả kèm slug/savings_percent/usage_limit</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><code className="text-xs">activate_deal</code></TableCell>
                     <TableCell>admin only</TableCell>
                     <TableCell className="text-xs">id*, activate?</TableCell>
                     <TableCell className="text-xs text-muted-foreground">Tương đương "publish" - editor gọi sẽ bị 403</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell><code className="text-xs">verify_deal</code></TableCell>
+                    <TableCell>editor, admin (ai cũng gọi được)</TableCell>
+                    <TableCell className="text-xs">id*, still_works? (mặc định true)</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">Tín hiệu cộng đồng, KHÔNG cần quyền admin; still_works=false báo admin</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell><code className="text-xs">delete</code></TableCell>

@@ -164,6 +164,28 @@ Phát hiện `nginx.conf` (cả bản trong repo lẫn bản sống trên VPS) p
 ## Tối ưu ảnh (P2.5 OptimizedImage)
 Component `OptimizedImage` (IntersectionObserver lazy-load + skeleton + fade-in + fallback khi lỗi) đã được viết sẵn nhưng chưa dùng ở đâu — đã tích hợp vào `ToolCard.tsx` (logo, lặp lại nhiều nhất toàn site), `BlogPage.tsx`/`WorkflowsPage.tsx` (ảnh cover dạng grid), và related-posts thumbnail trong `BlogDetail.tsx`. Cố tình **không** áp dụng cho ảnh cover chính của bài blog (khả năng là LCP element) để tránh làm chậm lần vẽ đầu tiên.
 
+## Deals enrichment - nâng cấp toàn diện tính năng Ưu đãi/Voucher (2026-09-11)
+User feedback: "phần deal có vẻ hơi thô sơ, tôi cần bạn research để bổ sung idea" → đã research (schema/code hiện có + best practice ngành coupon/voucher, mô hình AppSumo lifetime-deal) và triển khai toàn bộ theo đề xuất được duyệt ("ok triển khai theo đề xuất").
+
+**Migration `20260911060000_deals_enrichment.sql`** (đã deploy production, đã backfill 5 deal thật):
+- Cột mới trên `deals`: `deal_type` (loại ưu đãi thực sự — coupon_code/lifetime_deal/free_trial_extended/student_discount/referral/bundle/flash_sale/no_code_auto — khác `discount_type` chỉ mô tả cách tính giảm giá), `redemption_type` (code/auto_apply/manual_contact — sửa lỗi UX cũ: nhiều deal chỉ là affiliate link không có mã thật nhưng UI vẫn hiện nút "copy code" giả), `slug` (unique, cho phép trang riêng SEO), `usage_limit`/`current_uses` (giới hạn lượt dùng — field bắt buộc phổ biến trong thiết kế hệ thống coupon), `banner_image_url`, `savings_percent` (generated column tính từ original_price/deal_price, hoạt động cả khi không có discount_value như lifetime deal), `eligibility` (jsonb điều kiện áp dụng), `terms_conditions`, `last_verified_at`/`verified_by` (xác minh cộng đồng, khác với cờ `is_verified` tĩnh admin set 1 lần).
+- RPC mới: `increment_deal_uses(deal_id)` (tăng lượt dùng + tự tắt khi đạt usage_limit), `verify_deal(_deal_id, _still_works)` (bất kỳ user/editor/agent gọi được — tín hiệu cộng đồng "còn dùng được"/"báo lỗi", báo lỗi sẽ tạo notification cho admin).
+- **Fix bug tồn đọng phát hiện lúc research**: constraint `votes_target_type_check` chưa từng cho phép `target_type='deal'` (chỉ review/comment/answer) — nghĩa là tính năng upvote/downvote deal trên `DealCard.tsx` đã âm thầm lỗi từ lúc launch (0 rows với target_type='deal' trong DB dù UI có sẵn). Đã mở rộng constraint thêm `'deal'` và `'tool'`.
+
+**Backend `agent-content-api`**: resource `deals` hỗ trợ đầy đủ field/action mới — validate enum `deal_type`/`redemption_type`, tự sinh slug (title + 8 ký tự random tránh trùng), action mới `verify_deal`, `get` nhận thêm `slug`, `list` filter theo `deal_type`. Deploy + E2E test full (create/validate-reject/get-by-slug/get-by-id/verify_deal true+false/list-filter/update/delete) — pass 100%, dọn test data sạch.
+
+**Frontend**:
+- `AdminDeals.tsx`: form thêm 5 field mới (deal_type/redemption_type dropdown, usage_limit, banner_image_url, terms_conditions), table thêm cột Loại/Lượt dùng/Xác minh (nút ShieldCheck/ShieldAlert gọi RPC `verify_deal`), filter theo deal_type.
+- `DealCard.tsx` + `DealDetailModal.tsx`: badge deal_type, `savings_percent` làm fallback hiển thị giảm giá khi không có discount_value, ẩn nút copy-code giả khi `redemption_type='manual_contact'`, hiện usage_limit/terms_conditions/last_verified_at, nút cộng đồng "còn dùng được"/"báo lỗi" gọi `verify_deal` trực tiếp (không cần quyền admin).
+- **Trang mới `/deals/:slug`** (`src/pages/DealDetail.tsx`) — mỗi deal có trang riêng SEO-indexable (banner ảnh, đầy đủ badge/giá/mã/điều khoản/eligibility, related deals cùng tool), trước đây deal chỉ hiện inline trong card/modal nên search intent như "ChatGPT Plus coupon code" không có landing page nào để index. Route thêm vào `App.tsx`, modal có link "Xem chi tiết đầy đủ" trỏ tới trang này.
+- `DealsPage.tsx`: filter theo `deal_type` (8 loại), sort "giảm nhiều nhất" fallback sang `savings_percent` khi thiếu `discount_value`.
+- `supabase/functions/sitemap/index.ts`: thêm loop sinh URL `/deals/:slug` cho mọi deal active — deploy production, verify sitemap.xml live liệt kê đúng slug thật.
+- i18n: bổ sung ~28 key mới (`deals.type.*`, `deals.redemption.*`, `deals.verify*`, `deals.usageLimit*`, v.v.) cho cả vi/en.
+
+**Verify**: Build + `npx tsc --noEmit` + `npx vitest run` (26/26) pass. Rebuild + deploy VPS (backup `astute.tools.backup_20260911_075820` → wipe → extract → chown), verify asset hash khớp (`index-BhMosDvb.js`), test qua Playwright: `/deals`, `/deals/:slug` load không lỗi console, title đúng. Push GitHub nhiều commit tuần tự: `57b15f8` (backend) → `2c682b5` (i18n+AdminDeals WIP) → `c23e7f9` (AdminDeals form) → `0feacb1` (table+card+modal+filter) → `38e5b6a` (dedicated page+sitemap).
+
+**Chưa làm** (không nằm trong đề xuất đã duyệt lần này, để lại cho tương lai nếu user muốn): Nhóm 3 trong đề xuất gốc — bundle/combo deal thực sự nhiều tool trong 1 deal (deal_type='bundle' hiện chỉ là nhãn, chưa có UI/schema cho multi-tool bundle), AI auto-classify `deal_type`/`redemption_type` khi `collect-deals` import deal từ web (hiện luôn để default `coupon_code`/`code`), slug chưa có ô nhập tay riêng trong `AdminDeals.tsx` form (đang auto-sinh, admin muốn đổi phải sửa trực tiếp DB).
+
 ## Backlog còn lại (`IMPROVEMENT_PLAN.md`)
 - **P1.1** Hero typewriter/floating-search, **P1.2** ToolCard hover-preview/logo-skeleton, **P1.4** Google/GitHub OAuth (cần user tạo OAuth app credentials trước).
 - **P2.1** ToolsPage multi-select filter, **P2.2** search debounce/autocomplete/history, **P2.3** ComparePage tách `services/compare.ts` + export PDF.
