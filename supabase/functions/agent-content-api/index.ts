@@ -56,14 +56,28 @@ import { corsHeaders, requireEditorOrAgentToken, editorStatusOverride } from "..
 //          submit_for_review? }
 //
 //   resource = "deals"
-//     create/update/get/list/activate_deal/delete
+//     create/update/get/list/activate_deal/verify_deal/delete
 //     -> { tool_id (bắt buộc khi create), title, description?, coupon_code?,
 //          discount_type?, discount_value?, deal_url?, original_price?,
 //          deal_price?, currency?, starts_at?, expires_at?, is_verified?,
-//          is_exclusive? }
+//          is_exclusive?, slug? (tự sinh nếu bỏ trống, luôn kèm 8 ký tự
+//          random để tránh trùng), deal_type? (coupon_code/lifetime_deal/
+//          free_trial_extended/student_discount/referral/bundle/
+//          flash_sale/no_code_auto - mặc định coupon_code), redemption_type?
+//          (code/auto_apply/manual_contact - mặc định code), eligibility?
+//          (jsonb, vd {"new_users_only":true}), terms_conditions?,
+//          usage_limit?, banner_image_url? }
+//     - get chấp nhận id HOẶC slug, trả kèm tools(name, slug, logo_url).
+//     - list trả kèm slug/deal_type/redemption_type/savings_percent
+//       (auto-tính từ original_price & deal_price)/usage_limit/
+//       current_uses, và lọc thêm được theo deal_type.
 //     - KHÔNG có action publish/submit_for_review riêng cho deals - dùng
 //       action=activate_deal (admin only, tương đương publish) thay vì
 //       publish_content() RPC vì deals dùng is_active không dùng status.
+//     - action=verify_deal (KHÔNG cần quyền admin - ai cũng gọi được, kể
+//       cả editor/agent) để báo "còn dùng được" (still_works=true, mặc
+//       định) hoặc "báo lỗi/hết hạn" (still_works=false) - tín hiệu cộng
+//       đồng, tách biệt với activate_deal (admin-only publish gate).
 //
 //   resource = "translations"
 //     create (=upsert)/get/list/delete  — không có update/publish riêng,
@@ -120,7 +134,15 @@ const TOOL_FIELDS = [
 
 const DEAL_FIELDS = [
   "title", "description", "coupon_code", "discount_type", "deal_url", "currency",
+  "deal_type", "redemption_type", "terms_conditions", "banner_image_url",
 ] as const;
+
+const VALID_DEAL_TYPES = [
+  "coupon_code", "lifetime_deal", "free_trial_extended", "student_discount",
+  "referral", "bundle", "flash_sale", "no_code_auto",
+] as const;
+
+const VALID_REDEMPTION_TYPES = ["code", "auto_apply", "manual_contact"] as const;
 
 const VALID_ENTITY_TYPES = ["blog", "tool", "deal", "workflow"] as const;
 
@@ -528,10 +550,19 @@ serve(async (req) => {
       if (action === "create") {
         if (!body.tool_id) return json({ error: "tool_id là bắt buộc" }, 400);
         if (!body.title) return json({ error: "title là bắt buộc" }, 400);
+        if (body.deal_type !== undefined && !VALID_DEAL_TYPES.includes(body.deal_type)) {
+          return json({ error: `deal_type phải là một trong: ${VALID_DEAL_TYPES.join(", ")}` }, 400);
+        }
+        if (body.redemption_type !== undefined && !VALID_REDEMPTION_TYPES.includes(body.redemption_type)) {
+          return json({ error: `redemption_type phải là một trong: ${VALID_REDEMPTION_TYPES.join(", ")}` }, 400);
+        }
+
+        const slug = slugify(body.slug || body.title) + "-" + crypto.randomUUID().slice(0, 8);
 
         const payload: Record<string, unknown> = {
           tool_id: body.tool_id,
           title: body.title,
+          slug,
           description: body.description ?? null,
           coupon_code: body.coupon_code ?? null,
           discount_type: body.discount_type ?? "percentage",
@@ -545,6 +576,17 @@ serve(async (req) => {
           is_verified: body.is_verified ?? false,
           is_exclusive: body.is_exclusive ?? false,
           created_by: user.id,
+          // Nhóm 1 (research bổ sung 2026-09-11): loại ưu đãi thực sự
+          // (khác discount_type - discount_type chỉ mô tả CÁCH tính giảm
+          // giá, deal_type mô tả LOẠI ưu đãi: coupon thường, lifetime deal
+          // kiểu AppSumo, free trial kéo dài, sinh viên, referral, bundle,
+          // flash sale, hoặc tự động không cần mã).
+          deal_type: body.deal_type ?? "coupon_code",
+          redemption_type: body.redemption_type ?? "code",
+          eligibility: body.eligibility ?? {},
+          terms_conditions: body.terms_conditions ?? null,
+          usage_limit: toNumberOrNull(body.usage_limit),
+          banner_image_url: body.banner_image_url ?? null,
           // Editors (incl. AI agent) can NEVER insert is_active=true - the
           // DB RLS ("Editors can insert inactive deals") would reject it
           // anyway, but this gives a friendlier 200-with-inactive instead
@@ -553,7 +595,12 @@ serve(async (req) => {
         };
 
         const { data, error } = await supabase.from("deals").insert(payload).select().single();
-        if (error) return json({ error: error.message }, 500);
+        if (error) {
+          if (/duplicate key.*slug/i.test(error.message)) {
+            return json({ error: "Slug đã tồn tại, thử lại (slug tự sinh kèm mã ngẫu nhiên nên hiếm khi trùng)" }, 409);
+          }
+          return json({ error: error.message }, 500);
+        }
 
         if (!data.is_active) {
           await notifyAdmins({
@@ -569,6 +616,12 @@ serve(async (req) => {
 
       if (action === "update") {
         if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        if (body.deal_type !== undefined && !VALID_DEAL_TYPES.includes(body.deal_type)) {
+          return json({ error: `deal_type phải là một trong: ${VALID_DEAL_TYPES.join(", ")}` }, 400);
+        }
+        if (body.redemption_type !== undefined && !VALID_REDEMPTION_TYPES.includes(body.redemption_type)) {
+          return json({ error: `redemption_type phải là một trong: ${VALID_REDEMPTION_TYPES.join(", ")}` }, 400);
+        }
 
         const { data: existing, error: fetchError } = await supabase
           .from("deals").select("id, is_active, created_by, title").eq("id", body.id).maybeSingle();
@@ -585,6 +638,8 @@ serve(async (req) => {
         if (body.expires_at !== undefined) payload.expires_at = body.expires_at;
         if (body.is_verified !== undefined) payload.is_verified = body.is_verified;
         if (body.is_exclusive !== undefined) payload.is_exclusive = body.is_exclusive;
+        if (body.eligibility !== undefined) payload.eligibility = body.eligibility;
+        if (body.usage_limit !== undefined) payload.usage_limit = toNumberOrNull(body.usage_limit);
 
         // Editors' RLS requires is_active stays false on every UPDATE too
         // ("Editors can update deals keeping them inactive") - force it
@@ -626,9 +681,28 @@ serve(async (req) => {
         return json({ success: true, deal: data });
       }
 
+      // verify_deal - báo "còn dùng được" (still_works=true, mặc định) hoặc
+      // "báo lỗi/hết hạn" (still_works=false). Bất kỳ editor/admin/agent
+      // đều gọi được (giống người dùng thường click nút xác nhận trên UI) -
+      // KHÔNG cần quyền admin vì đây chỉ là 1 tín hiệu cộng đồng, không phải
+      // hành động publish. Dùng RPC verify_deal (SECURITY DEFINER) để giữ
+      // logic tập trung 1 nơi, giống publish_content.
+      if (action === "verify_deal") {
+        if (!body.id) return json({ error: "id là bắt buộc" }, 400);
+        const stillWorks = body.still_works !== false;
+
+        const { error } = await supabase.rpc("verify_deal", { _deal_id: body.id, _still_works: stillWorks });
+        if (error) return json({ error: error.message }, 500);
+
+        const { data } = await supabase.from("deals").select().eq("id", body.id).maybeSingle();
+        return json({ success: true, deal: data });
+      }
+
       if (action === "get") {
-        if (!body.id) return json({ error: "Cần id" }, 400);
-        const { data, error } = await supabase.from("deals").select("*, tools(name, slug)").eq("id", body.id).maybeSingle();
+        if (!body.id && !body.slug) return json({ error: "Cần id hoặc slug" }, 400);
+        let query = supabase.from("deals").select("*, tools(name, slug, logo_url)");
+        query = body.id ? query.eq("id", body.id) : query.eq("slug", body.slug);
+        const { data, error } = await query.maybeSingle();
         if (error) return json({ error: error.message }, 500);
         if (!data) return json({ error: "Không tìm thấy deal" }, 404);
         return json({ deal: data });
@@ -637,9 +711,10 @@ serve(async (req) => {
       if (action === "list") {
         const limit = Math.min(Math.max(Number(body.limit) || 20, 1), 100);
         const offset = Math.max(Number(body.offset) || 0, 0);
-        let query = supabase.from("deals").select("id, tool_id, title, coupon_code, discount_type, discount_value, is_active, is_verified, is_exclusive, expires_at, created_at, created_by", { count: "exact" });
+        let query = supabase.from("deals").select("id, tool_id, title, slug, coupon_code, deal_type, redemption_type, discount_type, discount_value, savings_percent, usage_limit, current_uses, is_active, is_verified, is_exclusive, expires_at, created_at, created_by", { count: "exact" });
         if (body.is_active !== undefined) query = query.eq("is_active", body.is_active);
         if (body.tool_id) query = query.eq("tool_id", body.tool_id);
+        if (body.deal_type) query = query.eq("deal_type", body.deal_type);
         if (body.created_by) query = query.eq("created_by", body.created_by);
         else if (role === "editor" && !body.all) query = query.eq("created_by", user.id);
         query = query.order("created_at", { ascending: false }).range(offset, offset + limit - 1);
@@ -666,7 +741,7 @@ serve(async (req) => {
 
       return json({
         error: "Invalid action for resource=deals",
-        valid_actions: ["create", "update", "get", "list", "activate_deal", "delete"],
+        valid_actions: ["create", "update", "get", "list", "activate_deal", "verify_deal", "delete"],
       }, 400);
     }
 

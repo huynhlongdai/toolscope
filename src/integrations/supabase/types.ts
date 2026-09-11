@@ -10,10 +10,74 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      agent_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          token_hash?: string
+          token_prefix?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_scores: {
         Row: {
           cons: string[] | null
@@ -189,14 +253,23 @@ export type Database = {
       }
       blog_posts: {
         Row: {
+          article_type: Database["public"]["Enums"]["article_type"]
           author_id: string
+          case_study_stats: Json
+          case_study_tools_used: Json
           content: string
           cover_image_url: string | null
           created_at: string
+          cta_label: string | null
           excerpt: string | null
+          has_affiliate_links: boolean
           id: string
+          listicle_items: Json
+          primary_tool_id: string | null
           published_at: string | null
           related_tool_ids: string[] | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           seo_description: string | null
           seo_keywords: string[] | null
           seo_title: string | null
@@ -205,17 +278,31 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string
+          verdict_best_for: string | null
+          verdict_cons: string[] | null
+          verdict_pros: string[] | null
+          verdict_rating: number | null
+          verdict_summary: string | null
           view_count: number
         }
         Insert: {
+          article_type?: Database["public"]["Enums"]["article_type"]
           author_id: string
+          case_study_stats?: Json
+          case_study_tools_used?: Json
           content: string
           cover_image_url?: string | null
           created_at?: string
+          cta_label?: string | null
           excerpt?: string | null
+          has_affiliate_links?: boolean
           id?: string
+          listicle_items?: Json
+          primary_tool_id?: string | null
           published_at?: string | null
           related_tool_ids?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           seo_description?: string | null
           seo_keywords?: string[] | null
           seo_title?: string | null
@@ -224,17 +311,31 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string
+          verdict_best_for?: string | null
+          verdict_cons?: string[] | null
+          verdict_pros?: string[] | null
+          verdict_rating?: number | null
+          verdict_summary?: string | null
           view_count?: number
         }
         Update: {
+          article_type?: Database["public"]["Enums"]["article_type"]
           author_id?: string
+          case_study_stats?: Json
+          case_study_tools_used?: Json
           content?: string
           cover_image_url?: string | null
           created_at?: string
+          cta_label?: string | null
           excerpt?: string | null
+          has_affiliate_links?: boolean
           id?: string
+          listicle_items?: Json
+          primary_tool_id?: string | null
           published_at?: string | null
           related_tool_ids?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           seo_description?: string | null
           seo_keywords?: string[] | null
           seo_title?: string | null
@@ -243,12 +344,31 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
+          verdict_best_for?: string | null
+          verdict_cons?: string[] | null
+          verdict_pros?: string[] | null
+          verdict_rating?: number | null
+          verdict_summary?: string | null
           view_count?: number
         }
         Relationships: [
           {
             foreignKeyName: "blog_posts_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_primary_tool_id_fkey"
+            columns: ["primary_tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -740,76 +860,109 @@ export type Database = {
       }
       deals: {
         Row: {
+          banner_image_url: string | null
           click_count: number | null
           coupon_code: string | null
           created_at: string | null
           created_by: string | null
           currency: string | null
+          current_uses: number
           deal_price: number | null
+          deal_type: string
           deal_url: string | null
           description: string | null
           discount_type: string | null
           discount_value: number | null
           downvotes: number
+          eligibility: Json | null
           expires_at: string | null
           id: string
           is_active: boolean | null
           is_exclusive: boolean | null
           is_verified: boolean | null
+          last_verified_at: string | null
           original_price: number | null
+          redemption_type: string
+          savings_percent: number | null
+          slug: string
           starts_at: string | null
+          terms_conditions: string | null
           title: string
           tool_id: string
           updated_at: string | null
           upvotes: number
+          usage_limit: number | null
+          verified_by: string | null
         }
         Insert: {
+          banner_image_url?: string | null
           click_count?: number | null
           coupon_code?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          current_uses?: number
           deal_price?: number | null
+          deal_type?: string
           deal_url?: string | null
           description?: string | null
           discount_type?: string | null
           discount_value?: number | null
           downvotes?: number
+          eligibility?: Json | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
           is_exclusive?: boolean | null
           is_verified?: boolean | null
+          last_verified_at?: string | null
           original_price?: number | null
+          redemption_type?: string
+          savings_percent?: number | null
+          slug: string
           starts_at?: string | null
+          terms_conditions?: string | null
           title: string
           tool_id: string
           updated_at?: string | null
           upvotes?: number
+          usage_limit?: number | null
+          verified_by?: string | null
         }
         Update: {
+          banner_image_url?: string | null
           click_count?: number | null
           coupon_code?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
+          current_uses?: number
           deal_price?: number | null
+          deal_type?: string
           deal_url?: string | null
           description?: string | null
           discount_type?: string | null
           discount_value?: number | null
           downvotes?: number
+          eligibility?: Json | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
           is_exclusive?: boolean | null
           is_verified?: boolean | null
+          last_verified_at?: string | null
           original_price?: number | null
+          redemption_type?: string
+          savings_percent?: number | null
+          slug?: string
           starts_at?: string | null
+          terms_conditions?: string | null
           title?: string
           tool_id?: string
           updated_at?: string | null
           upvotes?: number
+          usage_limit?: number | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -894,6 +1047,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "launch_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "launch_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1460,7 +1620,15 @@ export type Database = {
           target_id?: string
           target_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -1955,6 +2123,8 @@ export type Database = {
           rating_count: number
           related_tool_ids: string[] | null
           requires_card: boolean | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           short_description: string | null
           signup_options: string[] | null
           slug: string
@@ -1990,6 +2160,8 @@ export type Database = {
           rating_count?: number
           related_tool_ids?: string[] | null
           requires_card?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           short_description?: string | null
           signup_options?: string[] | null
           slug: string
@@ -2025,6 +2197,8 @@ export type Database = {
           rating_count?: number
           related_tool_ids?: string[] | null
           requires_card?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           short_description?: string | null
           signup_options?: string[] | null
           slug?: string
@@ -2042,6 +2216,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tools_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2198,6 +2379,13 @@ export type Database = {
             referencedRelation: "tools"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendor_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendor_responses: {
@@ -2231,6 +2419,13 @@ export type Database = {
             columns: ["review_id"]
             isOneToOne: true
             referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_responses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2278,6 +2473,8 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           seo_content: Json | null
           seo_description: string | null
           seo_title: string | null
@@ -2298,6 +2495,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           seo_content?: Json | null
           seo_description?: string | null
           seo_title?: string | null
@@ -2318,6 +2517,8 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           seo_content?: Json | null
           seo_description?: string | null
           seo_title?: string | null
@@ -2339,6 +2540,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflows_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -2346,6 +2554,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: {
+          _activity_filter?: string
+          _ban_filter?: string
+          _page?: number
+          _page_size?: number
+          _role?: string
+          _search?: string
+        }
+        Returns: {
+          avatar_url: string
+          bio: string
+          comment_count: number
+          created_at: string
+          display_name: string
+          id: string
+          is_banned: boolean
+          question_count: number
+          reputation_score: number
+          review_count: number
+          roles: string[]
+          total_count: number
+          username: string
+          warning_count: number
+          website: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2354,6 +2589,11 @@ export type Database = {
         Returns: boolean
       }
       increment_deal_click: { Args: { deal_id: string }; Returns: undefined }
+      increment_deal_uses: { Args: { deal_id: string }; Returns: undefined }
+      publish_content: {
+        Args: { _id: string; _publish?: boolean; _table: string }
+        Returns: undefined
+      }
       schedule_auto_sync: {
         Args: {
           cron_expr: string
@@ -2364,9 +2604,19 @@ export type Database = {
         Returns: undefined
       }
       unschedule_cron_job: { Args: { job_name: string }; Returns: undefined }
+      verify_deal: {
+        Args: { _deal_id: string; _still_works: boolean }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "admin" | "editor" | "user"
+      app_role: "admin" | "editor" | "user" | "viewer"
+      article_type:
+        | "review"
+        | "listicle"
+        | "case_study"
+        | "comparison"
+        | "howto"
       content_status: "draft" | "published" | "archived" | "pending_review"
       pricing_type: "free" | "freemium" | "paid" | "open_source" | "contact"
       vote_type: "up" | "down"
@@ -2385,12 +2635,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2414,11 +2664,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2439,11 +2689,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2464,11 +2714,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2481,11 +2731,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2495,9 +2745,13 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
-      app_role: ["admin", "editor", "user"],
+      app_role: ["admin", "editor", "user", "viewer"],
+      article_type: ["review", "listicle", "case_study", "comparison", "howto"],
       content_status: ["draft", "published", "archived", "pending_review"],
       pricing_type: ["free", "freemium", "paid", "open_source", "contact"],
       vote_type: ["up", "down"],
