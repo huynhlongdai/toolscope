@@ -186,6 +186,34 @@ User feedback: "phần deal có vẻ hơi thô sơ, tôi cần bạn research đ
 
 **Chưa làm** (không nằm trong đề xuất đã duyệt lần này, để lại cho tương lai nếu user muốn): Nhóm 3 trong đề xuất gốc — bundle/combo deal thực sự nhiều tool trong 1 deal (deal_type='bundle' hiện chỉ là nhãn, chưa có UI/schema cho multi-tool bundle), AI auto-classify `deal_type`/`redemption_type` khi `collect-deals` import deal từ web (hiện luôn để default `coupon_code`/`code`), slug chưa có ô nhập tay riêng trong `AdminDeals.tsx` form (đang auto-sinh, admin muốn đổi phải sửa trực tiếp DB).
 
+## Mở rộng API cho AI Agent quản trị: categories/tags/tasks/pages/menus/reports/newsletter (2026-09-11)
+User yêu cầu ("xây dựng api để hỗ trợ agent quản trị toàn vẹn website") → đề xuất phạm vi mở rộng `agent-content-api` sang các resource quản trị còn lại, được duyệt với điều kiện tường minh: **"triển khai đầy đủ users/settings/backup KHÔNG cho agent chạm tới"** — 3 resource này bị loại trừ vĩnh viễn khỏi API, không có code nào được viết cho chúng.
+
+**Phát hiện kiến trúc quan trọng trước khi thiết kế**: `requireEditorOrAgentToken()` và mọi helper trong `_shared/auth.ts` đều trả về **service-role client**, không phải client theo JWT của người gọi — nghĩa là với đường agent-token, **RLS của DB không phải lớp chặn** (khác hoàn toàn giả định ban đầu ở mục "API cho AI Agent" phía trên, vốn đúng cho đường editor JWT thật). Toàn bộ ranh giới an toàn cho các resource mới phải được enforce **trong code của edge function**, không dựa vào RLS.
+
+**Mô hình phân quyền theo mức rủi ro** (áp dụng riêng từng resource):
+- **categories/tags/tasks** (rủi ro thấp, không cần khái niệm draft): full CRUD trừ `delete` (chỉ admin).
+- **pages** (rủi ro trung bình, đã có cột `status` sẵn nhưng thiếu RLS grant cho editor): mirror đúng pattern `tools`/`blog_posts` đã có (`draft`/`pending_review`/`published` + RPC `publish_content` + `editorStatusOverride`).
+- **menus** (rủi ro cao, không có cột status để tái dùng): giải quyết bằng cột mới `draft_items` (staging riêng) + action mới `propose`/`publish` + RPC mới `publish_menu()` — agent chỉ sửa được bản nháp, không bao giờ ghi trực tiếp vào `items` (cột đang hiển thị live cho toàn bộ khách truy cập qua `Header.tsx`).
+- **moderation** (approve/reject/ban): **loại trừ hoàn toàn, không viết code** — tuy user không liệt kê tên "moderation" trong câu duyệt, nhưng hành động này đụng tới tài khoản/nội dung của người dùng khác, tương đương ranh giới rủi ro với `users` nên xử lý như bị cấm.
+- **reports**: chỉ mở `create`/`get`/`list` (own-only, tự enforce trong code vì RLS không áp dụng), không có action đổi trạng thái (resolved/dismissed) hay xoá nội dung bị report.
+- **newsletter**: chỉ mở `draft_campaign`/`list_campaigns`, ghi vào key `site_settings` **mới và tách biệt** (`newsletter_campaign_drafts`) — agent **không đọc/viết được** `newsletter_subscribers` (PII email) hay key `newsletter_campaigns` thật, và không có khả năng gửi mail thật (tính năng gửi ở `AdminNewsletter.tsx` vốn cũng chỉ là placeholder).
+
+**Migration `20260911070000_agent_admin_expansion.sql`** (đã deploy production, verify qua schema inspection):
+- RLS grant cho editor: `tags` (update), `tasks` (insert+update).
+- `pages`: thêm cột `created_by`/`reviewed_by`/`reviewed_at` + RLS insert/update cho editor giới hạn ở `draft`/`pending_review`.
+- Mở rộng RPC `publish_content()` thêm nhánh xử lý bảng `pages`.
+- `menus`: thêm cột `draft_items`/`draft_updated_by`/`draft_updated_at`.
+- RPC mới `publish_menu(_location)` — SECURITY DEFINER, admin-gated, copy `draft_items` → `items`.
+
+**Backend `agent-content-api`**: thêm 6 nhóm resource mới (`categories`/`tags`/`tasks` dùng chung 1 handler; `pages`; `menus`; `reports`; `newsletter`), danh sách `valid_resources` giờ có 11 resource. Deploy production + **test E2E thật 19 lời gọi** bằng token agent (`create`/`update`/`get`/`list` mọi resource mới, cố tình gọi action bị cấm để xác nhận trả `403`, xác nhận `users`/`settings`/`backup` không thể truy cập qua resource nào) — pass 100% như thiết kế, dọn sạch toàn bộ dữ liệu test (verify SQL COUNT = 0 mọi bảng liên quan).
+
+**Frontend**: `AdminAgentTokens.tsx` — viết lại `fullPrompt` (mô tả 11 resource + đoạn cảnh báo "⛔ GIỚI HẠN TUYỆT ĐỐI" nêu rõ users/settings/backup/moderation vĩnh viễn không thuộc phạm vi agent) + thêm 5 bảng action-reference mới (categories/tags/tasks, pages, menus, reports, newsletter) trong trang docs tích hợp.
+
+**Verify**: Build + `npx tsc --noEmit` + `npx vitest run` (26/26) pass. esbuild syntax-check `agent-content-api/index.ts` (60.8kb bundle) không lỗi. Rebuild + deploy VPS (backup timestamp `20260911_100338` → wipe → extract → chown), verify site trả `200`, asset hash khớp bản build mới (`index-C4ribfXQ.js`). Push GitHub commit `996ed6e` (`61e3670..996ed6e main -> main`).
+
+**Chưa làm** (nằm ngoài phạm vi được duyệt lần này): không có action approve/reject/ban cho moderation (loại trừ có chủ đích); newsletter chưa có khả năng gửi mail thật cho cả agent và Admin UI (vẫn là placeholder từ trước); `AdminMenus.tsx` UI hiện chưa hiển thị trạng thái "có bản nháp đang chờ publish" từ cột `draft_items` mới (agent ghi được qua API nhưng admin phải publish qua RPC/SQL trực tiếp nếu chưa có nút trong UI).
+
 ## Backlog còn lại (`IMPROVEMENT_PLAN.md`)
 - **P1.1** Hero typewriter/floating-search, **P1.2** ToolCard hover-preview/logo-skeleton, **P1.4** Google/GitHub OAuth (cần user tạo OAuth app credentials trước).
 - **P2.1** ToolsPage multi-select filter, **P2.2** search debounce/autocomplete/history, **P2.3** ComparePage tách `services/compare.ts` + export PDF.
