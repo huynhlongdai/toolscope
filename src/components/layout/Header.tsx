@@ -145,11 +145,11 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/logo-icon.png" alt="Astute Tools" className="h-8 w-8" />
-            <span className="text-xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="container flex h-14 md:h-16 items-center justify-between">
+        <div className="flex items-center gap-4 md:gap-8">
+          <Link to="/" className="flex items-center gap-1.5 md:gap-2">
+            <img src="/logo-icon.png" alt="Astute Tools" className="h-6 w-6 md:h-8 md:w-8" />
+            <span className="text-lg md:text-xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Astute Tools
             </span>
           </Link>
@@ -158,72 +158,123 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Visible on all breakpoints (previously `hidden md:flex`, meaning
-              mobile users had no quick way to reach search from the header
-              and had to open the hamburger menu first). */}
-          <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
-            <Search className="h-4 w-4" />
-          </Button>
-          {user && <NotificationDropdown />}
-          <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
+        <div className="flex items-center gap-1 md:gap-3">
+          {/* Desktop: show all buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
+              <Search className="h-4 w-4" />
+            </Button>
+            {user && <NotificationDropdown />}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="hidden md:flex gap-1.5 text-xs font-medium">
-                <span className="text-base leading-none">{currentLocale.flag}</span>
-                {locale.toUpperCase()}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
-              {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
-                <DropdownMenuItem key={code} onClick={() => setLocale(code)} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-base">{meta.flag}</span>
-                    <span className="text-sm">{meta.nativeName}</span>
-                  </span>
-                  {locale === code && <Check className="h-3.5 w-3.5 text-primary" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full"><User className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs font-medium">
+                  <span className="text-base leading-none">{currentLocale.flag}</span>
+                  {locale.toUpperCase()}
+                </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate("/profile")}><User className="mr-2 h-4 w-4" /> {t("header.profile")}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/profile")}><Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {isAdminOrEditor && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")}><Shield className="mr-2 h-4 w-4" /> {t("header.admin")}</DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}</DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
+                {(Object.entries(SUPPORTED_LOCALES) as [Locale, typeof currentLocale][]).map(([code, meta]) => (
+                  <DropdownMenuItem key={code} onClick={() => setLocale(code)} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="text-base">{meta.flag}</span>
+                      <span className="text-sm">{meta.nativeName}</span>
+                    </span>
+                    {locale === code && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button size="sm" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
-          )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={mobileMenuOpen}>
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full"><User className="h-4 w-4" /></Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/profile")}><User className="mr-2 h-4 w-4" /> {t("header.profile")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/profile")}><Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {isAdminOrEditor && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}><Shield className="mr-2 h-4 w-4" /> {t("header.admin")}</DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button size="sm" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
+            )}
+          </div>
+
+          {/* Mobile: compact buttons */}
+          <div className="flex md:hidden items-center gap-0.5">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
+              <Search className="h-3.5 w-3.5" />
+            </Button>
+            {user && (
+              <div className="scale-90">
+                <NotificationDropdown />
+              </div>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
+              {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                    <User className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/profile")}><User className="mr-2 h-4 w-4" /> {t("header.profile")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/profile")}><Bookmark className="mr-2 h-4 w-4" /> {t("header.saved")}</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {isAdminOrEditor && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}><Shield className="mr-2 h-4 w-4" /> {t("header.admin")}</DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> {t("header.logout")}</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button size="sm" className="h-8 px-2 text-xs" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
+            )}
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={mobileMenuOpen}>
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-border bg-background p-4 md:hidden">
-          <nav className="flex flex-col gap-2">
-            {navItems.map((item) => renderLink(item, () => setMobileMenuOpen(false)))}
+        <div className="border-t border-border bg-background md:hidden animate-in slide-in-from-top-2">
+          <nav className="container py-3 flex flex-col gap-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.label + item.url}
+                to={item.url}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                {item.label}
+              </Link>
+            ))}
             <div className="my-2 h-px bg-border" />
+            <button
+              onClick={() => { toggleTheme(); }}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span>{isDark ? "Giao diện sáng" : "Giao diện tối"}</span>
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground w-fit">
+                <button className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent w-full">
                   <Globe className="h-4 w-4" />
                   <span>{currentLocale.flag} {currentLocale.nativeName}</span>
                 </button>
@@ -242,11 +293,11 @@ export function Header() {
             </DropdownMenu>
             {user && (
               <>
-                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
                   <Bookmark className="h-4 w-4" /> {t("header.saved")}
                 </Link>
                 {isAdminOrEditor && (
-                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
                     <Shield className="h-4 w-4" /> Admin Dashboard
                   </Link>
                 )}
