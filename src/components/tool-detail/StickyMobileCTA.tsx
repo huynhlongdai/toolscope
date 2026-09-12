@@ -34,7 +34,7 @@ export function StickyMobileCTA({ toolName, logoUrl, websiteUrl, affiliateUrl, r
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 px-3 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur transition-transform duration-300 md:hidden ${
+      className={`fixed inset-x-0 bottom-14 z-40 border-t border-border bg-card/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur transition-transform duration-300 md:hidden ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}
     >

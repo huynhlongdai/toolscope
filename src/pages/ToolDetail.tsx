@@ -223,80 +223,138 @@ export default function ToolDetail() {
             <ArrowLeft className="h-3.5 w-3.5" /> {t("tool.backToList")}
           </Link>
 
-          {/* Tool Header - Mobile optimized */}
-          <div className="mb-6 md:mb-8 flex flex-col gap-4 md:gap-6 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-start gap-3 md:gap-5">
-              <div className="flex h-12 w-12 md:h-16 md:w-16 shrink-0 items-center justify-center rounded-xl md:rounded-2xl bg-muted text-xl md:text-2xl font-bold text-muted-foreground">
-                {(() => {
-                  const resolvedLogo = getToolLogoUrl(tool.logo_url, tool.website_url);
-                  return resolvedLogo ? (
-                    <img src={resolvedLogo} alt={displayName} className="h-full w-full rounded-xl md:rounded-2xl object-cover" />
-                  ) : displayName.charAt(0);
-                })()}
+          {/* Tool Header */}
+          <div className="mb-6 md:mb-8">
+            {/* Mobile: stacked layout */}
+            <div className="md:hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-xl font-bold text-muted-foreground">
+                  {(() => {
+                    const resolvedLogo = getToolLogoUrl(tool.logo_url, tool.website_url);
+                    return resolvedLogo ? (
+                      <img src={resolvedLogo} alt={displayName} className="h-full w-full rounded-xl object-cover" />
+                    ) : displayName.charAt(0);
+                  })()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h1 className="text-xl font-bold leading-tight truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {displayName}
+                    </h1>
+                    {aiScore?.is_recommended && (
+                      <Badge className="bg-primary text-primary-foreground text-[10px] h-5 shrink-0">⚡</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {cat?.name && (
+                      <Badge variant="secondary" className="text-[10px] h-5">{cat.name}</Badge>
+                    )}
+                    {tool.rating_count > 0 && (
+                      <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        {Number(tool.avg_rating).toFixed(1)}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  <h1 className="text-xl md:text-3xl font-bold leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {displayName}
-                  </h1>
-                  {isTranslated && locale !== "vi" && (
-                    <Badge variant="outline" className="text-[10px]">EN</Badge>
-                  )}
-                  {aiScore?.is_recommended && (
-                    <Badge className="bg-primary text-primary-foreground text-[10px] md:text-xs">⚡ AI</Badge>
-                  )}
-                  <VendorClaimBadge toolId={tool.id} />
-                </div>
-                {displayShort && (
-                  <p className="mt-1 md:mt-2 text-sm md:text-lg text-muted-foreground line-clamp-2 md:line-clamp-none">{displayShort}</p>
+              {/* Mobile action bar */}
+              <div className="flex items-center gap-2 mt-3">
+                {(tool.affiliate_url || tool.website_url) && (
+                  <Button asChild size="sm" className="flex-1 h-9 text-xs gap-1.5">
+                    <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer sponsored">
+                      <Globe className="h-3.5 w-3.5" />
+                      {t("tool.visitWebsite")}
+                    </a>
+                  </Button>
                 )}
-                <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 md:gap-3">
-                  {cat?.name && (
-                    <Link to={`/category/${cat.slug}`}>
-                      <Badge variant="secondary" className="text-[10px] md:text-xs">{cat.name}</Badge>
-                    </Link>
-                  )}
-                  <Badge variant="outline" className="text-[10px] md:text-xs">{pricingLabel(tool.pricing_type)}</Badge>
-                  {tool.rating_count > 0 && (
-                    <span className="flex items-center gap-1 text-xs md:text-sm">
-                      <Star className="h-3 w-3 md:h-4 md:w-4 fill-amber-400 text-amber-400" />
-                      {Number(tool.avg_rating).toFixed(1)}
-                      <span className="text-muted-foreground">({tool.rating_count})</span>
-                    </span>
-                  )}
-                  <span className="text-xs md:text-sm text-muted-foreground">{tool.view_count.toLocaleString()} {t("tool.views")}</span>
-                </div>
+                <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={tool.upvotes ?? 0} tableName="tools" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" className="h-9 w-9" onClick={handleToggleBookmark}>
+                      {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5 text-primary" /> : <Bookmark className="h-3.5 w-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{isBookmarked ? t("tool.saved") : t("tool.save")}</p></TooltipContent>
+                </Tooltip>
+                <ShareButtons title={displayName} />
+              </div>
+              {displayShort && (
+                <p className="mt-2.5 text-sm text-muted-foreground line-clamp-2">{displayShort}</p>
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] h-5">{pricingLabel(tool.pricing_type)}</Badge>
+                <span className="text-xs text-muted-foreground">{tool.view_count.toLocaleString()} {t("tool.views")}</span>
+                <VendorClaimBadge toolId={tool.id} />
               </div>
             </div>
 
-            {/* Action buttons - compact on mobile */}
-            <div className="flex flex-wrap gap-1.5 md:gap-2">
-              {(tool.affiliate_url || tool.website_url) && (
-                <Button asChild className="gap-1.5 md:gap-2 h-9 md:h-10 px-3 md:px-4 text-sm" size="sm">
-                  <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer sponsored">
-                    <Globe className="h-3.5 w-3.5 md:h-4 md:w-4" /> 
-                    <span className="hidden sm:inline">{t("tool.visitWebsite")}</span>
-                    <span className="sm:hidden">Visit</span>
-                  </a>
-                </Button>
-              )}
-              <div className="hidden sm:block">
-                <FollowButton targetType="tool" targetId={tool.id} showCount />
+            {/* Desktop: side-by-side layout */}
+            <div className="hidden md:flex md:items-start md:justify-between md:gap-6">
+              <div className="flex items-start gap-5 flex-1 min-w-0">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-2xl font-bold text-muted-foreground">
+                  {(() => {
+                    const resolvedLogo = getToolLogoUrl(tool.logo_url, tool.website_url);
+                    return resolvedLogo ? (
+                      <img src={resolvedLogo} alt={displayName} className="h-full w-full rounded-2xl object-cover" />
+                    ) : displayName.charAt(0);
+                  })()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-bold leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {displayName}
+                    </h1>
+                    {isTranslated && locale !== "vi" && (
+                      <Badge variant="outline" className="text-[10px]">EN</Badge>
+                    )}
+                    {aiScore?.is_recommended && (
+                      <Badge className="bg-primary text-primary-foreground text-xs">⚡ AI</Badge>
+                    )}
+                    <VendorClaimBadge toolId={tool.id} />
+                  </div>
+                  {displayShort && (
+                    <p className="mt-2 text-base text-muted-foreground">{displayShort}</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    {cat?.name && (
+                      <Link to={`/category/${cat.slug}`}>
+                        <Badge variant="secondary" className="text-xs">{cat.name}</Badge>
+                      </Link>
+                    )}
+                    <Badge variant="outline" className="text-xs">{pricingLabel(tool.pricing_type)}</Badge>
+                    {tool.rating_count > 0 && (
+                      <span className="flex items-center gap-1 text-sm">
+                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        {Number(tool.avg_rating).toFixed(1)}
+                        <span className="text-muted-foreground">({tool.rating_count})</span>
+                      </span>
+                    )}
+                    <span className="text-sm text-muted-foreground">{tool.view_count.toLocaleString()} {t("tool.views")}</span>
+                  </div>
+                </div>
               </div>
-              <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={tool.upvotes ?? 0} tableName="tools" />
-              <div className="hidden sm:block">
-                <AddToCollectionDialog toolId={tool.id} toolName={displayName} />
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" className="h-9 w-9 md:h-10 md:w-10" onClick={handleToggleBookmark}>
-                    {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" /> : <Bookmark className="h-3.5 w-3.5 md:h-4 md:w-4" />}
+              <div className="flex flex-row gap-2 shrink-0">
+                {(tool.affiliate_url || tool.website_url) && (
+                  <Button asChild className="gap-1.5 h-10 px-4 text-sm" size="sm">
+                    <a href={tool.affiliate_url || tool.website_url} target="_blank" rel="noopener noreferrer sponsored">
+                      <Globe className="h-4 w-4" />
+                      {t("tool.visitWebsite")}
+                    </a>
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>{isBookmarked ? t("tool.saved") : t("tool.save")}</p></TooltipContent>
-              </Tooltip>
-              <ShareButtons title={displayName} />
-              <div className="hidden sm:block">
+                )}
+                <FollowButton targetType="tool" targetId={tool.id} showCount />
+                <UpvoteButton targetId={tool.id} targetType="tool" currentUpvotes={tool.upvotes ?? 0} tableName="tools" />
+                <AddToCollectionDialog toolId={tool.id} toolName={displayName} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant={isBookmarked ? "secondary" : "outline"} size="icon" className="h-10 w-10" onClick={handleToggleBookmark}>
+                      {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{isBookmarked ? t("tool.saved") : t("tool.save")}</p></TooltipContent>
+                </Tooltip>
+                <ShareButtons title={displayName} />
                 <VendorClaimButton toolId={tool.id} toolName={displayName} />
               </div>
             </div>
@@ -569,7 +627,7 @@ export default function ToolDetail() {
         {showBackToTop && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
+            className="fixed bottom-32 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl md:bottom-6 md:right-6"
             aria-label="Back to top"
           >
             <ChevronUp className="h-5 w-5" />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
+import { Home, TrendingUp, GitCompareArrows, DollarSign, Compass, FileText, Search, Moon, Sun, Menu, X, Bookmark, User, LogOut, Shield, Globe, Check } from "lucide-react";
 import { initTheme, setStoredTheme, type Theme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -143,13 +143,27 @@ export function Header() {
 
   const currentLocale = SUPPORTED_LOCALES[locale];
 
+  const MOBILE_NAV_ICONS: Record<string, any> = {
+    "/blog": FileText,
+    "/tools": Compass,
+    "/compare": GitCompareArrows,
+    "/deals": DollarSign,
+    "/trending": TrendingUp,
+  };
+
+  const getMobileIcon = (url: string) => {
+    const path = urlPath(url);
+    if (path.startsWith("/blog")) return FileText;
+    return MOBILE_NAV_ICONS[path] || Home;
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="container flex h-14 md:h-16 items-center justify-between">
+      <div className="container flex h-12 md:h-16 items-center justify-between">
         <div className="flex items-center gap-4 md:gap-8">
-          <Link to="/" className="flex items-center gap-1.5 md:gap-2">
-            <img src="/logo-icon.png" alt="Astute Tools" className="h-6 w-6 md:h-8 md:w-8" />
-            <span className="text-lg md:text-xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <Link to="/" className="flex items-center gap-1 md:gap-2">
+            <img src="/logo-icon.png" alt="Astute Tools" className="h-5 w-5 md:h-8 md:w-8" />
+            <span className="text-base md:text-xl font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               Astute Tools
             </span>
           </Link>
@@ -211,24 +225,19 @@ export function Header() {
           </div>
 
           {/* Mobile: compact buttons */}
-          <div className="flex md:hidden items-center gap-0.5">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
-              <Search className="h-3.5 w-3.5" />
-            </Button>
+          <div className="flex md:hidden items-center gap-1">
+            <button className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors" onClick={() => navigate("/tools")} aria-label="Tìm kiếm">
+              <Search className="h-4 w-4" />
+            </button>
             {user && (
-              <div className="scale-90">
-                <NotificationDropdown />
-              </div>
+              <NotificationDropdown />
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleTheme} aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}>
-              {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-            </Button>
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                    <User className="h-3.5 w-3.5" />
-                  </Button>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors">
+                    <User className="h-4 w-4" />
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => navigate("/profile")}><User className="mr-2 h-4 w-4" /> {t("header.profile")}</DropdownMenuItem>
@@ -242,40 +251,46 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button size="sm" className="h-8 px-2 text-xs" onClick={() => navigate("/auth")}>{t("header.login")}</Button>
+              <button className="flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90" onClick={() => navigate("/auth")}>
+                {t("header.login")}
+              </button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={mobileMenuOpen}>
+            <button className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent transition-colors" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Đóng menu" : "Mở menu"} aria-expanded={mobileMenuOpen}>
               {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-border bg-background md:hidden animate-in slide-in-from-top-2">
-          <nav className="container py-3 flex flex-col gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.label + item.url}
-                to={item.url}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-              >
-                {item.label}
-              </Link>
-            ))}
+        <div className="border-t border-border bg-background md:hidden animate-in slide-in-from-top-2 shadow-lg">
+          <nav className="container py-3 flex flex-col gap-0.5">
+            {navItems.map((item) => {
+              const Icon = getMobileIcon(item.url);
+              return (
+                <Link
+                  key={item.label + item.url}
+                  to={item.url}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent"
+                >
+                  <Icon className="h-4.5 w-4.5 text-primary" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
             <div className="my-2 h-px bg-border" />
             <button
               onClick={() => { toggleTheme(); }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent"
             >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              <span>{isDark ? "Giao diện sáng" : "Giao diện tối"}</span>
+              {isDark ? <Sun className="h-4.5 w-4.5 text-amber-500" /> : <Moon className="h-4.5 w-4.5 text-blue-500" />}
+              <span>{isDark ? "Light mode" : "Dark mode"}</span>
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent w-full">
-                  <Globe className="h-4 w-4" />
+                <button className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent w-full">
+                  <Globe className="h-4.5 w-4.5 text-muted-foreground" />
                   <span>{currentLocale.flag} {currentLocale.nativeName}</span>
                 </button>
               </DropdownMenuTrigger>
@@ -293,14 +308,21 @@ export function Header() {
             </DropdownMenu>
             {user && (
               <>
-                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
-                  <Bookmark className="h-4 w-4" /> {t("header.saved")}
+                <div className="my-2 h-px bg-border" />
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent">
+                  <User className="h-4.5 w-4.5 text-muted-foreground" /> {t("header.profile")}
+                </Link>
+                <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent">
+                  <Bookmark className="h-4.5 w-4.5 text-muted-foreground" /> {t("header.saved")}
                 </Link>
                 {isAdminOrEditor && (
-                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
-                    <Shield className="h-4 w-4" /> Admin Dashboard
+                  <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-accent active:bg-accent">
+                    <Shield className="h-4.5 w-4.5 text-primary" /> Admin Dashboard
                   </Link>
                 )}
+                <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 active:bg-destructive/10 w-full">
+                  <LogOut className="h-4.5 w-4.5" /> {t("header.logout")}
+                </button>
               </>
             )}
           </nav>
