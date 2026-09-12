@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/lib/auth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToCSV } from "@/lib/export";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -13,22 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, Languages, ShieldCheck, CheckCircle2, XCircle, AlertTriangle, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Eye } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
-import { RichTextEditor, clearAutosaveDraft } from "@/components/admin/RichTextEditor";
-import { CoverImageUpload } from "@/components/admin/CoverImageUpload";
-import { EntityTranslationEditor } from "@/components/admin/translations/EntityTranslationEditor";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
-  const [editPost, setEditPost] = useState<any>(null);
-  const [showAdd, setShowAdd] = useState(false);
   const [showAIDialog, setShowAIDialog] = useState(false);
 
   const [page, setPage] = useState(0);
@@ -106,7 +99,7 @@ export default function AdminBlog() {
             <Button variant="outline" size="sm" onClick={() => setShowAIDialog(true)}>
               <Sparkles className="mr-1 h-3.5 w-3.5" /> AI
             </Button>
-            <Button size="sm" onClick={() => setShowAdd(true)}><Plus className="mr-1 h-3.5 w-3.5" /> Tạo</Button>
+            <Button size="sm" onClick={() => navigate("/admin/blog/new")}><Plus className="mr-1 h-3.5 w-3.5" /> Tạo</Button>
           </div>
         </div>
 
@@ -165,7 +158,7 @@ export default function AdminBlog() {
                         <Button variant="ghost" size="icon" asChild title="Xem trước">
                           <a href={`/blog/${p.slug}`} target="_blank" rel="noopener"><Eye className="h-4 w-4" /></a>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setEditPost(p)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/blog/${p.id}`)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { if (confirm("Xóa?")) deletePost.mutate(p.id); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -186,32 +179,22 @@ export default function AdminBlog() {
           </div>
         )}
 
-        {(editPost || showAdd) && (
-          <BlogFormDialog post={editPost} open={!!editPost || showAdd} onClose={() => { setEditPost(null); setShowAdd(false); }} userId={user?.id} />
-        )}
-
         {showAIDialog && (
           <AIWriteDialog open={showAIDialog} onClose={() => setShowAIDialog(false)} onGenerated={(data) => {
             setShowAIDialog(false);
-            setEditPost({
+            
+            const slug = data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+            const params = new URLSearchParams({
               title: data.title,
-              slug: data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
-              excerpt: data.excerpt,
-              content: data.content,
-              tags: data.tags,
-              seo_title: data.seo_title,
-              seo_description: data.seo_description,
-              seo_keywords: data.seo_keywords,
-              _isNew: true,
-              _seoExtra: {
-                primary_keyword: data.primary_keyword,
-                secondary_keywords: data.secondary_keywords,
-                lsi_keywords: data.lsi_keywords,
-                search_intent: data.search_intent,
-                reading_time_minutes: data.reading_time_minutes,
-                word_count: data.word_count,
-              },
+              slug,
+              excerpt: data.excerpt || "",
+              content: data.content || "",
+              tags: Array.isArray(data.tags) ? data.tags.join(", ") : (data.tags || ""),
+              seo_title: data.seo_title || "",
+              seo_description: data.seo_description || "",
+              seo_keywords: Array.isArray(data.seo_keywords) ? data.seo_keywords.join(", ") : (data.seo_keywords || ""),
             });
+            navigate(`/admin/blog/new?${params.toString()}`);
           }} />
         )}
       </div>
@@ -443,322 +426,5 @@ function SEOScorePanel({ form, onSuggestionApply }: { form: any; onSuggestionApp
         </div>
       )}
     </div>
-  );
-}
-
-/* ---------- Blog Form Dialog ---------- */
-function BlogFormDialog({ post, open, onClose, userId }: { post: any; open: boolean; onClose: () => void; userId?: string }) {
-  const queryClient = useQueryClient();
-  const { isAdmin } = useAdminAuth();
-  const isNew = !post?.id || post?._isNew;
-  const [saving, setSaving] = useState(false);
-  const [aiLoading, setAiLoading] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    title: post?.title ?? "",
-    slug: post?.slug ?? "",
-    excerpt: post?.excerpt ?? "",
-    cover_image_url: post?.cover_image_url ?? "",
-    tags: Array.isArray(post?.tags) ? post.tags.join(", ") : (post?.tags ?? ""),
-    content: post?.content ?? "",
-    status: post?.status ?? (isNew && !isAdmin ? "pending_review" : "draft"),
-    seo_title: post?.seo_title ?? "",
-    seo_description: post?.seo_description ?? "",
-    seo_keywords: Array.isArray(post?.seo_keywords) ? post.seo_keywords.join(", ") : (post?.seo_keywords ?? ""),
-    related_tool_ids: (post?.related_tool_ids as string[]) ?? [],
-  });
-
-  const { data: allTools = [] } = useQuery({
-    queryKey: ["all-tools-for-blog"],
-    queryFn: async () => {
-      const { data } = await supabase.from("tools").select("id, name, slug, logo_url, website_url, pricing_type").eq("status", "published").order("name");
-      return data ?? [];
-    },
-  });
-
-  const [toolSearch, setToolSearch] = useState("");
-
-  const updateField = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
-
-  const handleAutoSEO = async () => {
-    if (!form.content && !form.title) { toast.error("Cần có tiêu đề hoặc nội dung"); return; }
-    setAiLoading("seo");
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
-        body: { action: "generate_seo", title: form.title, content: form.content },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      updateField("seo_title", data.seo_title || "");
-      updateField("seo_description", data.seo_description || "");
-      if (data.seo_keywords) updateField("seo_keywords", data.seo_keywords.join(", "));
-      if (data.suggested_tags && !form.tags) updateField("tags", data.suggested_tags.join(", "));
-      // Show improvement suggestions if available
-      if (data.improvement_suggestions?.length) {
-        toast.success(`Đã tạo SEO metadata! (Score: ${data.content_score || "N/A"}/100)`);
-      } else {
-        toast.success("Đã tạo SEO metadata!");
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi tạo SEO");
-    } finally {
-      setAiLoading(null);
-    }
-  };
-
-  const handleAutoExcerpt = async () => {
-    if (!form.content) { toast.error("Cần có nội dung"); return; }
-    setAiLoading("excerpt");
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
-        body: { action: "generate_excerpt", content: form.content },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      updateField("excerpt", data.excerpt || "");
-      toast.success("Đã tạo excerpt!");
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi tạo excerpt");
-    } finally {
-      setAiLoading(null);
-    }
-  };
-
-  const handleSuggestTools = async () => {
-    if (!form.content && !form.title) { toast.error("Cần có tiêu đề hoặc nội dung"); return; }
-    setAiLoading("suggest_tools");
-    try {
-      const toolsList = JSON.stringify(allTools.map((t: any) => ({ id: t.id, name: t.name })));
-      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
-        body: { action: "suggest_tools", title: form.title, content: form.content, tools_list: toolsList },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      const ids = (data.tool_ids || []).filter((id: string) => allTools.some((t: any) => t.id === id));
-      if (ids.length) {
-        updateField("related_tool_ids", [...new Set([...form.related_tool_ids, ...ids])]);
-        toast.success(`AI gợi ý ${ids.length} tools!`);
-      } else {
-        toast.info("Không tìm thấy tool phù hợp");
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Lỗi gợi ý tools");
-    } finally {
-      setAiLoading(null);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!form.title || !form.slug) { toast.error("Tiêu đề và slug là bắt buộc"); return; }
-    if (!userId) { toast.error("Cần đăng nhập"); return; }
-    setSaving(true);
-
-    const payload: any = {
-      title: form.title, slug: form.slug, excerpt: form.excerpt || null,
-      cover_image_url: form.cover_image_url || null,
-      tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
-      content: form.content, status: form.status as any,
-      related_tool_ids: form.related_tool_ids.length > 0 ? form.related_tool_ids : null,
-      seo_title: form.seo_title || null,
-      seo_description: form.seo_description || null,
-      seo_keywords: form.seo_keywords ? form.seo_keywords.split(",").map((k: string) => k.trim()).filter(Boolean) : null,
-    };
-    if (form.status === "published" && !post?.published_at) payload.published_at = new Date().toISOString();
-
-    if (!isNew && post?.id) {
-      const { error } = await supabase.from("blog_posts").update(payload).eq("id", post.id);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã cập nhật");
-      clearAutosaveDraft(`blog-${post.id}`);
-    } else {
-      // Editors' INSERT RLS requires status IN (draft, pending_review) - the
-      // status Select below already hides 'published'/'archived' for them,
-      // but guard here too in case form.status was pre-set some other way.
-      const insertPayload = { ...payload, author_id: userId };
-      if (!isAdmin && !["draft", "pending_review"].includes(insertPayload.status)) {
-        insertPayload.status = "pending_review";
-      }
-      const { error } = await supabase.from("blog_posts").insert(insertPayload);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      toast.success("Đã tạo bài viết");
-      clearAutosaveDraft("blog-new");
-    }
-    queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
-    setSaving(false);
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{isNew ? "Tạo bài viết mới" : "Chỉnh sửa bài viết"}</DialogTitle></DialogHeader>
-        
-        <Tabs defaultValue="content" className="w-full">
-          <ScrollArea className="w-full">
-            <TabsList className="inline-flex w-auto min-w-full sm:grid sm:grid-cols-3">
-              <TabsTrigger value="content" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">Nội dung</TabsTrigger>
-              <TabsTrigger value="seo" className="whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3">SEO & Tools</TabsTrigger>
-              <TabsTrigger value="translations" className="flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm px-2.5 sm:px-3" disabled={isNew}>
-                <Languages className="h-3.5 w-3.5" /> Dịch thuật
-              </TabsTrigger>
-            </TabsList>
-          </ScrollArea>
-
-          <TabsContent value="content" className="space-y-4 mt-4">
-            {/* Basic fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tiêu đề *</Label>
-                <Input value={form.title} onChange={(e) => { updateField("title", e.target.value); if (isNew) updateField("slug", e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }} />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug *</Label>
-                <Input value={form.slug} onChange={(e) => updateField("slug", e.target.value)} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Excerpt</Label>
-                <Button variant="ghost" size="sm" onClick={handleAutoExcerpt} disabled={!!aiLoading}>
-                  {aiLoading === "excerpt" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                  Tạo tự động
-                </Button>
-              </div>
-              <Input value={form.excerpt} onChange={(e) => updateField("excerpt", e.target.value)} />
-            </div>
-
-            <CoverImageUpload value={form.cover_image_url} onChange={(v) => updateField("cover_image_url", v)} />
-
-            <div className="space-y-2">
-              <Label>Tags (phẩy phân cách)</Label>
-              <Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Nội dung</Label>
-              <RichTextEditor content={form.content} onChange={(v) => updateField("content", v)} placeholder="Viết nội dung bài blog..." autosaveKey={isNew ? "blog-new" : `blog-${post.id}`} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Trạng thái</Label>
-              <Select value={form.status} onValueChange={(v) => updateField("status", v)}>
-                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="pending_review">Pending Review</SelectItem>
-                  {/* Editors' RLS only allows draft/pending_review - publishing/archiving
-                      is an admin-only action done via the Publish button in the list. */}
-                  {isAdmin && <SelectItem value="published">Published</SelectItem>}
-                  {isAdmin && <SelectItem value="archived">Archived</SelectItem>}
-                </SelectContent>
-              </Select>
-              {!isAdmin && form.status === "pending_review" && (
-                <p className="text-xs text-muted-foreground">Bài viết sẻ chờ admin duyệt trước khi published.</p>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="seo" className="space-y-4 mt-4">
-            {/* SEO Score Panel */}
-            <SEOScorePanel form={form} />
-
-            {/* Related Tools */}
-            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm">🔗 Đính kèm Tools</h3>
-                <Button variant="ghost" size="sm" onClick={handleSuggestTools} disabled={!!aiLoading}>
-                  {aiLoading === "suggest_tools" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                  AI gợi ý
-                </Button>
-              </div>
-              <Input placeholder="Tìm tool..." value={toolSearch} onChange={(e) => setToolSearch(e.target.value)} className="h-8" />
-              {toolSearch && (
-                <div className="max-h-40 overflow-y-auto space-y-1 border rounded p-2 bg-background">
-                  {allTools.filter((t: any) => t.name.toLowerCase().includes(toolSearch.toLowerCase()) && !form.related_tool_ids.includes(t.id)).slice(0, 10).map((t: any) => (
-                    <button key={t.id} type="button" className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-muted text-sm" onClick={() => { updateField("related_tool_ids", [...form.related_tool_ids, t.id]); setToolSearch(""); }}>
-                      <span className="font-medium">{t.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {form.related_tool_ids.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {form.related_tool_ids.map((id: string) => {
-                    const tool = allTools.find((t: any) => t.id === id);
-                    return (
-                      <Badge key={id} variant="secondary" className="gap-1 pr-1">
-                        {tool?.name || id.slice(0, 8)}
-                        <button type="button" className="ml-1 hover:text-destructive" onClick={() => updateField("related_tool_ids", form.related_tool_ids.filter((x: string) => x !== id))}>×</button>
-                      </Badge>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* SEO Section */}
-            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm flex items-center gap-2">🔍 SEO Metadata</h3>
-                <Button variant="outline" size="sm" onClick={handleAutoSEO} disabled={!!aiLoading}>
-                  {aiLoading === "seo" ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
-                  Tạo SEO tự động
-                </Button>
-              </div>
-              <div className="space-y-2">
-                <Label>SEO Title <span className="text-muted-foreground text-xs">({form.seo_title.length}/60)</span></Label>
-                <Input value={form.seo_title} onChange={(e) => updateField("seo_title", e.target.value)} placeholder="Tiêu đề tối ưu cho SEO" maxLength={70} />
-                {form.seo_title.length > 60 && <p className="text-xs text-destructive">Vượt quá 60 ký tự — có thể bị cắt trên Google</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>SEO Description <span className="text-muted-foreground text-xs">({form.seo_description.length}/160)</span></Label>
-                <Input value={form.seo_description} onChange={(e) => updateField("seo_description", e.target.value)} placeholder="Mô tả meta cho công cụ tìm kiếm" maxLength={170} />
-                {form.seo_description.length > 0 && form.seo_description.length < 140 && <p className="text-xs text-yellow-600">Nên dài hơn 140 ký tự để tối ưu hiển thị</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>SEO Keywords (phẩy phân cách)</Label>
-                <Input value={form.seo_keywords} onChange={(e) => updateField("seo_keywords", e.target.value)} placeholder="keyword1, keyword2, ..." />
-              </div>
-
-              {/* SERP Preview */}
-              {(form.seo_title || form.title) && (
-                <div className="border rounded p-3 bg-background">
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">📱 SERP Preview</p>
-                  <div className="space-y-0.5">
-                    <p className="text-blue-700 text-sm font-medium truncate hover:underline cursor-default">
-                      {(form.seo_title || form.title).slice(0, 60)}
-                    </p>
-                    <p className="text-green-700 text-xs">astute.tools/blog/{form.slug || "..."}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">
-                      {(form.seo_description || form.excerpt || "Chưa có mô tả...").slice(0, 160)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="translations" className="mt-4">
-            {!isNew && post?.id && (
-              <EntityTranslationEditor
-                entityType="blog"
-                entityId={post.id}
-                translateFunctionName="translate-blog"
-                fields={[
-                  { key: "title", label: "Tiêu đề", type: "input", originalValue: form.title },
-                  { key: "excerpt", label: "Excerpt", type: "textarea", originalValue: form.excerpt },
-                  { key: "content", label: "Nội dung", type: "richtext", originalValue: form.content },
-                ]}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }

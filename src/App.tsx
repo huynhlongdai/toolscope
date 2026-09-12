@@ -45,6 +45,7 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminModeration = lazy(() => import("./pages/admin/AdminModeration"));
 const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminBlogEditor = lazy(() => import("./pages/admin/AdminBlogEditor"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
 const AdminMenus = lazy(() => import("./pages/admin/AdminMenus"));
 const AdminPages = lazy(() => import("./pages/admin/AdminPages"));
@@ -164,6 +165,8 @@ function AppRoutes() {
         <Route path="/admin/reviews" element={adminRoute(<AdminReviews />)} />
         <Route path="/admin/moderation" element={adminRoute(<AdminModeration />)} />
         <Route path="/admin/blog" element={adminRoute(<AdminBlog />)} />
+        <Route path="/admin/blog/new" element={adminRoute(<AdminBlogEditor />)} />
+        <Route path="/admin/blog/:id" element={adminRoute(<AdminBlogEditor />)} />
         <Route path="/admin/categories" element={adminRoute(<AdminCategories />)} />
         <Route path="/admin/menus" element={adminRoute(<AdminMenus />)} />
         <Route path="/admin/pages" element={adminRoute(<AdminPages />)} />

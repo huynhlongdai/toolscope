@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -264,7 +265,7 @@ export default function AdminNewsletter() {
             </div>
             <div className="space-y-2">
               <Label>Nội dung *</Label>
-              <Textarea value={emailForm.content} onChange={(e) => setEmailForm(p => ({ ...p, content: e.target.value }))} rows={8} placeholder="Nội dung email..." />
+              <RichTextEditor content={emailForm.content} onChange={(v) => setEmailForm(p => ({ ...p, content: v }))} placeholder="Nội dung email..." autosaveKey={`newsletter-${emailForm.id || "new"}`} />
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={emailForm.sendToActive} onCheckedChange={(v) => setEmailForm(p => ({ ...p, sendToActive: v }))} />

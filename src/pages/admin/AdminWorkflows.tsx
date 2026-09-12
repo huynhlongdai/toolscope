@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -423,7 +424,7 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
             </div>
             <div className="space-y-2">
               <Label>Mô tả</Label>
-              <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} rows={3} />
+              <RichTextEditor content={form.description} onChange={(v) => update("description", v)} placeholder="Mô tả workflow..." autosaveKey={workflow ? `workflow-desc-${workflow.id}` : "workflow-desc-new"} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -493,7 +494,7 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
                     )}
                   </div>
                   <Input placeholder="Tiêu đề bước" value={step.title} onChange={(e) => updateStep(i, "title", e.target.value)} className="h-8" />
-                  <Textarea placeholder="Mô tả chi tiết..." value={step.description} onChange={(e) => updateStep(i, "description", e.target.value)} rows={2} className="text-sm" />
+                  <RichTextEditor content={step.description} onChange={(v) => updateStep(i, "description", v)} placeholder="Mô tả chi tiết..." autosaveKey={`workflow-step-${i}`} />
                   <Select value={step.tool_id || "__none"} onValueChange={(v) => updateStep(i, "tool_id", v === "__none" ? null : v)}>
                     <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Chọn tool (tùy chọn)" /></SelectTrigger>
                     <SelectContent>
@@ -511,11 +512,11 @@ function WorkflowFormDialog({ wf, open, onClose, userId }: { wf: any; open: bool
             {/* Problem & Solution */}
             <div className="space-y-2">
               <Label>🎯 Vấn đề cần giải quyết</Label>
-              <Textarea value={form.seo_content.problem} onChange={(e) => updateSeo("problem", e.target.value)} rows={3} placeholder="Mô tả pain point mà workflow này giải quyết..." />
+              <RichTextEditor content={form.seo_content.problem} onChange={(v) => updateSeo("problem", v)} placeholder="Mô tả pain point mà workflow này giải quyết..." autosaveKey={workflow ? `workflow-seo-problem-${workflow.id}` : "workflow-seo-problem-new"} />
             </div>
             <div className="space-y-2">
               <Label>💡 Giải pháp</Label>
-              <Textarea value={form.seo_content.solution} onChange={(e) => updateSeo("solution", e.target.value)} rows={3} placeholder="Workflow này giải quyết vấn đề như thế nào..." />
+              <RichTextEditor content={form.seo_content.solution} onChange={(v) => updateSeo("solution", v)} placeholder="Workflow này giải quyết vấn đề như thế nào..." autosaveKey={workflow ? `workflow-seo-solution-${workflow.id}` : "workflow-seo-solution-new"} />
             </div>
 
             {/* Target Audience & Use Cases */}
