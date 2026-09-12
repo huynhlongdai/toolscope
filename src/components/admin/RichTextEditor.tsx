@@ -1,3 +1,4 @@
+import { Extension } from "@tiptap/core";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -10,6 +11,11 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
+import Dropcursor from "@tiptap/extension-dropcursor";
+import Gapcursor from "@tiptap/extension-gapcursor";
+import CharacterCount from "@tiptap/extension-character-count";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,43 +30,230 @@ import {
   TableIcon, Plus, Minus, Trash2, SquarePlus,
   MoveHorizontal, MoveVertical, Merge, Split,
   Maximize, Minimize, ChevronDown, Type, Heading1, Heading2, Heading3, Heading4,
-  LayoutGrid, MessageSquareQuote, Timer, Tag, Grip, FileText,
-  History, X, Save,
+  LayoutGrid, MessageSquareQuote, Timer, Tag, FileText,
+  History, X, Save, CheckSquare, AlertCircle, AlertTriangle,
+  CheckCircle2, Info, HelpCircle, Star, Smile,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InsertToolDialog, InsertDealDialog } from "@/components/admin/InsertToolDealDialogs";
+import { BubbleMenu as TiptapBubbleMenu } from "@tiptap/extension-bubble-menu";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
-  /**
-   * When provided, enables WordPress-style local autosave/draft-recovery:
-   * every ~2s of inactivity the current HTML is persisted to
-   * localStorage under `rte-autosave:${autosaveKey}`. On mount, if a
-   * saved draft differs from the incoming `content` prop, a recovery
-   * banner offers to restore it or discard it. Pass a stable per-record
-   * key, e.g. `blog-${post?.id ?? "new"}`, so drafts don't leak across
-   * unrelated posts/pages. Protects against browser crash / accidental
-   * tab close before the surrounding form's own Save button is clicked -
-   * it does NOT replace that Save (nothing is written to the DB here).
-   */
   autosaveKey?: string;
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_PREFIX = "rte-autosave:";
 
-/**
- * Call after the surrounding form successfully persists content to the
- * database (e.g. inside a mutation's onSuccess), passing the same key
- * given to <RichTextEditor autosaveKey=... />. Clears the now-stale local
- * draft so the recovery banner doesn't reappear with outdated content the
- * next time this record is opened for editing.
- */
 export function clearAutosaveDraft(autosaveKey: string) {
   try { localStorage.removeItem(`${AUTOSAVE_PREFIX}${autosaveKey}`); } catch { /* ignore */ }
+}
+
+const SlashCommand = Extension.create({
+  name: "slashCommand",
+  addKeyboardShortcuts() {
+    return {};
+  },
+});
+
+const CALLOUT_BLOCKS = [
+  {
+    key: "info",
+    label: "Info Callout",
+    description: "Hộp thông tin (xanh)",
+    icon: Info,
+    iconColor: "text-blue-600",
+    html: '<div class="callout callout-info" style="background:#dbeafe;border-left:4px solid #3b82f6;padding:16px;margin:16px 0;border-radius:6px;"><p style="margin:0;"><strong>\u2139\ufe0f Th\u00f4ng tin:</strong> N\u1ed9i dung th\u00f4ng tin \u1edf \u0111\u00e2y...</p></div><p></p>',
+  },
+  {
+    key: "warning",
+    label: "Warning Callout",
+    description: "Hộp cảnh báo (vàng)",
+    icon: AlertTriangle,
+    iconColor: "text-yellow-600",
+    html: '<div class="callout callout-warning" style="background:#fef3c7;border-left:4px solid #f59e0b;padding:16px;margin:16px 0;border-radius:6px;"><p style="margin:0;"><strong>\u26a0\ufe0f C\u1ea3nh b\u00e1o:</strong> N\u1ed9i dung c\u1ea3nh b\u00e1o \u1edf \u0111\u00e2y...</p></div><p></p>',
+  },
+  {
+    key: "success",
+    label: "Success Callout",
+    description: "Hộp thành công (xanh lá)",
+    icon: CheckCircle2,
+    iconColor: "text-green-600",
+    html: '<div class="callout callout-success" style="background:#d1fae5;border-left:4px solid #10b981;padding:16px;margin:16px 0;border-radius:6px;"><p style="margin:0;"><strong>\u2705 Th\u00e0nh c\u00f4ng:</strong> N\u1ed9i dung th\u00e0nh c\u00f4ng \u1edf \u0111\u00e2y...</p></div><p></p>',
+  },
+  {
+    key: "error",
+    label: "Error Callout",
+    description: "Hộp lỗi (đỏ)",
+    icon: AlertCircle,
+    iconColor: "text-red-600",
+    html: '<div class="callout callout-error" style="background:#fee2e2;border-left:4px solid #ef4444;padding:16px;margin:16px 0;border-radius:6px;"><p style="margin:0;"><strong>\u274c L\u1ed7i:</strong> N\u1ed9i dung l\u1ed7i \u1edf \u0111\u00e2y...</p></div><p></p>',
+  },
+];
+
+const SPECIAL_BLOCKS = [
+  {
+    key: "faq",
+    label: "FAQ Block",
+    description: "Câu hỏi thường gặp",
+    icon: HelpCircle,
+    html: '<div class="faq-block" style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;background:#f9fafb;"><h4 style="margin:0 0 8px 0;font-weight:600;color:#1f2937;">\u2753 C\u00e2u h\u1ecfi th\u01b0\u1eddng g\u1eb7p</h4><details style="margin-bottom:8px;"><summary style="cursor:pointer;font-weight:500;">C\u00e2u h\u1ecfi 1?</summary><p style="margin:8px 0 0 0;">C\u00e2u tr\u1ea3 l\u1eddi 1...</p></details><details><summary style="cursor:pointer;font-weight:500;">C\u00e2u h\u1ecfi 2?</summary><p style="margin:8px 0 0 0;">C\u00e2u tr\u1ea3 l\u1eddi 2...</p></details></div><p></p>',
+  },
+  {
+    key: "proscons",
+    label: "Pros & Cons",
+    description: "Ưu và nhược điểm",
+    icon: Smile,
+    html: '<div class="pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;"><div style="border:2px solid #10b981;border-radius:8px;padding:16px;"><h4 style="margin:0 0 12px 0;color:#10b981;font-weight:600;">\u2705 \u01afu \u0111i\u1ec3m</h4><ul style="margin:0;padding-left:20px;"><li>\u01afu \u0111i\u1ec3m 1</li><li>\u01afu \u0111i\u1ec3m 2</li></ul></div><div style="border:2px solid #ef4444;border-radius:8px;padding:16px;"><h4 style="margin:0 0 12px 0;color:#ef4444;font-weight:600;">\u274c Nh\u01b0\u1ee3c \u0111i\u1ec3m</h4><ul style="margin:0;padding-left:20px;"><li>Nh\u01b0\u1ee3c \u0111i\u1ec3m 1</li><li>Nh\u01b0\u1ee3c \u0111i\u1ec3m 2</li></ul></div></div><p></p>',
+  },
+  {
+    key: "rating",
+    label: "Rating",
+    description: "Đánh giá sao",
+    icon: Star,
+    html: '<div class="rating-block" style="text-align:center;padding:16px;margin:16px 0;background:#f9fafb;border-radius:8px;"><div style="font-size:24px;color:#fbbf24;margin-bottom:8px;">\u2605\u2605\u2605\u2605\u2605</div><p style="margin:0;font-weight:600;">\u0110\u00e1nh gi\u00e1: 5/5</p><p style="margin:4px 0 0 0;color:#6b7280;font-size:14px;">M\u00f4 t\u1ea3 \u0111\u00e1nh gi\u00e1...</p></div><p></p>',
+  },
+  {
+    key: "button",
+    label: "CTA Button",
+    description: "Nút CTA với link",
+    icon: LayoutGrid,
+    html: '<div data-type="button-block" style="text-align:center;margin:16px 0;"><a href="#" style="display:inline-block;padding:12px 32px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600;">Click me</a></div><p></p>',
+  },
+  {
+    key: "accordion",
+    label: "Accordion",
+    description: "Nội dung mở rộng/thu gọn",
+    icon: FileText,
+    html: '<div data-type="accordion-block" style="border:1px solid #e5e7eb;border-radius:8px;margin:16px 0;overflow:hidden;"><details style="padding:0;"><summary style="padding:12px 16px;font-weight:600;cursor:pointer;background:#f9fafb;">Ti\u00eau \u0111\u1ec1 Accordion</summary><div style="padding:12px 16px;border-top:1px solid #e5e7eb;">N\u1ed9i dung accordion \u1edf \u0111\u00e2y...</div></details></div><p></p>',
+  },
+  {
+    key: "testimonial",
+    label: "Testimonial",
+    description: "Đánh giá/nhận xét",
+    icon: MessageSquareQuote,
+    html: '<div data-type="testimonial-block" style="border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin:16px 0;background:#f9fafb;"><p style="font-style:italic;font-size:16px;margin-bottom:12px;">\u201cS\u1ea3n ph\u1ea9m r\u1ea5t tuy\u1ec7t v\u1eddi, t\u00f4i r\u1ea5t h\u00e0i l\u00f2ng!\u201d</p><div style="display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">N</div><div><p style="font-weight:600;margin:0;">Nguy\u1ec5n V\u0103n A</p><p style="color:#6b7280;font-size:14px;margin:0;">CEO, C\u00f4ng ty ABC</p></div></div></div><p></p>',
+  },
+  {
+    key: "pricetable",
+    label: "Price Table",
+    description: "Bảng giá so sánh",
+    icon: Tag,
+    html: '<div data-type="price-table-block" style="margin:16px 0;"><table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;"><thead><tr style="background:#6366f1;color:white;"><th style="padding:12px 16px;text-align:left;">G\u00f3i</th><th style="padding:12px 16px;text-align:center;">Free</th><th style="padding:12px 16px;text-align:center;">Pro</th><th style="padding:12px 16px;text-align:center;">Enterprise</th></tr></thead><tbody><tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">Gi\u00e1</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">$0</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">$29/th\u00e1ng</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">Li\u00ean h\u1ec7</td></tr><tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">T\u00ednh n\u0103ng A</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">\u2713</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">\u2713</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">\u2713</td></tr><tr><td style="padding:10px 16px;">T\u00ednh n\u0103ng B</td><td style="padding:10px 16px;text-align:center;">\u2717</td><td style="padding:10px 16px;text-align:center;">\u2713</td><td style="padding:10px 16px;text-align:center;">\u2713</td></tr></tbody></table></div><p></p>',
+  },
+  {
+    key: "countdown",
+    label: "Countdown",
+    description: "Đếm ngược ưu đãi",
+    icon: Timer,
+    html: '<div data-type="countdown-block" style="text-align:center;padding:24px;margin:16px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:12px;"><p style="font-size:14px;margin-bottom:8px;opacity:0.9;">\u23f0 \u01afu \u0111\u00e3i k\u1ebft th\u00fac sau</p><div style="display:flex;justify-content:center;gap:16px;font-size:32px;font-weight:bold;"><div><span>07</span><p style="font-size:12px;font-weight:normal;">Ng\u00e0y</p></div><div><span>:</span></div><div><span>12</span><p style="font-size:12px;font-weight:normal;">Gi\u1edd</p></div><div><span>:</span></div><div><span>45</span><p style="font-size:12px;font-weight:normal;">Ph\u00fat</p></div><div><span>:</span></div><div><span>30</span><p style="font-size:12px;font-weight:normal;">Gi\u00e2y</p></div></div></div><p></p>',
+  },
+];
+
+interface SlashMenuItem {
+  key: string;
+  label: string;
+  description: string;
+  icon: any;
+  iconColor?: string;
+  html: string;
+  category: string;
+}
+
+function buildSlashItems(): SlashMenuItem[] {
+  const items: SlashMenuItem[] = [
+    { key: "h1", label: "Heading 1", description: "Tiêu đề lớn", icon: Heading1, category: "Text", html: "<h1></h1>" },
+    { key: "h2", label: "Heading 2", description: "Tiêu đề vừa", icon: Heading2, category: "Text", html: "<h2></h2>" },
+    { key: "h3", label: "Heading 3", description: "Tiêu đề nhỏ", icon: Heading3, category: "Text", html: "<h3></h3>" },
+    { key: "ul", label: "Bullet List", description: "Danh sách", icon: List, category: "Text", html: "" },
+    { key: "ol", label: "Ordered List", description: "Danh sách có số", icon: ListOrdered, category: "Text", html: "" },
+    { key: "quote", label: "Blockquote", description: "Trích dẫn", icon: Quote, category: "Text", html: "" },
+    { key: "code", label: "Code Block", description: "Mã nguồn", icon: Code, category: "Text", html: "" },
+    { key: "hr", label: "Divider", description: "Đường phân cách", icon: Minus, category: "Text", html: "" },
+    { key: "task", label: "Task List", description: "Checklist", icon: CheckSquare, category: "Text", html: "" },
+  ];
+  for (const c of CALLOUT_BLOCKS) {
+    items.push({ key: c.key, label: c.label, description: c.description, icon: c.icon, iconColor: c.iconColor, category: "Callout", html: c.html });
+  }
+  for (const b of SPECIAL_BLOCKS) {
+    items.push({ key: b.key, label: b.label, description: b.description, icon: b.icon, category: "Blocks", html: b.html });
+  }
+  return items;
+}
+
+function SlashMenuPopover({
+  open, query, onSelect, onClose,
+}: {
+  open: boolean;
+  query: string;
+  onSelect: (item: SlashMenuItem) => void;
+  onClose: () => void;
+}) {
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const items = buildSlashItems().filter(
+    (i) => i.label.toLowerCase().includes(query.toLowerCase()) || i.description.toLowerCase().includes(query.toLowerCase())
+  );
+
+  useEffect(() => { setSelectedIdx(0); }, [query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); setSelectedIdx((p) => (p + 1) % items.length); }
+      if (e.key === "ArrowUp") { e.preventDefault(); setSelectedIdx((p) => (p + items.length - 1) % items.length); }
+      if (e.key === "Enter" && items[selectedIdx]) { e.preventDefault(); onSelect(items[selectedIdx]); }
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, items, selectedIdx, onSelect, onClose]);
+
+  if (!open || items.length === 0) return null;
+
+  const grouped = items.reduce<Record<string, SlashMenuItem[]>>((acc, item) => {
+    (acc[item.category] = acc[item.category] || []).push(item);
+    return acc;
+  }, {});
+
+  let flatIdx = 0;
+
+  return (
+    <div className="absolute left-0 bottom-full mb-1 z-50 min-w-[280px] max-w-[360px] rounded-md border bg-popover shadow-lg animate-in fade-in-0 zoom-in-95">
+      <div className="max-h-[320px] overflow-y-auto p-1.5">
+        {Object.entries(grouped).map(([cat, catItems]) => (
+          <div key={cat}>
+            <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+            {catItems.map((item) => {
+              const idx = flatIdx++;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.key}
+                  className={`flex w-full items-center gap-3 rounded-sm px-2.5 py-2 text-sm transition-colors ${
+                    idx === selectedIdx ? "bg-accent text-accent-foreground" : "hover:bg-accent/50"
+                  }`}
+                  onMouseEnter={() => setSelectedIdx(idx)}
+                  onMouseDown={(e) => { e.preventDefault(); onSelect(item); }}
+                >
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted ${item.iconColor || ""}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-medium text-sm">{item.label}</div>
+                    <div className="text-xs text-muted-foreground truncate">{item.description}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function RichTextEditor({ content, onChange, placeholder = "Nhập nội dung...", autosaveKey }: RichTextEditorProps) {
@@ -75,13 +268,16 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
   const [lastAutosavedAt, setLastAutosavedAt] = useState<number | null>(null);
   const initialContentRef = useRef(content);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const slashStartPos = useRef<number | null>(null);
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
       }),
-      Image,
+      Image.configure({ allowBase64: true }),
       Underline,
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
       Placeholder.configure({ placeholder }),
@@ -94,14 +290,78 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       TableRow,
       TableCell,
       TableHeader,
+      Dropcursor,
+      Gapcursor,
+      CharacterCount,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      SlashCommand,
     ],
     content,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       onChange(html);
       scheduleAutosave(html);
+      detectSlash(editor);
+    },
+    onTransaction: ({ editor }) => {
+      detectSlash(editor);
     },
   });
+
+  const detectSlash = useCallback((ed: any) => {
+    if (!ed) return;
+    const { state } = ed;
+    const { from } = state.selection;
+    const textBefore = state.doc.textBetween(Math.max(0, from - 50), from, "\n");
+    const lastLine = textBefore.split("\n").pop() || "";
+    const slashMatch = lastLine.match(/^\/(.*)$/);
+    if (slashMatch && !slashOpen) {
+      slashStartPos.current = from - slashMatch[0].length;
+      setSlashQuery(slashMatch[1]);
+      setSlashOpen(true);
+    } else if (slashMatch && slashOpen) {
+      setSlashQuery(slashMatch[1]);
+    } else if (slashOpen) {
+      setSlashOpen(false);
+      setSlashQuery("");
+      slashStartPos.current = null;
+    }
+  }, [slashOpen]);
+
+  const handleSlashSelect = useCallback((item: SlashMenuItem) => {
+    if (!editor) return;
+    const pos = slashStartPos.current;
+    if (pos != null) {
+      const { from } = editor.state.selection;
+      editor.chain().focus().deleteRange({ from: pos, to: from }).run();
+    }
+    setSlashOpen(false);
+    setSlashQuery("");
+    slashStartPos.current = null;
+
+    if (item.key === "ul") {
+      editor.chain().focus().toggleBulletList().run();
+    } else if (item.key === "ol") {
+      editor.chain().focus().toggleOrderedList().run();
+    } else if (item.key === "quote") {
+      editor.chain().focus().toggleBlockquote().run();
+    } else if (item.key === "code") {
+      editor.chain().focus().toggleCodeBlock().run();
+    } else if (item.key === "hr") {
+      editor.chain().focus().setHorizontalRule().run();
+    } else if (item.key === "task") {
+      editor.chain().focus().toggleTaskList().run();
+    } else if (item.key === "h1") {
+      editor.chain().focus().toggleHeading({ level: 1 }).run();
+    } else if (item.key === "h2") {
+      editor.chain().focus().toggleHeading({ level: 2 }).run();
+    } else if (item.key === "h3") {
+      editor.chain().focus().toggleHeading({ level: 3 }).run();
+    } else if (item.html) {
+      editor.chain().focus().insertContent(item.html).run();
+    }
+  }, [editor]);
 
   const scheduleAutosave = useCallback((html: string) => {
     if (!storageKey) return;
@@ -111,15 +371,12 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
         localStorage.setItem(storageKey, JSON.stringify({ html, savedAt: Date.now() }));
         setLastAutosavedAt(Date.now());
       } catch {
-        // localStorage full/unavailable (private mode, quota) - autosave is
-        // best-effort only, never block editing.
+        /* localStorage full/unavailable */
       }
     }, AUTOSAVE_DEBOUNCE_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
-  // On mount: check for a saved draft newer/different than the content the
-  // parent form loaded us with, and offer to restore it.
   useEffect(() => {
     if (!storageKey) return;
     try {
@@ -129,11 +386,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       if (saved?.html && saved.html !== initialContentRef.current) {
         setDraftAvailable(saved);
       }
-    } catch {
-      // Corrupt/unreadable draft entry - ignore silently, not worth surfacing.
-    }
-    // Only run once per mount (per autosaveKey) - intentionally not
-    // re-checking on every content prop change.
+    } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
@@ -223,12 +476,11 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
   if (!editor) return null;
 
-  // Word count & reading time
   const text = editor.getText();
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
   const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const charCount = editor.storage.characterCount?.characters?.() ?? text.length;
 
-  // Current block type label
   const getBlockLabel = () => {
     if (editor.isActive("heading", { level: 1 })) return "Heading 1";
     if (editor.isActive("heading", { level: 2 })) return "Heading 2";
@@ -236,6 +488,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     if (editor.isActive("heading", { level: 4 })) return "Heading 4";
     if (editor.isActive("blockquote")) return "Blockquote";
     if (editor.isActive("codeBlock")) return "Code Block";
+    if (editor.isActive("taskList")) return "Task List";
     return "Paragraph";
   };
 
@@ -258,27 +511,22 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
     <div className={`border rounded-md flex flex-col ${isFullscreen ? "fixed inset-0 z-50 bg-background rounded-none" : ""}`}>
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" className="hidden" onChange={handleFileUpload} />
 
-      {/* Draft recovery banner (autosave) */}
+      {/* Draft recovery banner */}
       {draftAvailable && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs">
           <span className="flex items-center gap-1.5 text-amber-800 dark:text-amber-200">
             <History className="h-3.5 w-3.5 shrink-0" />
-            Có bản nháp tự động lưu lúc {new Date(draftAvailable.savedAt).toLocaleString("vi-VN")} chưa được lưu vào hệ thống.
+            Có bản nháp tự động lưu lúc {new Date(draftAvailable.savedAt).toLocaleString("vi-VN")}.
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
-            <Button type="button" size="sm" variant="outline" className="h-6 text-xs px-2" onClick={restoreDraft}>
-              Khôi phục
-            </Button>
-            <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={discardDraft} title="Bỏ bản nháp">
-              <X className="h-3 w-3" />
-            </Button>
+            <Button type="button" size="sm" variant="outline" className="h-6 text-xs px-2" onClick={restoreDraft}>Khôi phục</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={discardDraft} title="Bỏ"><X className="h-3 w-3" /></Button>
           </div>
         </div>
       )}
 
-      {/* Toolbar Row 1: Block type + Text formatting + Color */}
+      {/* Toolbar Row 1 */}
       <div className="flex flex-wrap items-center gap-0.5 border-b p-1 bg-muted/30">
-        {/* Block type selector */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs px-2 min-w-[100px] justify-between" onMouseDown={(e: React.MouseEvent) => e.preventDefault()}>
@@ -309,12 +557,14 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
               <Code className="h-4 w-4 mr-2" /> Code Block
             </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleTaskList().run()}>
+              <CheckSquare className="h-4 w-4 mr-2" /> Task List
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* Text formatting */}
         <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold (Ctrl+B)">
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
@@ -373,18 +623,17 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
         </ToolbarButton>
       </div>
 
-      {/* Toolbar Row 2: Align + Lists + Media + Table + Blocks + Undo/Redo */}
+      {/* Toolbar Row 2 */}
       <div className="flex flex-wrap items-center gap-0.5 border-b p-1 bg-muted/30">
-        {/* Alignment */}
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="Align left"><AlignLeft className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="Align center"><AlignCenter className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="Align right"><AlignRight className="h-3.5 w-3.5" /></ToolbarButton>
 
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* Lists */}
         <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list"><List className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Ordered list"><ListOrdered className="h-3.5 w-3.5" /></ToolbarButton>
+        <ToolbarButton onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")} title="Task list"><CheckSquare className="h-3.5 w-3.5" /></ToolbarButton>
 
         <div className="w-px h-5 bg-border mx-1" />
 
@@ -415,7 +664,6 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
           </PopoverContent>
         </Popover>
 
-        {/* Media */}
         <ToolbarButton onClick={() => fileInputRef.current?.click()} title="Upload ảnh" disabled={uploading}>
           {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
         </ToolbarButton>
@@ -474,11 +722,11 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
               <Plus className="h-3.5 w-3.5" /> Chèn
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[240px] max-h-[400px] overflow-y-auto">
+          <DropdownMenuContent align="start" className="min-w-[260px] max-h-[450px] overflow-y-auto">
             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Nội dung</div>
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().setHorizontalRule().run()}>
               <Minus className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Đường phân cách</div><div className="text-xs text-muted-foreground">Ngăn cách các phần nội dung</div></div>
+              <div><div className="font-medium text-sm">Đường phân cách</div><div className="text-xs text-muted-foreground">Ngăn cách các phần</div></div>
             </DropdownMenuItem>
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
               <Quote className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -488,98 +736,47 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
               <Code className="h-4 w-4 mr-2 text-muted-foreground" />
               <div><div className="font-medium text-sm">Code Block</div><div className="text-xs text-muted-foreground">Hiển thị mã nguồn</div></div>
             </DropdownMenuItem>
+            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => editor.chain().focus().toggleTaskList().run()}>
+              <CheckSquare className="h-4 w-4 mr-2 text-muted-foreground" />
+              <div><div className="font-medium text-sm">Task List</div><div className="text-xs text-muted-foreground">Checklist tương tác</div></div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Callout Boxes</div>
+            {CALLOUT_BLOCKS.map((block) => {
+              const Icon = block.icon;
+              return (
+                <DropdownMenuItem key={block.key} onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(block.html)}>
+                  <Icon className={`h-4 w-4 mr-2 ${block.iconColor}`} />
+                  <div><div className="font-medium text-sm">{block.label}</div><div className="text-xs text-muted-foreground">{block.description}</div></div>
+                </DropdownMenuItem>
+              );
+            })}
 
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Khối đặc biệt</div>
-
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
-              <div data-type="button-block" style="text-align:center;margin:16px 0;">
-                <a href="#" style="display:inline-block;padding:12px 32px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;font-weight:600;">Click me</a>
-              </div>
-            `)}>
-              <LayoutGrid className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Button</div><div className="text-xs text-muted-foreground">Nút CTA với link</div></div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
-              <div data-type="accordion-block" style="border:1px solid #e5e7eb;border-radius:8px;margin:16px 0;overflow:hidden;">
-                <details style="padding:0;">
-                  <summary style="padding:12px 16px;font-weight:600;cursor:pointer;background:#f9fafb;">Tiêu đề Accordion</summary>
-                  <div style="padding:12px 16px;border-top:1px solid #e5e7eb;">Nội dung accordion ở đây...</div>
-                </details>
-              </div>
-            `)}>
-              <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Accordion</div><div className="text-xs text-muted-foreground">Nội dung mở rộng/thu gọn</div></div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
-              <div data-type="testimonial-block" style="border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin:16px 0;background:#f9fafb;">
-                <p style="font-style:italic;font-size:16px;margin-bottom:12px;">"Sản phẩm rất tuyệt vời, tôi rất hài lòng!"</p>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <div style="width:40px;height:40px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;">N</div>
-                  <div>
-                    <p style="font-weight:600;margin:0;">Nguyễn Văn A</p>
-                    <p style="color:#6b7280;font-size:14px;margin:0;">CEO, Công ty ABC</p>
-                  </div>
-                </div>
-              </div>
-            `)}>
-              <MessageSquareQuote className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Testimonial</div><div className="text-xs text-muted-foreground">Đánh giá/nhận xét khách hàng</div></div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
-              <div data-type="price-table-block" style="margin:16px 0;">
-                <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-                  <thead><tr style="background:#6366f1;color:white;">
-                    <th style="padding:12px 16px;text-align:left;">Gói</th>
-                    <th style="padding:12px 16px;text-align:center;">Free</th>
-                    <th style="padding:12px 16px;text-align:center;">Pro</th>
-                    <th style="padding:12px 16px;text-align:center;">Enterprise</th>
-                  </tr></thead>
-                  <tbody>
-                    <tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">Giá</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">$0</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">$29/tháng</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">Liên hệ</td></tr>
-                    <tr><td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">Tính năng A</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">✓</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">✓</td><td style="padding:10px 16px;text-align:center;border-bottom:1px solid #e5e7eb;">✓</td></tr>
-                    <tr><td style="padding:10px 16px;">Tính năng B</td><td style="padding:10px 16px;text-align:center;">✗</td><td style="padding:10px 16px;text-align:center;">✓</td><td style="padding:10px 16px;text-align:center;">✓</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            `)}>
-              <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Price Table</div><div className="text-xs text-muted-foreground">Bảng giá so sánh gói</div></div>
-            </DropdownMenuItem>
-
-            <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`
-              <div data-type="countdown-block" style="text-align:center;padding:24px;margin:16px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border-radius:12px;">
-                <p style="font-size:14px;margin-bottom:8px;opacity:0.9;">⏰ Ưu đãi kết thúc sau</p>
-                <div style="display:flex;justify-content:center;gap:16px;font-size:32px;font-weight:bold;">
-                  <div><span>07</span><p style="font-size:12px;font-weight:normal;">Ngày</p></div>
-                  <div><span>:</span></div>
-                  <div><span>12</span><p style="font-size:12px;font-weight:normal;">Giờ</p></div>
-                  <div><span>:</span></div>
-                  <div><span>45</span><p style="font-size:12px;font-weight:normal;">Phút</p></div>
-                  <div><span>:</span></div>
-                  <div><span>30</span><p style="font-size:12px;font-weight:normal;">Giây</p></div>
-                </div>
-              </div>
-            `)}>
-              <Timer className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Countdown</div><div className="text-xs text-muted-foreground">Đếm ngược ưu đãi</div></div>
-            </DropdownMenuItem>
+            {SPECIAL_BLOCKS.map((block) => {
+              const Icon = block.icon;
+              return (
+                <DropdownMenuItem key={block.key} onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(block.html)}>
+                  <Icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <div><div className="font-medium text-sm">{block.label}</div><div className="text-xs text-muted-foreground">{block.description}</div></div>
+                </DropdownMenuItem>
+              );
+            })}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => insertSnippet(`<p>[deals]</p>`)}>
               <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Deal Block</div><div className="text-xs text-muted-foreground">Hiển thị tất cả ưu đãi của tool hiện tại</div></div>
+              <div><div className="font-medium text-sm">Deal Block</div><div className="text-xs text-muted-foreground">Hiển thị ưu đãi của tool</div></div>
             </DropdownMenuItem>
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => setInsertDealOpen(true)}>
               <Tag className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Chèn Deal cụ thể...</div><div className="text-xs text-muted-foreground">Tìm & chèn một deal cụ thể</div></div>
+              <div><div className="font-medium text-sm">Chèn Deal cụ thể...</div><div className="text-xs text-muted-foreground">Tìm & chèn một deal</div></div>
             </DropdownMenuItem>
             <DropdownMenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => setInsertToolOpen(true)}>
               <SquarePlus className="h-4 w-4 mr-2 text-muted-foreground" />
-              <div><div className="font-medium text-sm">Chèn Tool Card...</div><div className="text-xs text-muted-foreground">Tìm & chèn thẻ giới thiệu tool</div></div>
+              <div><div className="font-medium text-sm">Chèn Tool Card...</div><div className="text-xs text-muted-foreground">Tìm & chèn thẻ tool</div></div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -589,31 +786,76 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
 
         <div className="flex-1" />
 
-        {/* Undo/Redo */}
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo"><Undo className="h-3.5 w-3.5" /></ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo"><Redo className="h-3.5 w-3.5" /></ToolbarButton>
 
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* Fullscreen */}
         <ToolbarButton onClick={() => setIsFullscreen(!isFullscreen)} title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình"}>
           {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Maximize className="h-3.5 w-3.5" />}
         </ToolbarButton>
       </div>
 
-      {/* Editor content */}
+      {/* Editor content area */}
       <div
-        className={`flex-1 overflow-y-auto ${isFullscreen ? "max-h-[calc(100vh-120px)]" : ""}`}
+        className={`relative flex-1 overflow-y-auto ${isFullscreen ? "max-h-[calc(100vh-120px)]" : ""}`}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
       >
-        <EditorContent editor={editor} className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[280px] [&_.tiptap_table]:border-collapse [&_.tiptap_table]:w-full [&_.tiptap_table_td]:border [&_.tiptap_table_td]:border-border [&_.tiptap_table_td]:p-2 [&_.tiptap_table_th]:border [&_.tiptap_table_th]:border-border [&_.tiptap_table_th]:p-2 [&_.tiptap_table_th]:bg-muted/50 [&_.tiptap_table_th]:font-semibold [&_.selectedCell]:bg-primary/10" />
+        {/* Slash command popover */}
+        <SlashMenuPopover
+          open={slashOpen}
+          query={slashQuery}
+          onSelect={handleSlashSelect}
+          onClose={() => { setSlashOpen(false); setSlashQuery(""); slashStartPos.current = null; }}
+        />
+
+        {/* Bubble Menu - floating toolbar khi bôi đen text */}
+        <TiptapBubbleMenu
+          editor={editor}
+          tippyOptions={{ duration: 100, placement: "top" }}
+        >
+          <div className="flex items-center gap-0.5 rounded-lg border bg-popover p-1.5 shadow-lg">
+            <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
+              <Bold className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic">
+              <Italic className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline">
+              <UnderlineIcon className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strike">
+              <Strikethrough className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Code">
+              <Code className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <div className="w-px h-5 bg-border mx-1" />
+            <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="H2">
+              <Heading2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="H3">
+              <Heading3 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <div className="w-px h-5 bg-border mx-1" />
+            <ToolbarButton onClick={openLinkPopover} active={editor.isActive("link")} title="Link">
+              <LinkIcon className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </div>
+        </TiptapBubbleMenu>
+
+        <EditorContent
+          editor={editor}
+          className="prose prose-sm prose-neutral dark:prose-invert max-w-none p-4 min-h-[300px] focus-within:outline-none [&_.tiptap]:outline-none [&_.tiptap]:min-h-[280px] [&_.tiptap_table]:border-collapse [&_.tiptap_table]:w-full [&_.tiptap_table_td]:border [&_.tiptap_table_td]:border-border [&_.tiptap_table_td]:p-2 [&_.tiptap_table_th]:border [&_.tiptap_table_th]:border-border [&_.tiptap_table_th]:p-2 [&_.tiptap_table_th]:bg-muted/50 [&_.tiptap_table_th]:font-semibold [&_.selectedCell]:bg-primary/10 [&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li_label]:sr-only [&_img]:rounded-lg [&_img]:max-w-full [&_img]:h-auto [&_.ProseMirror-gapcursor]:border-t-2 [&_.ProseMirror-gapcursor]:border-primary"
+        />
       </div>
 
-      {/* Footer: Word count + Reading time + autosave status */}
+      {/* Footer */}
       <div className="flex items-center justify-between border-t px-3 py-1.5 bg-muted/20 text-xs text-muted-foreground">
         <div className="flex items-center gap-3">
           <span>📝 {wordCount} từ</span>
+          <span>🔤 {charCount} ký tự</span>
           <span>⏱ ~{readingTime} phút đọc</span>
           {storageKey && lastAutosavedAt && (
             <span className="flex items-center gap-1 text-green-600 dark:text-green-500">
@@ -621,7 +863,10 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
             </span>
           )}
         </div>
-        {uploading && <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Đang upload...</span>}
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground/50">Gõ <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">/</kbd> để chèn blocks</span>
+          {uploading && <span className="flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Đang upload...</span>}
+        </div>
       </div>
     </div>
   );
