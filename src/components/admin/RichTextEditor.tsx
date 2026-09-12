@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { InsertToolDialog, InsertDealDialog } from "@/components/admin/InsertToolDealDialogs";
 import { BubbleMenu as TiptapBubbleMenu } from "@tiptap/extension-bubble-menu";
+import { ToolBlock } from "@/components/admin/ToolBlockExtension";
 
 interface RichTextEditorProps {
   content: string;
@@ -295,6 +296,7 @@ export function RichTextEditor({ content, onChange, placeholder = "Nhập nội 
       CharacterCount,
       TaskList,
       TaskItem.configure({ nested: true }),
+      ToolBlock,
       SlashCommand,
     ],
     content,

@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { DealsWidget } from "@/components/deals/DealsWidget";
@@ -20,8 +21,9 @@ import { ToolEmbedWidget } from "@/components/tools/ToolEmbedWidget";
  * - `[tool:slug]`          - renders a compact ToolCard for the given tool,
  *                            usable anywhere (blog posts, pages, articles).
  */
-const SPLIT_REGEX = /(\[deals?\]|\[deal:[^\]]+\]|\[tool:[^\]]+\])/g;
-const DETECT_REGEX = /\[deals?\]|\[deal:[^\]]+\]|\[tool:[^\]]+\]/;
+const SPLIT_REGEX = /(\[deals?\]|\[deal:[^\]]+\]|\[tool:[^\]]+\]|<div[^>]*data-type="tool-block"[^>]*><\/div>)/g;
+const DETECT_REGEX = /\[deals?\]|\[deal:[^\]]+\]|\[tool:[^\]]+\]|<div[^>]*data-type="tool-block"[^>]*>/;
+const TOOL_BLOCK_REGEX = /<div[^>]*data-type="tool-block"[^>]*data-slug="([^"]+)"[^>]*><\/div>/;
 
 export function hasShortcodes(content: string): boolean {
   return DETECT_REGEX.test(content);
@@ -72,6 +74,11 @@ export function ShortcodeContent({
         const toolMatch = part.match(/^\[tool:([^\]]+)\]$/);
         if (toolMatch) {
           return <ToolEmbedWidget key={i} slug={toolMatch[1]} />;
+        }
+
+        const toolBlockMatch = part.match(TOOL_BLOCK_REGEX);
+        if (toolBlockMatch) {
+          return <ToolEmbedWidget key={i} slug={toolBlockMatch[1]} />;
         }
 
         if (isHtml) {
