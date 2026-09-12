@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -688,7 +689,7 @@ function DealFormDialog({ deal, open, onClose }: { deal: any; open: boolean; onC
                 <Sparkles className="mr-1 h-3 w-3" /> {generateDesc.isPending ? "Đang tạo..." : "AI viết mô tả"}
               </Button>
             </div>
-            <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Chi tiết ưu đãi..." />
+            <RichTextEditor content={form.description} onChange={(v) => update("description", v)} placeholder="Chi tiết ưu đãi..." autosaveKey={deal ? `deal-desc-${deal.id}` : "deal-desc-new"} />
           </div>
 
           <div className="grid grid-cols-3 gap-4">

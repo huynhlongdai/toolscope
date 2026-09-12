@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -360,7 +361,7 @@ export default function AdminReviews() {
               </div>
               <div className="space-y-2">
                 <Label>Nội dung</Label>
-                <Textarea value={editReview.content} onChange={(e) => setEditReview({ ...editReview, content: e.target.value })} rows={4} />
+                <RichTextEditor content={editReview.content} onChange={(v) => setEditReview({ ...editReview, content: v })} placeholder="Nội dung review..." autosaveKey={`review-${editReview.id}`} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
