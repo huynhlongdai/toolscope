@@ -25,6 +25,8 @@ export function sanitizeHtml(dirty: string): string {
       "colspan", "rowspan",
       "allow", "allowfullscreen", "frameborder",
       "loading",
+      "data-type", "data-slug",
+      "summary", "open",
     ],
     ALLOW_DATA_ATTR: false,
   });
