@@ -6,19 +6,51 @@ const WORD_COUNTS: Record<string, string> = {
   listicle: "1500-2500", comparison: "1800-3000", guide: "2000-3500", review: "1500-2500", news: "1000-1800",
 };
 
+const LOCALE_NAMES: Record<string, string> = {
+  vi: "Vietnamese (Tiếng Việt)",
+  en: "English",
+  zh: "Chinese (Simplified)",
+  ja: "Japanese",
+  ko: "Korean",
+  th: "Thai",
+  id: "Indonesian (Bahasa Indonesia)",
+  es: "Spanish",
+  fr: "French",
+  pt: "Portuguese (Brazilian)",
+  de: "German",
+};
+
+const LOCALE_CULTURAL_NOTES: Record<string, string> = {
+  vi: "",
+  en: "Write in natural, idiomatic English. Use Western cultural references when appropriate.",
+  zh: "Write in Simplified Chinese. Use terminology common in Chinese tech communities. Adapt examples to Chinese market context.",
+  ja: "Write in natural Japanese. Use appropriate honorifics (です/ます form). Adapt examples for Japanese audience.",
+  ko: "Write in natural Korean. Use appropriate speech level (하십시오체). Adapt examples for Korean audience.",
+  th: "Write in natural Thai. Use polite particles appropriately. Adapt examples for Thai audience.",
+  id: "Write in Bahasa Indonesia. Use formal but accessible language. Adapt examples for Indonesian/Southeast Asian audience.",
+  es: "Write in Spanish. Use neutral Latin American Spanish. Adapt examples for Spanish-speaking audience.",
+  fr: "Write in French. Use formal register (vous). Adapt examples for French-speaking audience.",
+  pt: "Write in Brazilian Portuguese. Use natural Brazilian Portuguese expressions. Adapt examples for Brazilian audience.",
+  de: "Write in German. Use formal but accessible language (Sie form). Adapt examples for German-speaking audience.",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Editors (incl. an AI content agent) may generate draft blog content;
-  // they never get to flip status to 'published' - that happens client-side
-  // via publish_content(), which is admin-gated. This function itself does
-  // not write to the DB.
   const auth = await requireEditor(req);
   if (auth instanceof Response) return auth;
 
   try {
     const body = await req.json();
-    const { action, topic, type, content, title, tools_list, tool_name, tool_description, categories_list, primary_keyword } = body;
+    const { action, topic, type, content, title, tools_list, tool_name, tool_description, categories_list, primary_keyword, target_locale } = body;
+
+    const targetLocale = target_locale || "vi";
+    const isValidLocale = targetLocale in LOCALE_NAMES;
+    if (!isValidLocale) {
+      return new Response(JSON.stringify({ error: `Unsupported locale: ${targetLocale}` }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const isNonVietnamese = targetLocale !== "vi";
+    const targetLangName = LOCALE_NAMES[targetLocale];
 
     let messages: { role: string; content: string }[] = [];
 
@@ -32,10 +64,14 @@ serve(async (req) => {
       };
       const wordCount = WORD_COUNTS[type] || "1500-2500";
 
+      const languageInstruction = isNonVietnamese
+        ? `\n\n## LANGUAGE REQUIREMENT:\nYou MUST write the ENTIRE article in ${targetLangName}. Do NOT write in Vietnamese or English. Every word — title, content, excerpt, SEO metadata, FAQ questions and answers, CTAs, image alt texts, captions — must be in ${targetLangName}.\n${LOCALE_CULTURAL_NOTES[targetLocale] || ""}\n- SEO keywords should be in ${targetLangName} (the target language), not English or Vietnamese.\n- Tags should be in ${targetLangName}.\n- The primary_keyword and secondary_keywords in the JSON output must be in ${targetLangName}.`
+        : "";
+
       messages = [
         {
           role: "system",
-          content: `You are an elite SEO content strategist and tech blogger. Write ${typeMap[type] || "a comprehensive article"} in HTML format.
+          content: `You are an elite SEO content strategist and tech blogger. Write ${typeMap[type] || "a comprehensive article"} in HTML format.${languageInstruction}
 
 ## SEO TITLE RULES:
 - Include the primary keyword within the first 3 words
@@ -105,7 +141,7 @@ Return ONLY valid JSON:
   "word_count": 2000
 }`
         },
-        { role: "user", content: `Write a comprehensive, SEO-optimized article about: ${topic}\n\nTarget audience: Tech professionals, marketers, and business owners looking for AI/SaaS tools.\nTone: Authoritative yet accessible. Data-driven with practical insights.` }
+        { role: "user", content: `Write a comprehensive, SEO-optimized article about: ${topic}\n\nTarget audience: Tech professionals, marketers, and business owners looking for AI/SaaS tools.\nTone: Authoritative yet accessible. Data-driven with practical insights.\n${isNonVietnamese ? `\nIMPORTANT: Write the entire article in ${targetLangName}.` : ""}` }
       ];
     } else if (action === "generate_seo") {
       messages = [
@@ -266,6 +302,26 @@ ${content?.substring(0, 5000) || "(no content)"}`
       const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : raw;
       try { result = JSON.parse(jsonStr.trim()); }
       catch { return new Response(JSON.stringify({ error: "Failed to parse AI response", raw }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+    }
+
+    // When generating in a non-Vietnamese locale, save the translated content
+    // to the translations table so it shows up when visitors select that locale.
+    // The blog post itself (blog_posts row) always holds the Vietnamese original.
+    if (action === "generate" && isNonVietnamese && result.title) {
+      const supabase = auth.supabase;
+
+      // Build translation entries from the generated content
+      const fieldEntries: { field: string; text: string }[] = [];
+      if (result.title) fieldEntries.push({ field: "title", text: result.title });
+      if (result.excerpt) fieldEntries.push({ field: "excerpt", text: result.excerpt });
+      if (result.content) fieldEntries.push({ field: "content", text: result.content });
+
+      // We need a blog_post to exist first to save translations against it.
+      // Since the blog post is created AFTER this function returns (in the editor),
+      // we return the locale + translations data so the frontend can save them
+      // after inserting the blog post.
+      result._target_locale = targetLocale;
+      result._translations = fieldEntries;
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

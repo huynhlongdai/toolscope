@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Eye, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Sparkles, RefreshCw, Download, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertTriangle, Eye, ShieldCheck, Languages, Loader2 } from "lucide-react";
 import { logAuditAction } from "@/hooks/useAuditLog";
+import { SUPPORTED_LOCALES, type Locale } from "@/lib/i18n";
 
 export default function AdminBlog() {
   const queryClient = useQueryClient();
@@ -23,9 +24,14 @@ export default function AdminBlog() {
   const { isAdmin } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [showAIDialog, setShowAIDialog] = useState(false);
+  const [showBulkTranslateDialog, setShowBulkTranslateDialog] = useState(false);
+  const [bulkTranslating, setBulkTranslating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
   const [page, setPage] = useState(0);
   const pageSize = 50;
+
+  const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["admin-blog"],
@@ -79,6 +85,43 @@ export default function AdminBlog() {
     },
   });
 
+  const handleBulkTranslate = async (locale: Locale) => {
+    const publishedPosts = posts.filter((p: any) => p.status === "published");
+    if (publishedPosts.length === 0) {
+      toast.error("Không có blog post nào để dịch");
+      return;
+    }
+
+    if (!confirm(`Dịch ${publishedPosts.length} blog posts sang ${SUPPORTED_LOCALES[locale].nativeName}?`)) {
+      return;
+    }
+
+    setBulkTranslating(true);
+    setBulkProgress({ done: 0, total: publishedPosts.length });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const post of publishedPosts) {
+      try {
+        const { data, error } = await supabase.functions.invoke("translate-blog-post", {
+          body: { post_id: post.id, locale },
+        });
+        if (error || data?.error) throw error || new Error(data?.error);
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+      setBulkProgress(prev => ({ ...prev, done: prev.done + 1 }));
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    setBulkTranslating(false);
+    queryClient.invalidateQueries({ queryKey: ["admin-blog"] });
+    toast.success(`Hoàn tất: ${successCount} thành công, ${errorCount} lỗi`);
+    logAuditAction("blog_bulk_translate", "blog_post", "", { locale, count: successCount });
+  };
+
   const filtered = posts.filter((p: any) => p.title.toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
@@ -95,6 +138,18 @@ export default function AdminBlog() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Quản lý Blog</h1>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowBulkTranslateDialog(true)} disabled={bulkTranslating}>
+              {bulkTranslating ? (
+                <>
+                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  {bulkProgress.done}/{bulkProgress.total}
+                </>
+              ) : (
+                <>
+                  <Languages className="mr-1 h-3.5 w-3.5" /> Dịch hàng loạt
+                </>
+              )}
+            </Button>
             <Button variant="outline" size="sm" onClick={exportCSV}><Download className="mr-1 h-3.5 w-3.5" /> CSV</Button>
             <Button variant="outline" size="sm" onClick={() => setShowAIDialog(true)}>
               <Sparkles className="mr-1 h-3.5 w-3.5" /> AI
@@ -182,11 +237,26 @@ export default function AdminBlog() {
         {showAIDialog && (
           <AIWriteDialog open={showAIDialog} onClose={() => setShowAIDialog(false)} onGenerated={(data) => {
             setShowAIDialog(false);
-            
-            const slug = data.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+            const targetLocale = data._target_locale || "vi";
+            const isNonVi = targetLocale !== "vi";
+
+            // For non-Vietnamese articles, use the original topic/title to build a Latin slug
+            const slugBase = isNonVi
+              ? (data.primary_keyword || data.title)
+              : data.title;
+            const slug = slugBase
+              .toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9\s-]/g, "")
+              .replace(/\s+/g, "-")
+              .replace(/-+/g, "-")
+              .replace(/^-|-$/g, "")
+              || `blog-${Date.now()}`;
+
             const params = new URLSearchParams({
               title: data.title,
-              slug,
+              slug: `${slug}${isNonVi ? `-${targetLocale}` : ""}`,
               excerpt: data.excerpt || "",
               content: data.content || "",
               tags: Array.isArray(data.tags) ? data.tags.join(", ") : (data.tags || ""),
@@ -194,18 +264,114 @@ export default function AdminBlog() {
               seo_description: data.seo_description || "",
               seo_keywords: Array.isArray(data.seo_keywords) ? data.seo_keywords.join(", ") : (data.seo_keywords || ""),
             });
+
+            if (isNonVi) {
+              params.set("target_locale", targetLocale);
+              // Store translation data for the editor to save after blog creation
+              params.set("_translations", JSON.stringify(data._translations || []));
+            }
+
             navigate(`/admin/blog/new?${params.toString()}`);
           }} />
+        )}
+
+        {showBulkTranslateDialog && (
+          <BulkTranslateDialog
+            open={showBulkTranslateDialog}
+            onClose={() => setShowBulkTranslateDialog(false)}
+            onTranslate={handleBulkTranslate}
+            isTranslating={bulkTranslating}
+            progress={bulkProgress}
+          />
         )}
       </div>
     </AdminLayout>
   );
 }
 
+/* ---------- Bulk Translate Dialog ---------- */
+function BulkTranslateDialog({ 
+  open, 
+  onClose, 
+  onTranslate, 
+  isTranslating, 
+  progress 
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  onTranslate: (locale: Locale) => void;
+  isTranslating: boolean;
+  progress: { done: number; total: number };
+}) {
+  const [selectedLocale, setSelectedLocale] = useState<Locale>("en");
+  const TARGET_LOCALES = Object.entries(SUPPORTED_LOCALES).filter(([code]) => code !== "vi") as [Locale, { label: string; flag: string; nativeName: string }][];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Languages className="h-5 w-5" /> Dịch hàng loạt Blog Posts
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Chọn ngôn ngữ đích</Label>
+            <Select value={selectedLocale} onValueChange={(v) => setSelectedLocale(v as Locale)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TARGET_LOCALES.map(([code, meta]) => (
+                  <SelectItem key={code} value={code}>
+                    {meta.flag} {meta.nativeName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isTranslating && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Đang dịch...</span>
+                <span className="font-medium">{progress.done}/{progress.total}</span>
+              </div>
+              <Progress value={(progress.done / progress.total) * 100} className="h-2" />
+            </div>
+          )}
+
+          <Button 
+            className="w-full" 
+            onClick={() => onTranslate(selectedLocale)} 
+            disabled={isTranslating}
+          >
+            {isTranslating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang dịch...
+              </>
+            ) : (
+              <>
+                <Languages className="mr-2 h-4 w-4" /> Bắt đầu dịch
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Chỉ dịch các blog posts đã published. Sẽ mất vài phút tùy số lượng.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ---------- AI Write Dialog ---------- */
 /* ---------- AI Write Dialog ---------- */
 function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose: () => void; onGenerated: (data: any) => void }) {
   const [topic, setTopic] = useState("");
   const [type, setType] = useState("guide");
+  const [targetLocale, setTargetLocale] = useState("vi");
   const [loading, setLoading] = useState(false);
 
   const handleGenerate = async () => {
@@ -213,18 +379,33 @@ function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose:
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-blog-post", {
-        body: { action: "generate", topic, type },
+        body: { action: "generate", topic, type, target_locale: targetLocale },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       onGenerated(data);
-      toast.success("AI đã tạo bài viết!");
+      const localeLabel = targetLocale === "vi" ? "Tiếng Việt" : targetLocale.toUpperCase();
+      toast.success(`AI đã tạo bài viết bằng ${localeLabel}!`);
     } catch (e: any) {
       toast.error(e.message || "Lỗi tạo bài viết");
     } finally {
       setLoading(false);
     }
   };
+
+  const LOCALE_OPTIONS = [
+    { value: "vi", label: "🇻🇳 Tiếng Việt", native: "Tiếng Việt" },
+    { value: "en", label: "🇺🇸 English", native: "English" },
+    { value: "zh", label: "🇨🇳 中文", native: "中文" },
+    { value: "ja", label: "🇯🇵 日本語", native: "日本語" },
+    { value: "ko", label: "🇰🇷 한국어", native: "한국어" },
+    { value: "th", label: "🇹🇭 ภาษาไทย", native: "ภาษาไทย" },
+    { value: "id", label: "🇮🇩 Bahasa Indonesia", native: "Bahasa Indonesia" },
+    { value: "es", label: "🇪🇸 Español", native: "Español" },
+    { value: "fr", label: "🇫🇷 Français", native: "Français" },
+    { value: "pt", label: "🇧🇷 Português", native: "Português" },
+    { value: "de", label: "🇩🇪 Deutsch", native: "Deutsch" },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -248,6 +429,24 @@ function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose:
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label>Ngôn ngữ viết bài</Label>
+            <Select value={targetLocale} onValueChange={setTargetLocale}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {LOCALE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {targetLocale !== "vi" && (
+              <p className="text-xs text-muted-foreground">
+                AI sẽ viết trực tiếp bằng {LOCALE_OPTIONS.find(l => l.value === targetLocale)?.native} và lưu vào bảng translations
+              </p>
+            )}
+          </div>
           <Button className="w-full" onClick={handleGenerate} disabled={loading}>
             {loading ? <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Đang viết...</> : <><Sparkles className="mr-2 h-4 w-4" /> Tạo bài viết</>}
           </Button>
@@ -257,7 +456,6 @@ function AIWriteDialog({ open, onClose, onGenerated }: { open: boolean; onClose:
   );
 }
 
-/* ---------- SEO Score Panel ---------- */
 function SEOScorePanel({ form, onSuggestionApply }: { form: any; onSuggestionApply?: (key: string, value: string) => void }) {
   const [auditResult, setAuditResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);

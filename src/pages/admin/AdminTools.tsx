@@ -1581,11 +1581,11 @@ function ContentTabWithPreview({ form, updateField, toolName }: { form: any; upd
         <>
           <div className="space-y-2">
             <Label>Mô tả (Description)</Label>
-            <RichTextEditor content={form.description} onChange={(v: string) => updateField("description", v)} placeholder="Mô tả tool..." autosaveKey={`tool-desc-${tool?.id ?? "new"}`} />
+            <RichTextEditor content={form.description} onChange={(v: string) => updateField("description", v)} placeholder="Mô tả tool..." autosaveKey={`tool-desc-${toolName || "new"}`} />
           </div>
           <div className="space-y-2">
             <Label>Nội dung chi tiết (Detailed Content)</Label>
-            <RichTextEditor content={form.detailed_content} onChange={(v: string) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." autosaveKey={`tool-detail-${tool?.id ?? "new"}`} />
+            <RichTextEditor content={form.detailed_content} onChange={(v: string) => updateField("detailed_content", v)} placeholder="Nội dung giới thiệu chi tiết..." autosaveKey={`tool-detail-${toolName || "new"}`} />
           </div>
         </>
       ) : (

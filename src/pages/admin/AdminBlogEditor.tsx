@@ -41,6 +41,16 @@ export default function AdminBlogEditor() {
   });
 
   const [saving, setSaving] = useState(false);
+  const [targetLocale] = useState(searchParams.get("target_locale") || "vi");
+  const [pendingTranslations] = useState(() => {
+    const raw = searchParams.get("_translations");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Array<{ field: string; text: string }>;
+    } catch {
+      return null;
+    }
+  });
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [toolSearch, setToolSearch] = useState("");
 
@@ -192,8 +202,31 @@ export default function AdminBlogEditor() {
         if (!isAdmin && !["draft", "pending_review"].includes(insertPayload.status)) {
           insertPayload.status = "pending_review";
         }
-        const { error } = await supabase.from("blog_posts").insert(insertPayload);
+        const { data: newPost, error } = await supabase
+          .from("blog_posts")
+          .insert(insertPayload)
+          .select("id")
+          .single();
         if (error) throw error;
+
+        // If this was generated in a non-Vietnamese locale, save the translations
+        if (targetLocale !== "vi" && pendingTranslations && pendingTranslations.length > 0 && newPost?.id) {
+          const translationRows = pendingTranslations.map((t) => ({
+            entity_type: "blog",
+            entity_id: newPost.id,
+            field_name: t.field,
+            locale: targetLocale,
+            translated_text: t.text,
+            is_auto: true,
+          }));
+
+          const { error: transErr } = await supabase.from("translations").insert(translationRows);
+          if (transErr) {
+            console.error("Failed to save translations:", transErr);
+            // Don't throw - the blog post was created successfully
+          }
+        }
+
         clearAutosaveDraft("blog-new");
       } else {
         if (form.status === "published" && !post?.published_at) {

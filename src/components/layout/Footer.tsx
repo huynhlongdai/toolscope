@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
+import { Mail, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
@@ -45,6 +45,30 @@ function NewsletterForm() {
       <Input type="email" placeholder={t("newsletter.placeholder")} value={email} onChange={(e) => setEmail(e.target.value)} className="h-9 text-xs" required />
       <Button type="submit" size="sm" disabled={loading} className="shrink-0"><Mail className="h-3 w-3" /></Button>
     </form>
+  );
+}
+
+function FooterAccordion({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-border/50 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between py-2.5 text-sm font-semibold text-foreground"
+        aria-expanded={open}
+      >
+        {title}
+        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-200 ${open ? "max-h-40 pb-2.5" : "max-h-0"}`}
+      >
+        <div className="flex flex-col gap-1.5">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -91,7 +115,6 @@ export function Footer() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Load menu translations
   const menuId = dbMenuData?.id;
   const { data: menuTranslations } = useQuery({
     queryKey: ["menu-translations-footer", menuId, locale],
@@ -128,18 +151,28 @@ export function Footer() {
     return <Link key={item.label} to={item.url} className="text-sm text-muted-foreground hover:text-foreground">{item.label}</Link>;
   };
 
+  const renderMobileLink = (item: MenuItem) => {
+    const isExternal = item.url.startsWith("http");
+    if (isExternal || item.open_new_tab) {
+      return <a key={item.label} href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground">{item.label}</a>;
+    }
+    return <Link key={item.label} to={item.url} className="text-xs text-muted-foreground hover:text-foreground">{item.label}</Link>;
+  };
+
   return (
     <footer className="border-t border-border bg-card">
-      <div className="container py-8 md:py-12">
-        <div className="grid gap-6 md:gap-8 md:grid-cols-4">
+      <div className="container py-4 md:py-12">
+        <div className="grid gap-4 md:gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
-            <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <img src="/logo-icon.png" alt="Astute Tools" className="h-6 w-6 md:h-7 md:w-7" />
-              <span className="text-base md:text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Astute Tools</span>
+            <div className="flex items-center gap-2 mb-2 md:mb-4">
+              <img src="/logo-icon.png" alt="Astute Tools" className="h-5 w-5 md:h-7 md:w-7" />
+              <span className="text-sm md:text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Astute Tools</span>
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 line-clamp-2 md:line-clamp-none">{t("footer.description")}</p>
+            <p className="hidden md:block text-sm text-muted-foreground mb-4">{t("footer.description")}</p>
+            <p className="md:hidden text-xs text-muted-foreground mb-2 line-clamp-1">{t("footer.description")}</p>
             <NewsletterForm />
           </div>
+
           <div className="hidden md:contents md:grid md:grid-cols-3 md:gap-8">
             {footerColumns.map((col: any) => (
               <div key={col.title}>
@@ -148,22 +181,16 @@ export function Footer() {
               </div>
             ))}
           </div>
-          <div className="md:hidden grid grid-cols-3 gap-3 mt-4">
+
+          <div className="md:hidden">
             {footerColumns.map((col: any) => (
-              <div key={col.title}>
-                <h4 className="text-xs font-semibold mb-2 text-foreground">{col.title}</h4>
-                <div className="flex flex-col gap-1.5">
-                  {col.items?.map((item: MenuItem) => (
-                    <span key={item.label} className="text-xs">
-                      {renderLink(item)}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              <FooterAccordion key={col.title} title={col.title}>
+                {col.items?.map((item: MenuItem) => renderMobileLink(item))}
+              </FooterAccordion>
             ))}
           </div>
         </div>
-        <div className="mt-6 md:mt-8 border-t border-border pt-4 md:pt-6 text-center text-xs md:text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
+        <div className="mt-4 md:mt-8 border-t border-border pt-3 md:pt-6 text-center text-xs md:text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
       </div>
     </footer>
   );

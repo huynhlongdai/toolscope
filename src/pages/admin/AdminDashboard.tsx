@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, HeartPulse, FileText, GitBranch, Globe, Activity } from "lucide-react";
+import { Wrench, Users, MessageSquare, Shield, Eye, TrendingUp, Flag, Newspaper, Star, HeartPulse, FileText, GitBranch, Globe, Activity, AlertTriangle, AlertCircle, Languages } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
 
@@ -68,6 +68,46 @@ export default function AdminDashboard() {
         supabase.from("tools").select("id", { count: "exact", head: true }).eq("health_status", "unknown"),
       ]);
       return { active: active.count ?? 0, warning: warning.count ?? 0, dead: dead.count ?? 0, unknown: unknown.count ?? 0 };
+    },
+  });
+
+  // Query: Thống kê nội dung chưa dịch (tools/blog chưa có bản EN)
+  const { data: translationStats } = useQuery({
+    queryKey: ["admin-translation-stats"],
+    queryFn: async () => {
+      const [allTools, allBlogs, toolTranslations, blogTranslations] = await Promise.all([
+        supabase.from("tools").select("id").eq("status", "published"),
+        supabase.from("blog_posts").select("id").eq("status", "published"),
+        supabase.from("translations").select("entity_id").eq("entity_type", "tool").eq("locale", "en"),
+        supabase.from("translations").select("entity_id").eq("entity_type", "blog").eq("locale", "en"),
+      ]);
+      
+      const translatedToolIds = new Set((toolTranslations.data ?? []).map((t: any) => t.entity_id));
+      const translatedBlogIds = new Set((blogTranslations.data ?? []).map((t: any) => t.entity_id));
+      
+      const untranslatedTools = (allTools.data ?? []).filter((t: any) => !translatedToolIds.has(t.id)).length;
+      const untranslatedBlogs = (allBlogs.data ?? []).filter((b: any) => !translatedBlogIds.has(b.id)).length;
+      
+      return {
+        untranslatedTools,
+        untranslatedBlogs,
+        totalTools: allTools.count ?? 0,
+        totalBlogs: allBlogs.count ?? 0,
+      };
+    },
+  });
+
+  // Query: Danh sách tools dead/warning (hiển thị top 5)
+  const { data: problemTools = [] } = useQuery({
+    queryKey: ["admin-problem-tools"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tools")
+        .select("id, name, health_status, health_details, health_checked_at")
+        .in("health_status", ["dead", "warning"])
+        .order("health_checked_at", { ascending: true })
+        .limit(5);
+      return data ?? [];
     },
   });
 
@@ -192,6 +232,91 @@ export default function AdminDashboard() {
             description={`✅ ${aiUsageStats?.success ?? 0} | ❌ ${aiUsageStats?.failed ?? 0} | ${((aiUsageStats?.tokens ?? 0) / 1000).toFixed(1)}k tokens`}
           />
           <StatCard title="Featured Tools" value={stats?.workflowsCount ?? 0} icon={GitBranch} href="/admin/tools" />
+        </div>
+
+        {/* Translation Coverage Widget */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-blue-500/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Languages className="h-4 w-4 text-blue-500" /> Nội dung chưa dịch (EN)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Tools chưa dịch</span>
+                <Badge variant={translationStats?.untranslatedTools ? "destructive" : "secondary"}>
+                  {translationStats?.untranslatedTools ?? 0} / {translationStats?.totalTools ?? 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Blog chưa dịch</span>
+                <Badge variant={translationStats?.untranslatedBlogs ? "destructive" : "secondary"}>
+                  {translationStats?.untranslatedBlogs ?? 0} / {translationStats?.totalBlogs ?? 0}
+                </Badge>
+              </div>
+              {(translationStats?.untranslatedTools || translationStats?.untranslatedBlogs) ? (
+                <div className="pt-2 border-t flex gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/admin/tools">
+                      <Wrench className="mr-1 h-3 w-3" /> Dịch Tools
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/admin/blog">
+                      <FileText className="mr-1 h-3 w-3" /> Dịch Blog
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-green-600 pt-2 border-t">✅ Đã dịch đầy đủ!</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Problem Tools Widget - Dead/Warning alerts */}
+          <Card className={(healthStats?.dead || healthStats?.warning) ? "border-amber-500/20" : ""}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                {problemTools.length > 0 ? (
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-green-500" />
+                )}
+                Cảnh báo Tool Health
+                {problemTools.length > 0 && (
+                  <Badge variant="destructive" className="text-[10px]">{problemTools.length}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {problemTools.length > 0 ? (
+                <div className="space-y-2">
+                  {problemTools.map((t: any) => (
+                    <div key={t.id} className="flex items-start gap-2 text-sm border-b border-border/50 pb-2 last:border-0">
+                      <span className="shrink-0">{t.health_status === "dead" ? "🔴" : "🟡"}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{t.name}</p>
+                        {t.health_details && (
+                          <p className="text-xs text-muted-foreground truncate">{t.health_details}</p>
+                        )}
+                      </div>
+                      <Badge variant={t.health_status === "dead" ? "destructive" : "secondary"} className="text-[10px] shrink-0">
+                        {t.health_status}
+                      </Badge>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="w-full mt-2" asChild>
+                    <Link to="/admin/tools">
+                      <HeartPulse className="mr-1 h-3 w-3" /> Xem tất cả & kiểm tra
+                    </Link>
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-green-600 text-center py-4">✅ Tất cả tools đều hoạt động tốt!</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}
