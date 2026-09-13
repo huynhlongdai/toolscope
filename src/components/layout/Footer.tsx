@@ -130,24 +130,46 @@ export function Footer() {
 
   return (
     <footer className="border-t border-border bg-card">
-      <div className="container py-12">
-        <div className="grid gap-8 md:grid-cols-4">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <img src="/logo-icon.png" alt="Astute Tools" className="h-7 w-7" />
-              <span className="text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Astute Tools</span>
+      <div className="container py-8 md:py-12">
+        <div className="grid gap-6 md:gap-8 md:grid-cols-4">
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-2 mb-3 md:mb-4">
+              <img src="/logo-icon.png" alt="Astute Tools" className="h-6 w-6 md:h-7 md:w-7" />
+              <span className="text-base md:text-lg font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Astute Tools</span>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">{t("footer.description")}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 line-clamp-2 md:line-clamp-none">{t("footer.description")}</p>
             <NewsletterForm />
           </div>
-          {footerColumns.map((col: any) => (
-            <div key={col.title}>
-              <h4 className="mb-3 text-sm font-semibold">{col.title}</h4>
-              <div className="flex flex-col gap-2">{col.items.map((item: MenuItem) => renderLink(item))}</div>
-            </div>
-          ))}
+          <div className="hidden md:contents md:grid md:grid-cols-3 md:gap-8">
+            {footerColumns.map((col: any) => (
+              <div key={col.title}>
+                <h4 className="mb-3 text-sm font-semibold">{col.title}</h4>
+                <div className="flex flex-col gap-2">{col.items.map((item: MenuItem) => renderLink(item))}</div>
+              </div>
+            ))}
+          </div>
+          <div className="md:hidden">
+            <details className="mb-2">
+              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.explore")}</summary>
+              <div className="flex flex-col gap-1.5 pl-2 pb-2">
+                {footerColumns[0]?.items?.map((item: MenuItem) => renderLink(item))}
+              </div>
+            </details>
+            <details className="mb-2">
+              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.community")}</summary>
+              <div className="flex flex-col gap-1.5 pl-2 pb-2">
+                {footerColumns[1]?.items?.map((item: MenuItem) => renderLink(item))}
+              </div>
+            </details>
+            <details className="mb-2">
+              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.about")}</summary>
+              <div className="flex flex-col gap-1.5 pl-2 pb-2">
+                {footerColumns[2]?.items?.map((item: MenuItem) => renderLink(item))}
+              </div>
+            </details>
+          </div>
         </div>
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
+        <div className="mt-6 md:mt-8 border-t border-border pt-4 md:pt-6 text-center text-xs md:text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
       </div>
     </footer>
   );

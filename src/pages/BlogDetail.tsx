@@ -2,14 +2,14 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
-import { useTranslatedContent } from "@/hooks/useTranslatedContent";
+import { useAutoTranslation } from "@/hooks/useAutoTranslation";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PreviewBanner } from "@/components/preview/PreviewBanner";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
-import { ArrowLeft, Calendar, Eye, User, List, BookOpen } from "lucide-react";
+import { ArrowLeft, Calendar, Eye, User, List, BookOpen, Loader2 } from "lucide-react";
 import { ShortcodeContent } from "@/components/content/ShortcodeContent";
 import { ShareButtons } from "@/components/share/ShareButtons";
 import { ToolCard } from "@/components/tools/ToolCard";
@@ -97,15 +97,19 @@ export default function BlogDetail() {
     enabled: !!slug && !roleLoading,
   });
 
-  const { translated, isTranslated } = useTranslatedContent(
-    "blog",
-    post?.id,
-    ["title", "content", "excerpt"],
-    { title: post?.title, content: post?.content, excerpt: post?.excerpt }
-  );
-
-  const displayTitle = translated.title || post?.title || "";
-  const displayContent = translated.content || post?.content || "";
+  const {
+    translatedTitle: displayTitle,
+    translatedContent: displayContent,
+    translatedExcerpt: displayExcerpt,
+    isTranslating,
+    isTranslated,
+  } = useAutoTranslation({
+    postId: post?.id ?? null,
+    originalTitle: post?.title ?? "",
+    originalContent: post?.content ?? "",
+    originalExcerpt: post?.excerpt ?? "",
+    enabled: !!post?.id && !isAdminOrEditor,
+  });
 
   const relatedToolIds = (post?.related_tool_ids as string[]) ?? [];
 
@@ -270,8 +274,16 @@ export default function BlogDetail() {
                 <h1 className="text-3xl font-bold leading-tight md:text-4xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   {displayTitle}
                 </h1>
-                {isTranslated && locale !== "vi" && (
-                  <Badge variant="outline" className="text-[10px]">EN</Badge>
+                {isTranslating && (
+                  <Badge variant="outline" className="text-[10px] animate-pulse">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Đang dịch...
+                  </Badge>
+                )}
+                {!isTranslating && isTranslated && locale !== "vi" && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {locale.toUpperCase()}
+                  </Badge>
                 )}
               </div>
 
