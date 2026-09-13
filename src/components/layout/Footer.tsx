@@ -148,25 +148,19 @@ export function Footer() {
               </div>
             ))}
           </div>
-          <div className="md:hidden">
-            <details className="mb-2">
-              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.explore")}</summary>
-              <div className="flex flex-col gap-1.5 pl-2 pb-2">
-                {footerColumns[0]?.items?.map((item: MenuItem) => renderLink(item))}
+          <div className="md:hidden grid grid-cols-3 gap-3 mt-4">
+            {footerColumns.map((col: any) => (
+              <div key={col.title}>
+                <h4 className="text-xs font-semibold mb-2 text-foreground">{col.title}</h4>
+                <div className="flex flex-col gap-1.5">
+                  {col.items?.map((item: MenuItem) => (
+                    <span key={item.label} className="text-xs">
+                      {renderLink(item)}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </details>
-            <details className="mb-2">
-              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.community")}</summary>
-              <div className="flex flex-col gap-1.5 pl-2 pb-2">
-                {footerColumns[1]?.items?.map((item: MenuItem) => renderLink(item))}
-              </div>
-            </details>
-            <details className="mb-2">
-              <summary className="text-sm font-semibold cursor-pointer py-2">{t("footer.about")}</summary>
-              <div className="flex flex-col gap-1.5 pl-2 pb-2">
-                {footerColumns[2]?.items?.map((item: MenuItem) => renderLink(item))}
-              </div>
-            </details>
+            ))}
           </div>
         </div>
         <div className="mt-6 md:mt-8 border-t border-border pt-4 md:pt-6 text-center text-xs md:text-sm text-muted-foreground">© 2026 Astute Tools. All rights reserved.</div>
