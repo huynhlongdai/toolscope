@@ -37,52 +37,57 @@ function ProfileHeader({ profile, badges, isOwnProfile, editing, onStartEdit, ed
   const { t, locale } = useI18n();
   return (
     <Card className="mb-6">
-      <CardContent className="p-6">
-        <div className="flex items-start gap-5">
-          <Avatar className="h-20 w-20">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+          <Avatar className="h-16 w-16 sm:h-20 sm:w-20">
             <AvatarImage src={profile.avatar_url || ""} />
-            <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+            <AvatarFallback className="text-xl sm:text-2xl bg-primary/10 text-primary">
               {(profile.display_name || "U").charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {profile.display_name || t("profile.defaultName")}
-            </h1>
-            {profile.username && <p className="text-muted-foreground">@{profile.username}</p>}
-            {profile.bio && <p className="mt-2 text-sm text-muted-foreground">{profile.bio}</p>}
-            <div className="flex items-center gap-4 mt-3 flex-wrap">
-              <div className="flex items-center gap-1.5 text-sm">
-                <Award className="h-4 w-4 text-primary" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {profile.display_name || t("profile.defaultName")}
+                </h1>
+                {profile.username && <p className="text-sm text-muted-foreground truncate">@{profile.username}</p>}
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {!isOwnProfile && profile.id && (
+                  <FollowButton targetType="user" targetId={profile.id} showCount />
+                )}
+                {isOwnProfile && !editing && (
+                  <Button variant="outline" size="sm" onClick={onStartEdit} className="h-8">
+                    <Pencil className="h-3 w-3 sm:mr-1" />
+                    <span className="hidden sm:inline">{t("profile.editBtn")}</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+            {profile.bio && <p className="mt-2 text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none">{profile.bio}</p>}
+            <div className="flex items-center gap-3 sm:gap-4 mt-2.5 sm:mt-3 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                 <span className="font-semibold">{profile.reputation_score}</span>
                 <span className="text-muted-foreground">{t("profile.points")}</span>
               </div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 {t("profile.joined")} {new Date(profile.created_at).toLocaleDateString(LOCALE_MAP[locale] || "vi-VN")}
               </div>
             </div>
             {badges && badges.length > 0 && (
-              <div className="flex gap-2 mt-3 flex-wrap">
+              <div className="flex gap-1.5 sm:gap-2 mt-2.5 sm:mt-3 flex-wrap">
                 {badges.map((b: any) => {
                   const info = badgeLabels[b.badge_type] || { label: b.badge_type, color: "bg-muted text-muted-foreground", icon: "🏅" };
                   return (
-                    <Badge key={b.id} className={`${info.color} text-xs`}>
+                    <Badge key={b.id} className={`${info.color} text-[10px] sm:text-xs`}>
                       {info.icon} {info.label}
                     </Badge>
                   );
                 })}
               </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {!isOwnProfile && profile.id && (
-              <FollowButton targetType="user" targetId={profile.id} showCount />
-            )}
-            {isOwnProfile && !editing && (
-              <Button variant="outline" size="sm" onClick={onStartEdit}>
-                <Pencil className="mr-1 h-3 w-3" /> {t("profile.editBtn")}
-              </Button>
             )}
           </div>
         </div>
@@ -350,29 +355,29 @@ const ProfilePage = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
                 {[
                   { icon: BookOpen, label: t("profile.statReviews"), value: stats?.reviews || 0 },
                   { icon: MessageSquare, label: t("profile.statComments"), value: stats?.comments || 0 },
                   { icon: Star, label: t("profile.statQuestions"), value: stats?.questions || 0 },
                 ].map((s) => (
                   <Card key={s.label}>
-                    <CardContent className="p-4 text-center">
-                      <s.icon className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-                      <p className="text-2xl font-bold">{s.value}</p>
-                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <s.icon className="h-4 w-4 sm:h-5 sm:w-5 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xl sm:text-2xl font-bold">{s.value}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{s.label}</p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
               <Tabs defaultValue="reviews">
-                <TabsList>
-                  <TabsTrigger value="reviews">{t("profile.tabReviews")}</TabsTrigger>
-                  <TabsTrigger value="activity">{t("profile.tabActivity")}</TabsTrigger>
-                  {isOwnProfile && <TabsTrigger value="bookmarks">{t("profile.tabBookmarks")}</TabsTrigger>}
-                  {isOwnProfile && <TabsTrigger value="collections">{t("profile.tabCollections")}</TabsTrigger>}
-                  {isOwnProfile && <TabsTrigger value="notifications">Thông báo</TabsTrigger>}
+                <TabsList className="w-full h-auto flex-wrap gap-1 sm:gap-0 sm:w-auto sm:h-10">
+                  <TabsTrigger value="reviews" className="text-xs sm:text-sm flex-1 sm:flex-initial">{t("profile.tabReviews")}</TabsTrigger>
+                  <TabsTrigger value="activity" className="text-xs sm:text-sm flex-1 sm:flex-initial">{t("profile.tabActivity")}</TabsTrigger>
+                  {isOwnProfile && <TabsTrigger value="bookmarks" className="text-xs sm:text-sm flex-1 sm:flex-initial">{t("profile.tabBookmarks")}</TabsTrigger>}
+                  {isOwnProfile && <TabsTrigger value="collections" className="text-xs sm:text-sm flex-1 sm:flex-initial">{t("profile.tabCollections")}</TabsTrigger>}
+                  {isOwnProfile && <TabsTrigger value="notifications" className="text-xs sm:text-sm flex-1 sm:flex-initial">Thông báo</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="reviews" className="space-y-3 mt-4">
